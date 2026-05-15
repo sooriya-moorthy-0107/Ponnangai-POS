@@ -50,7 +50,7 @@
 
         {% for item in bill.items %}
         <div class="receipt-item">
-            <div style="flex: 2; word-break: break-word;">{{ item.product.name }}</div>
+            <div style="flex: 2; word-break: break-word;">{{ item.product.name if item.product else 'Deleted Item' }}</div>
             <div style="flex: 1; text-align: center;">{{ item.quantity }}</div>
             <div style="flex: 1; text-align: right;">{{ "%.2f"|format(item.price_at_sale * item.quantity) }}</div>
         </div>

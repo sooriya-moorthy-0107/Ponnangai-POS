@@ -509,6 +509,29 @@ async def add_product(request: Request, data: dict, db: Session = Depends(get_db
     
     return {"status": "success", "detail": "Product added successfully"}
 
+@app.post("/api/products/delete")
+async def delete_product(request: Request, data: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Manager", "Owner"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        
+    product_id = data.get("id")
+    if product_id is None:
+        return JSONResponse(status_code=400, content={"detail": "Missing product ID"})
+        
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return JSONResponse(status_code=404, content={"detail": "Product not found"})
+        
+    # Delete associated shop inventory records first
+    db.query(ShopInventory).filter(ShopInventory.product_id == product_id).delete()
+    
+    # Delete the product
+    db.delete(product)
+    db.commit()
+    
+    return {"status": "success", "detail": f"Product '{product.name}' deleted successfully"}
+
 @app.post("/api/users/add")
 async def add_user(request: Request, data: dict, db: Session = Depends(get_db)):
     user = get_current_user(request, db)

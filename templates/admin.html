@@ -101,6 +101,7 @@
                                 <th>Stock</th>
                                 {% if user.role in ['Admin', 'Manager', 'Owner'] %}
                                 <th>Update Stock</th>
+                                <th>Action</th>
                                 {% endif %}
                             </tr>
                         </thead>
@@ -122,6 +123,9 @@
                                         <input type="number" id="stock-{{ sk.id }}-{{ product.id }}" value="{{ stk }}" style="margin-bottom: 0; padding: 6px;">
                                         <button class="btn btn-small" onclick="updateStock({{ sk.id }}, {{ product.id }})">Save</button>
                                     </div>
+                                </td>
+                                <td>
+                                    <button class="btn btn-destructive btn-small" onclick="deleteProduct({{ product.id }}, '{{ product.name }}')">Del</button>
                                 </td>
                                 {% endif %}
                             </tr>
@@ -380,6 +384,27 @@
                 }
             } catch (err) {
                 alert('Error adding product.');
+            }
+        }
+
+        async function deleteProduct(productId, productName) {
+            if (confirm(`Are you sure you want to permanently DELETE product '${productName}'? This will remove it from all shops.`)) {
+                try {
+                    const response = await fetch('/api/products/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: productId })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        alert(data.detail || 'Product deleted successfully!');
+                        location.reload();
+                    } else {
+                        alert(data.detail || 'Failed to delete product.');
+                    }
+                } catch (err) {
+                    alert('Error deleting product.');
+                }
             }
         }
 
