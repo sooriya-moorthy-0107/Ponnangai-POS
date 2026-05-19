@@ -1,0 +1,28 @@
+# Git
+.git
+.github
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Databases & data (should be mounted via volumes instead of baked in)
+*.db
+*.sqlite3
+photos/
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+
+# Docker files (not needed inside image)
+Dockerfile
+docker-compose.yml
+.dockerignore

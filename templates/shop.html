@@ -11,6 +11,10 @@
         <h1>Ponnangai POS</h1>
         <div style="display: flex; gap: 8px; align-items: center;">
             <span style="font-size: 14px; font-weight: 600;">{{ user.username }} ({{ user.role }})</span>
+<<<<<<< HEAD
+=======
+            <button class="btn btn-secondary btn-small" onclick="document.getElementById('bulk-upload-form').style.display='flex'">Bulk CSV</button>
+>>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
             <a href="/logout" class="btn btn-destructive btn-small" style="text-decoration: none;">Logout</a>
             {% if user.role in ['Admin', 'Owner', 'Manager'] %}
                 <a href="/admin" class="btn btn-secondary btn-small" style="text-decoration: none;">Dashboard</a>
@@ -19,6 +23,21 @@
     </header>
 
     <div class="container">
+<<<<<<< HEAD
+=======
+        <!-- Bulk Upload Form for Shopkeepers -->
+        <div id="bulk-upload-form" style="display: none; gap: 8px; margin-bottom: 16px; flex-direction: column; background: #EBF8FF; padding: 12px; border-radius: var(--radius); border: 1px solid #90CDF4;">
+            <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #2B6CB0;">Bulk Update Inventory (CSV)</h3>
+            <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">1. Download the template for your shop.<br>2. Fill in the "New Stock" column and upload.</p>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-small" onclick="downloadTemplate()">Download Template</button>
+                <input type="file" id="csv-file" accept=".csv" style="font-size: 12px;">
+                <button class="btn btn-small" onclick="uploadCsv()">Upload</button>
+                <button class="btn btn-secondary btn-small" onclick="document.getElementById('bulk-upload-form').style.display='none'">Cancel</button>
+            </div>
+        </div>
+        
+>>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
         <div class="shop-layout">
             <!-- Bill History Sidebar -->
             <div class="bill-history-section card">
@@ -91,5 +110,42 @@
     </div>
 
     <script src="/static/js/app.js"></script>
+<<<<<<< HEAD
+=======
+    <script>
+        function downloadTemplate() {
+            window.location.href = `/api/inventory/template/{{ user.id }}`;
+        }
+
+        async function uploadCsv() {
+            const fileInput = document.getElementById('csv-file');
+            
+            if (fileInput.files.length === 0) {
+                alert('Please select a CSV file to upload.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('shopkeeper_id', {{ user.id }});
+            
+            try {
+                const response = await fetch('/api/inventory/bulk_upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert(data.detail || 'Inventory updated successfully!');
+                    location.reload();
+                } else {
+                    alert(data.detail || 'Failed to upload CSV.');
+                }
+            } catch (err) {
+                alert('Error uploading CSV.');
+            }
+        }
+    </script>
+>>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
 </body>
 </html>
