@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - Ponnangai POS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card login-box">
+            <h2 style="text-align: center; color: var(--primary); margin-bottom: 24px;">Ponnangai Enterprises</h2>
+            
+            {% if error %}
+            <div style="background-color: #FED7D7; color: var(--destructive); padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center; font-size: 14px;">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form action="/login" method="POST">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Username</label>
+                    <input type="text" name="username" placeholder="Enter username" required autocomplete="off">
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Password</label>
+                    <input type="password" name="password" placeholder="Enter password" required>
+                </div>
+                
+                <button type="submit" class="btn">Login to POS</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

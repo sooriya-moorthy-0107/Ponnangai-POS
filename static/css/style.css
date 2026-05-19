@@ -1,0 +1,353 @@
+:root {
+    --primary: #008080;
+    --secondary: #FFB300;
+    --bg-color: #F7F9FA;
+    --card-bg: #FFFFFF;
+    --text-color: #2D3748;
+    --destructive: #E53E3E;
+    --border-radius: 8px;
+    --spacing: 16px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    padding: var(--spacing);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Headers */
+header {
+    background-color: var(--card-bg);
+    padding: var(--spacing);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #E2E8F0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+header h1 {
+    font-size: 1.2rem;
+    color: var(--primary);
+}
+
+/* Buttons */
+.btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    transition: opacity 0.2s;
+}
+
+.btn:active {
+    opacity: 0.8;
+}
+
+.btn-secondary {
+    background-color: var(--secondary);
+    color: var(--text-color);
+}
+
+.btn-destructive {
+    background-color: var(--destructive);
+    color: white;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
+    width: auto;
+}
+
+/* Inputs */
+input, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--border-radius);
+    font-size: 16px; /* Prevents zoom on iOS */
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    margin-bottom: var(--spacing);
+}
+
+input:focus, select:focus {
+    outline: 2px solid var(--primary);
+    border-color: transparent;
+}
+
+/* Cards & Layouts */
+.card {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: var(--spacing);
+    border: 1px solid #E2E8F0;
+    margin-bottom: var(--spacing);
+}
+
+/* Shop Grid Layout */
+.shop-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+}
+
+@media (min-width: 768px) {
+    .shop-layout {
+        flex-direction: row;
+    }
+    .bill-history-section {
+        flex: 0.8;
+        position: sticky;
+        top: 80px;
+        height: calc(100vh - 100px);
+        overflow-y: auto;
+        min-width: 200px;
+    }
+    .product-grid {
+        flex: 2;
+    }
+    .cart-section {
+        flex: 1;
+        position: sticky;
+        top: 80px;
+        height: calc(100vh - 100px);
+        overflow-y: auto;
+        min-width: 280px;
+    }
+}
+
+.bill-history-section {
+    order: -1; /* Ensure it comes first on mobile too */
+}
+
+.history-card {
+    background-color: var(--card-bg);
+    border: 1px solid #E2E8F0;
+    border-radius: var(--border-radius);
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.history-card-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--primary);
+}
+
+.history-card-details {
+    color: #718096;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.product-card {
+    background-color: var(--card-bg);
+    border: 1px solid #E2E8F0;
+    border-radius: var(--border-radius);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.product-image {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    image-rendering: crisp-edges; /* Keep images crisp */
+    background-color: #f0f0f0;
+}
+
+.product-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+
+.product-price {
+    color: var(--primary);
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+/* Cart Item */
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 8px 0;
+}
+
+.cart-item-info {
+    flex: 1;
+}
+
+.cart-item-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.cart-item-price {
+    font-size: 12px;
+    color: #718096;
+}
+
+.cart-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart-qty {
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Bill Summary */
+.bill-summary {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px dashed #E2E8F0;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.summary-total {
+    font-weight: bold;
+    font-size: 18px;
+    color: var(--primary);
+}
+
+/* Login box */
+.login-box {
+    max-width: 400px;
+    margin: 80px auto;
+}
+
+/* Tables for Admin */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th, .admin-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.admin-table th {
+    background-color: var(--bg-color);
+    font-weight: 600;
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing);
+    margin-bottom: var(--spacing);
+}
+
+.stat-card {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary);
+    margin-top: 8px;
+}
+
+/* Receipt Print Styles */
+@media print {
+    @page {
+        margin: 0;
+    }
+    body {
+        background-color: white;
+    }
+    body * {
+        visibility: hidden;
+    }
+    #receipt-container, #receipt-container * {
+        visibility: visible;
+    }
+    #receipt-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 58mm;
+        margin: 0;
+        padding: 0 2mm;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+        color: #000;
+        line-height: 1.2;
+    }
+    .no-print {
+        display: none !important;
+    }
+    .receipt-header {
+        text-align: center;
+        margin-bottom: 8px;
+        border-bottom: 1px dashed #000;
+        padding-bottom: 4px;
+    }
+    .receipt-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+    }
+    .receipt-total {
+        border-top: 1px dashed #000;
+        margin-top: 4px;
+        padding-top: 4px;
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+    }
+}

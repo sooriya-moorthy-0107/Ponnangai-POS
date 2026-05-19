@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt #{{ bill.id }} - Ponnangai POS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* Extra styles specifically for screen viewing of the receipt */
+        .receipt-preview-card {
+            background: white;
+            max-width: 300px;
+            margin: 40px auto;
+            padding: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid #E2E8F0;
+        }
+    </style>
+</head>
+<body style="background-color: #E2E8F0;">
+
+    <!-- UI Controls (Hidden during print) -->
+    <div class="no-print" style="text-align: center; margin-top: 20px;">
+        <button class="btn" style="width: auto; margin-right: 8px;" onclick="window.print()">🖨️ Print Receipt</button>
+        <a href="/shop" class="btn btn-secondary" style="width: auto; text-decoration: none; display: inline-block;">Back to POS</a>
+    </div>
+
+    <!-- Actual Receipt Content -->
+    <div class="receipt-preview-card" id="receipt-container">
+        
+        <div class="receipt-header">
+            <h2 style="font-size: 16px; margin-bottom: 4px;">Ponnangai Enterprises</h2>
+            <div style="font-size: 12px; margin-bottom: 2px;">Housekeeping Products</div>
+            <div style="font-size: 10px; margin-bottom: 4px;">Thank you for shopping!</div>
+            
+            <div style="display: flex; justify-content: space-between; font-size: 10px; margin-top: 8px;">
+                <span>Bill #: {{ bill.id }}</span>
+                <span>{{ bill.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            <div style="text-align: left; font-size: 10px; margin-top: 2px;">
+                Cashier: {{ bill.cashier_name or 'Unknown' }} | Mode: {{ bill.payment_mode }}
+            </div>
+        </div>
+
+        <div style="margin-top: 8px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-weight: bold; font-size: 10px; display: flex;">
+            <div style="flex: 2;">Item</div>
+            <div style="flex: 1; text-align: center;">Qty</div>
+            <div style="flex: 1; text-align: right;">Total</div>
+        </div>
+
+        {% for item in bill.items %}
+        <div class="receipt-item">
+            <div style="flex: 2; word-break: break-word;">{{ item.product.name if item.product else 'Deleted Item' }}</div>
+            <div style="flex: 1; text-align: center;">{{ item.quantity }}</div>
+            <div style="flex: 1; text-align: right;">{{ "%.2f"|format(item.price_at_sale * item.quantity) }}</div>
+        </div>
+        {% endfor %}
+
+        <div style="margin-top: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                <span>Subtotal:</span>
+                <span>{{ "%.2f"|format(bill.total_amount) }}</span>
+            </div>
+            {% if bill.discount > 0 %}
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #4A5568;">
+                <span>Discount:</span>
+                <span>- {{ "%.2f"|format(bill.discount) }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="receipt-total">
+                <span>FINAL TOTAL:</span>
+                <span>₹{{ "%.2f"|format(bill.final_amount) }}</span>
+            </div>
+        </div>
+        
+        <div style="text-align: center; font-size: 10px; margin-top: 16px; font-style: italic;">
+            Please visit again!
+        </div>
+
+    </div>
+
+    <script>
+        // Auto-trigger print dialog when the page loads
+        window.onload = function() {
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        };
+    </script>
+</body>
+</html>
