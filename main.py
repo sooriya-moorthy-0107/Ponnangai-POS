@@ -140,12 +140,8 @@ async def login_page(request: Request):
 
 @app.post("/login")
 async def do_login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-<<<<<<< HEAD
-    user = db.query(User).filter(User.username == username).first()
-=======
     username_clean = username.strip()
     user = db.query(User).filter(User.username == username_clean).first()
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
     if not user or user.password != password:
         return templates.TemplateResponse(request=request, name="login.html", context={"request": request, "error": "Invalid username or password"})
     
@@ -416,18 +412,11 @@ async def update_inventory(request: Request, data: dict, db: Session = Depends(g
 @app.get("/api/inventory/template/{shopkeeper_id}")
 async def get_inventory_template(request: Request, shopkeeper_id: int, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-<<<<<<< HEAD
-    if not user or user.role not in ["Admin", "Manager", "Owner"]:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-        
-=======
     if not user or user.role not in ["Admin", "Manager", "Owner", "Shopkeeper"]:
         raise HTTPException(status_code=403, detail="Unauthorized")
         
     if user.role == "Shopkeeper" and user.id != shopkeeper_id:
         raise HTTPException(status_code=403, detail="Unauthorized: Shopkeepers can only access their own inventory template.")
-        
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
     shop_invs = db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == shopkeeper_id).all()
     
     output = io.StringIO()
@@ -445,18 +434,11 @@ async def get_inventory_template(request: Request, shopkeeper_id: int, db: Sessi
 @app.post("/api/inventory/bulk_upload")
 async def bulk_upload_inventory(request: Request, shopkeeper_id: int = Form(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-<<<<<<< HEAD
-    if not user or user.role not in ["Admin", "Manager", "Owner"]:
-        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
-        
-=======
     if not user or user.role not in ["Admin", "Manager", "Owner", "Shopkeeper"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
         
     if user.role == "Shopkeeper" and user.id != shopkeeper_id:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized: Shopkeepers can only update their own inventory."})
-        
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
     if not file.filename.endswith('.csv'):
         return JSONResponse(status_code=400, content={"detail": "File must be a CSV"})
         
@@ -532,8 +514,6 @@ async def add_product(request: Request, data: dict, db: Session = Depends(get_db
     
     return {"status": "success", "detail": "Product added successfully"}
 
-<<<<<<< HEAD
-=======
 @app.get("/api/products/template")
 async def get_products_template(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -611,8 +591,6 @@ async def bulk_upload_products(request: Request, file: UploadFile = File(...), d
                 continue
                 
     return {"status": "success", "detail": f"Successfully added {added_count} products and initialized inventory."}
-
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
 @app.post("/api/products/delete")
 async def delete_product(request: Request, data: dict, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -677,11 +655,7 @@ async def edit_user(request: Request, data: dict, db: Session = Depends(get_db))
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
         
     target_id = data.get("user_id")
-<<<<<<< HEAD
-    new_username = data.get("username")
-=======
     new_username = data.get("username", "").strip() if data.get("username") else None
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
     new_role = data.get("role")
     
     if not target_id or not new_username or not new_role:
@@ -753,8 +727,6 @@ async def get_shop_analytics(request: Request, shop_id: int, db: Session = Depen
         "breakdown": breakdown
     }
 
-<<<<<<< HEAD
-=======
 @app.post("/api/products/{product_id}/image")
 async def upload_product_image(request: Request, product_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -785,8 +757,6 @@ async def upload_product_image(request: Request, product_id: int, file: UploadFi
     db.commit()
     
     return {"status": "success", "detail": "Photo updated successfully!", "image_filename": new_filename}
-
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

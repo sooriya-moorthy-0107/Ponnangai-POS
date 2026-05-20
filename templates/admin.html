@@ -1,19 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<<<<<<< HEAD
-=======
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ user.role }} Dashboard - Ponnangai POS</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<<<<<<< HEAD
-=======
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
 <body>
     <header>
         <h1>{{ user.role }} Dashboard</h1>
@@ -35,41 +29,17 @@
                 <div style="color: #718096; font-size: 14px; font-weight: 600;">Total Sales</div>
                 <div class="stat-value">{{ total_sales }} Bills</div>
             </div>
-<<<<<<< HEAD
-            <div class="card stat-card" style="border-color: {% if low_stock_alerts|length > 0 %}var(--destructive){% else %}#E2E8F0{% endif %};">
-                <div style="color: #718096; font-size: 14px; font-weight: 600;">Low Stock (&lt; 10)</div>
-                <div class="stat-value" style="color: {% if low_stock_alerts|length > 0 %}var(--destructive){% else %}var(--primary){% endif %};">
-=======
             <div class="card stat-card"
                 style="border-color: {% if low_stock_alerts|length > 0 %}var(--destructive){% else %}#E2E8F0{% endif %};">
                 <div style="color: #718096; font-size: 14px; font-weight: 600;">Low Stock (&lt; 10)</div>
                 <div class="stat-value"
                     style="color: {% if low_stock_alerts|length > 0 %}var(--destructive){% else %}var(--primary){% endif %};">
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                     {{ low_stock_alerts|length }} Items
                 </div>
             </div>
         </div>
 
         <div style="display: flex; gap: var(--spacing); flex-wrap: wrap;">
-<<<<<<< HEAD
-            
-            <!-- Inventory Management (Admin/Manager) -->
-            <div class="card" style="flex: 2; min-width: 300px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">Inventory Management</h2>
-                    {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-secondary btn-small" onclick="document.getElementById('bulk-upload-form').style.display='flex'">Bulk CSV</button>
-                        <button class="btn btn-small" onclick="document.getElementById('add-product-form').style.display='flex'">+ Add Product</button>
-                    </div>
-                    {% endif %}
-                </div>
-                
-                <div style="margin-bottom: 16px;">
-                    <label style="font-weight: 600; margin-right: 8px;">Select Shop:</label>
-                    <select id="shop-selector" onchange="showInventory(this.value)" style="padding: 6px; border-radius: 4px; border: 1px solid #CBD5E0;">
-=======
 
             <!-- Inventory Management (Admin/Manager) -->
             <div class="card" style="flex: 2; min-width: 300px;">
@@ -96,60 +66,20 @@
                     <label style="font-weight: 600; margin-right: 8px;">Select Shop:</label>
                     <select id="shop-selector" onchange="showInventory(this.value)"
                         style="padding: 6px; border-radius: 4px; border: 1px solid #CBD5E0;">
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                         {% for sk in shopkeepers %}
                         <option value="{{ sk.id }}">{{ sk.username }}</option>
                         {% endfor %}
                     </select>
                 </div>
-<<<<<<< HEAD
-                
-                {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                <div id="add-product-form" style="display: none; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
-=======
 
                 {% if user.role in ['Admin', 'Manager', 'Owner'] %}
                 <div id="add-product-form"
                     style="display: none; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                     <div style="flex: 1; min-width: 150px;">
                         <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Name</label>
                         <input type="text" id="new-product-name" placeholder="e.g. Rice 1kg" style="margin-bottom: 0;">
                     </div>
                     <div style="flex: 1; min-width: 100px;">
-<<<<<<< HEAD
-                        <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Price (₹)</label>
-                        <input type="number" id="new-product-price" placeholder="0.00" step="0.01" style="margin-bottom: 0;">
-                    </div>
-                    <div style="flex: 1; min-width: 100px;">
-                        <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Initial Stock</label>
-                        <input type="number" id="new-product-stock" placeholder="0" style="margin-bottom: 0;">
-                    </div>
-                    <button class="btn" onclick="addProduct()">Save</button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('add-product-form').style.display='none'">Cancel</button>
-                </div>
-                {% endif %}
-                
-                {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                <div id="bulk-upload-form" style="display: none; gap: 8px; margin-bottom: 16px; flex-direction: column; background: #EBF8FF; padding: 12px; border-radius: var(--radius); border: 1px solid #90CDF4;">
-                    <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #2B6CB0;">Bulk Update Inventory (CSV)</h3>
-                    <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">1. Select a shop from the dropdown above.<br>2. Download the template, fill in the "New Stock" column, and upload.</p>
-                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <button class="btn btn-secondary btn-small" onclick="downloadTemplate()">Download Template</button>
-                        <input type="file" id="csv-file" accept=".csv" style="font-size: 12px;">
-                        <button class="btn btn-small" onclick="uploadCsv()">Upload</button>
-                        <button class="btn btn-secondary btn-small" onclick="document.getElementById('bulk-upload-form').style.display='none'">Cancel</button>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <div style="overflow-x: auto;">
-                    {% for sk in shopkeepers %}
-                    <table id="inventory-table-{{ sk.id }}" class="admin-table inventory-table-container" style="{% if loop.index != 1 %}display: none;{% endif %}">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-=======
                         <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Price
                             (₹)</label>
                         <input type="number" id="new-product-price" placeholder="0.00" step="0.01"
@@ -215,7 +145,6 @@
                             <tr>
                                 <th>ID</th>
                                 <th style="width: 50px;">Image</th>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                                 <th>Product Name</th>
                                 <th>Price (₹)</th>
                                 <th>Stock</th>
@@ -229,8 +158,6 @@
                             {% for product in products %}
                             <tr>
                                 <td>{{ product.id }}</td>
-<<<<<<< HEAD
-=======
                                 <td>
                                     {% if product.image_filename %}
                                     <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #E2E8F0;">
@@ -238,37 +165,18 @@
                                     <div style="width: 40px; height: 40px; background-color: #EDF2F7; border-radius: 4px; border: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #A0AEC0;">None</div>
                                     {% endif %}
                                 </td>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                                 <td>{{ product.name }}</td>
                                 <td>{{ "%.2f"|format(product.price) }}</td>
                                 <td>
                                     {% set stk = shop_inventory.get(sk.id, {}).get(product.id, 0) %}
-<<<<<<< HEAD
-                                    <span style="{% if stk < 10 %}color: var(--destructive); font-weight: bold;{% endif %}">
-=======
                                     <span
                                         style="{% if stk < 10 %}color: var(--destructive); font-weight: bold;{% endif %}">
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                                         {{ stk }}
                                     </span>
                                 </td>
                                 {% if user.role in ['Admin', 'Manager', 'Owner'] %}
                                 <td>
                                     <div style="display: flex; gap: 4px; max-width: 150px;">
-<<<<<<< HEAD
-                                        <input type="number" id="stock-{{ sk.id }}-{{ product.id }}" value="{{ stk }}" style="margin-bottom: 0; padding: 6px;">
-                                        <button class="btn btn-small" onclick="updateStock({{ sk.id }}, {{ product.id }})">Save</button>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button class="btn btn-destructive btn-small" onclick="deleteProduct({{ product.id }}, '{{ product.name }}')">Del</button>
-                                </td>
-                                {% endif %}
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" style="text-align: center; color: #718096;">No products found in DB.</td>
-=======
                                         <input type="number" id="stock-{{ sk.id }}-{{ product.id }}" value="{{ stk }}"
                                             style="margin-bottom: 0; padding: 6px;">
                                         <button class="btn btn-small"
@@ -286,7 +194,6 @@
                             <tr>
                                 <td colspan="5" style="text-align: center; color: #718096;">No products found in DB.
                                 </td>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -297,16 +204,6 @@
 
             <!-- User Management & Support -->
             <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: var(--spacing);">
-<<<<<<< HEAD
-                
-                <div class="card">
-                    <h2 style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">Shop Performance</h2>
-                    <ul style="list-style: none; padding: 0;">
-                        {% for sp in shop_performance %}
-                        <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;" onclick="viewShopAnalytics({{ sp.shopkeeper.id }})" onmouseover="this.style.backgroundColor='#F7FAFC'" onmouseout="this.style.backgroundColor='transparent'">
-                            <span><strong>{{ sp.shopkeeper.username }}</strong></span>
-                            <span style="text-align: right;">{{ sp.sales }} Bills<br><span style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue) }}</span></span>
-=======
 
                 <div class="card">
                     <h2
@@ -322,24 +219,12 @@
                             <span style="text-align: right;">{{ sp.sales }} Bills<br><span
                                     style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue)
                                     }}</span></span>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                         </li>
                         {% endfor %}
                     </ul>
                 </div>
 
                 <div class="card" style="max-height: 300px; overflow-y: auto;">
-<<<<<<< HEAD
-                    <h2 style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">Low Stock Breakdown</h2>
-                    <ul style="list-style: none; padding: 0;">
-                        {% for alert in low_stock_alerts %}
-                        <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
-                            <span><strong>{{ alert.product.name }}</strong><br><span style="font-size: 12px; color: #718096;">Shop: {{ alert.shopkeeper.username }}</span></span>
-                            <span style="color: var(--destructive); font-weight: bold; text-align: right;">{{ alert.stock }} left</span>
-                        </li>
-                        {% else %}
-                        <li style="padding: 8px 0; color: #718096; text-align: center;">All stock levels are healthy!</li>
-=======
                     <h2
                         style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
                         Low Stock Breakdown</h2>
@@ -356,18 +241,11 @@
                         {% else %}
                         <li style="padding: 8px 0; color: #718096; text-align: center;">All stock levels are healthy!
                         </li>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                         {% endfor %}
                     </ul>
                 </div>
 
                 <div class="card">
-<<<<<<< HEAD
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">Staff Logins</h2>
-                        {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                        <button class="btn btn-small" onclick="hideAddUserForm(); document.getElementById('add-user-form').style.display='flex'">+ Add User</button>
-=======
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                         <h2
@@ -377,24 +255,10 @@
                         <button class="btn btn-small"
                             onclick="hideAddUserForm(); document.getElementById('add-user-form').style.display='flex'">+
                             Add User</button>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                         {% endif %}
                     </div>
 
                     {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-<<<<<<< HEAD
-                    <div id="add-user-form" style="display: none; flex-direction: column; gap: 8px; margin-bottom: 16px; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
-                        <div>
-                            <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Username</label>
-                            <input type="text" id="new-username" style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Password</label>
-                            <input type="text" id="new-password" style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Role</label>
-=======
                     <div id="add-user-form"
                         style="display: none; flex-direction: column; gap: 8px; margin-bottom: 16px; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
                         <div>
@@ -410,7 +274,6 @@
                         <div>
                             <label
                                 style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Role</label>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                             <select id="new-role" style="margin-bottom: 0; padding: 8px; width: 100%;">
                                 {% if user.role == 'Admin' %}
                                 <option value="Admin">Admin</option>
@@ -422,28 +285,14 @@
                         </div>
                         <div style="display: flex; gap: 8px; margin-top: 8px;">
                             <button class="btn" id="save-user-btn" style="flex: 1;" onclick="addUser()">Save</button>
-<<<<<<< HEAD
-                            <button class="btn btn-secondary" style="flex: 1;" onclick="hideAddUserForm()">Cancel</button>
-=======
                             <button class="btn btn-secondary" style="flex: 1;"
                                 onclick="hideAddUserForm()">Cancel</button>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                         </div>
                     </div>
                     {% endif %}
 
                     <ul style="list-style: none; padding: 0;">
                         {% for u in users %}
-<<<<<<< HEAD
-                        <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
-                            <span><strong>{{ u.username }}</strong> ({{ u.role }})</span>
-                            {% if user.role == 'Admin' and u.id != user.id %}
-                                <div style="display: flex; gap: 4px;">
-                                    <button class="btn btn-secondary btn-small" onclick="resetPassword({{ u.id }}, '{{ u.username }}')">Pwd</button>
-                                    <button class="btn btn-secondary btn-small" onclick="showEditUser({{ u.id }}, '{{ u.username }}', '{{ u.role }}')">Edit</button>
-                                    <button class="btn btn-destructive btn-small" onclick="deleteUser({{ u.id }}, '{{ u.username }}')">Del</button>
-                                </div>
-=======
                         <li
                             style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
                             <span><strong>{{ u.username }}</strong> ({{ u.role }})</span>
@@ -456,7 +305,6 @@
                                 <button class="btn btn-destructive btn-small"
                                     onclick="deleteUser({{ u.id }}, '{{ u.username }}')">Del</button>
                             </div>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                             {% endif %}
                         </li>
                         {% endfor %}
@@ -465,29 +313,19 @@
 
                 <div class="card" style="background-color: #FFF5F5; border-color: #FEB2B2;">
                     <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">Need Help?</h2>
-<<<<<<< HEAD
-                    <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">If you encounter a bug or the system freezes, please take a screenshot.</p>
-                    <button class="btn btn-destructive" onclick="alert('Please take a screenshot of your issue and WhatsApp it to the Admin immediately.')">Report Bug</button>
-=======
                     <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">If you encounter a bug or the
                         system freezes, please take a screenshot.</p>
                     <button class="btn btn-destructive"
                         onclick="alert('Please take a screenshot of your issue and WhatsApp it to the Admin immediately.')">Report
                         Bug</button>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                 </div>
 
                 {% if user.role == 'Admin' %}
                 <div class="card" style="background-color: #FFF5F5; border-color: #FEB2B2;">
-<<<<<<< HEAD
-                    <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">System Reset (Danger)</h2>
-                    <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">Wipe all sales history and reset all stock to 0. Cannot be undone.</p>
-=======
                     <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">System Reset (Danger)
                     </h2>
                     <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">Wipe all sales history and reset
                         all stock to 0. Cannot be undone.</p>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                     <button class="btn btn-destructive" onclick="resetSystem()">Reset Database</button>
                 </div>
                 {% endif %}
@@ -497,22 +335,6 @@
     </div>
 
     <!-- Shop Analytics Modal -->
-<<<<<<< HEAD
-    <div id="analytics-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: var(--spacing);">
-        <div class="card" style="width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">
-                <h2 id="analytics-shop-name" style="font-size: 18px; color: var(--primary); margin: 0;">Shop Analytics</h2>
-                <button class="btn btn-secondary btn-small" onclick="document.getElementById('analytics-modal').style.display='none'">Close</button>
-            </div>
-            <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-                <div style="flex: 1; text-align: center; background: var(--bg-color); padding: 8px; border-radius: 8px;">
-                    <div style="font-size: 12px; color: #718096;">Total Sales</div>
-                    <div id="analytics-total-sales" style="font-weight: bold; font-size: 16px;">0</div>
-                </div>
-                <div style="flex: 1; text-align: center; background: var(--bg-color); padding: 8px; border-radius: 8px;">
-                    <div style="font-size: 12px; color: #718096;">Total Revenue</div>
-                    <div id="analytics-total-revenue" style="font-weight: bold; font-size: 16px; color: var(--primary);">₹0.00</div>
-=======
     <div id="analytics-modal"
         style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: var(--spacing);">
         <div class="card"
@@ -535,7 +357,6 @@
                     <div style="font-size: 12px; color: #718096;">Total Revenue</div>
                     <div id="analytics-total-revenue"
                         style="font-weight: bold; font-size: 16px; color: var(--primary);">₹0.00</div>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                 </div>
             </div>
             <table class="admin-table">
@@ -562,28 +383,16 @@
         async function uploadCsv() {
             const shopId = document.getElementById('shop-selector').value;
             const fileInput = document.getElementById('csv-file');
-<<<<<<< HEAD
-            
-=======
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
             if (fileInput.files.length === 0) {
                 alert('Please select a CSV file to upload.');
                 return;
             }
-<<<<<<< HEAD
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            formData.append('shopkeeper_id', shopId);
-            
-=======
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             formData.append('shopkeeper_id', shopId);
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
             try {
                 const response = await fetch('/api/inventory/bulk_upload', {
                     method: 'POST',
@@ -601,8 +410,6 @@
             }
         }
 
-<<<<<<< HEAD
-=======
         function downloadProductTemplate() {
             window.location.href = '/api/products/template';
         }
@@ -635,16 +442,11 @@
             }
         }
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
         async function resetSystem() {
             if (confirm("Are you absolutely sure? This will permanently delete ALL bills and sales history, and set ALL stock across ALL shops to 0.")) {
                 const check = prompt("Type RESET to confirm:");
                 if (check !== "RESET") return;
-<<<<<<< HEAD
-                
-=======
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                 try {
                     const response = await fetch('/api/system/reset', {
                         method: 'POST'
@@ -656,11 +458,7 @@
                     } else {
                         alert(data.detail || 'Failed to reset system.');
                     }
-<<<<<<< HEAD
-                } catch(err) {
-=======
                 } catch (err) {
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                     alert('Error resetting system.');
                 }
             }
@@ -669,11 +467,7 @@
         function showInventory(shopId) {
             document.querySelectorAll('.inventory-table-container').forEach(el => el.style.display = 'none');
             const target = document.getElementById('inventory-table-' + shopId);
-<<<<<<< HEAD
-            if(target) target.style.display = 'table';
-=======
             if (target) target.style.display = 'table';
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
         }
 
         async function updateStock(shopkeeperId, productId) {
@@ -709,15 +503,6 @@
                 const response = await fetch('/api/products/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-<<<<<<< HEAD
-                    body: JSON.stringify({ 
-                        name: name, 
-                        price: parseFloat(price), 
-                        stock: parseInt(stock) || 0 
-                    })
-                });
-                
-=======
                     body: JSON.stringify({
                         name: name,
                         price: parseFloat(price),
@@ -725,7 +510,6 @@
                     })
                 });
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                 if (response.ok) {
                     alert('Product added successfully!');
                     location.reload();
@@ -759,10 +543,6 @@
             }
         }
 
-<<<<<<< HEAD
-        async function addUser() {
-            const username = document.getElementById('new-username').value;
-=======
         async function uploadDirectPhoto(input, productId) {
             const file = input.files[0];
             if (!file) return;
@@ -790,7 +570,6 @@
 
         async function addUser() {
             const username = document.getElementById('new-username').value.trim();
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
             const password = document.getElementById('new-password').value;
             const role = document.getElementById('new-role').value;
 
@@ -805,11 +584,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password, role })
                 });
-<<<<<<< HEAD
-                
-=======
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                 const data = await response.json();
                 if (response.ok) {
                     alert(data.detail || 'User added successfully!');
@@ -855,37 +630,21 @@
         }
 
         function showEditUser(id, username, role) {
-<<<<<<< HEAD
-            document.getElementById('add-user-form').style.display='flex';
-=======
             document.getElementById('add-user-form').style.display = 'flex';
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
             document.getElementById('new-username').value = username;
             document.getElementById('new-role').value = role;
             document.getElementById('new-password').placeholder = "(Unchanged)";
             document.getElementById('new-password').value = "";
-<<<<<<< HEAD
-            
-            const saveBtn = document.getElementById('save-user-btn');
-            saveBtn.onclick = function() { editUser(id); };
-=======
 
             const saveBtn = document.getElementById('save-user-btn');
             saveBtn.onclick = function () { editUser(id); };
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
             saveBtn.innerText = "Update";
         }
 
         async function editUser(userId) {
-<<<<<<< HEAD
-            const username = document.getElementById('new-username').value;
-            const role = document.getElementById('new-role').value;
-            
-=======
             const username = document.getElementById('new-username').value.trim();
             const role = document.getElementById('new-role').value;
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
             try {
                 const response = await fetch('/api/users/edit', {
                     method: 'POST',
@@ -903,11 +662,7 @@
                 alert('Error updating user.');
             }
         }
-<<<<<<< HEAD
-        
-=======
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
         async function deleteUser(userId, username) {
             if (confirm(`Are you sure you want to permanently DELETE user '${username}'?`)) {
                 try {
@@ -937,11 +692,7 @@
                     document.getElementById('analytics-shop-name').innerText = `${data.shop_name} - Analytics`;
                     document.getElementById('analytics-total-sales').innerText = `${data.total_sales} Bills`;
                     document.getElementById('analytics-total-revenue').innerText = `₹${data.total_revenue.toFixed(2)}`;
-<<<<<<< HEAD
-                    
-=======
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                     const tbody = document.getElementById('analytics-breakdown-body');
                     tbody.innerHTML = '';
                     if (data.breakdown.length === 0) {
@@ -957,11 +708,7 @@
                             `;
                         });
                     }
-<<<<<<< HEAD
-                    
-=======
 
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
                     document.getElementById('analytics-modal').style.display = 'flex';
                 } else {
                     alert(data.detail || 'Failed to fetch analytics.');
@@ -972,9 +719,5 @@
         }
     </script>
 </body>
-<<<<<<< HEAD
-</html>
-=======
 
 </html>
->>>>>>> c387a2a56000d2d62acfbc5619c1bc5a2256aab4
