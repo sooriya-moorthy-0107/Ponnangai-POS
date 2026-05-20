@@ -5,87 +5,677 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt #{{ bill.id }} - Ponnangai POS</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <style>
-        /* Extra styles specifically for screen viewing of the receipt */
-        .receipt-preview-card {
-            background: white;
-            max-width: 300px;
-            margin: 40px auto;
-            padding: 16px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border: 1px solid #E2E8F0;
-        }
-    </style>
 </head>
 <body style="background-color: #E2E8F0;">
 
-    <!-- UI Controls (Hidden during print) -->
-    <div class="no-print" style="text-align: center; margin-top: 20px;">
-        <button class="btn" style="width: auto; margin-right: 8px;" onclick="window.print()">🖨️ Print Receipt</button>
-        <a href="/shop" class="btn btn-secondary" style="width: auto; text-decoration: none; display: inline-block;">Back to POS</a>
-    </div>
-
-    <!-- Actual Receipt Content -->
-    <div class="receipt-preview-card" id="receipt-container">
+    <div class="receipt-page-container">
         
-        <div class="receipt-header">
-            <h2 style="font-size: 16px; margin-bottom: 4px;">Ponnangai Enterprises</h2>
-            <div style="font-size: 12px; margin-bottom: 2px;">Housekeeping Products</div>
-            <div style="font-size: 10px; margin-bottom: 4px;">Thank you for shopping!</div>
-            
-            <div style="display: flex; justify-content: space-between; font-size: 10px; margin-top: 8px;">
-                <span>Bill #: {{ bill.id }}</span>
-                <span>{{ bill.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+        <!-- Interactive Controls (Hidden during print) -->
+        <div class="print-controls-panel no-print">
+            <h2 style="font-size: 18px; color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+                🖨️ Thermal Printer Setup
+            </h2>
+            <p style="font-size: 12px; color: #718096; margin-bottom: 16px;">
+                Optimize receipt layout specifically for your **Niyama** thermal printer.
+            </p>
+
+            <!-- Width Toggle -->
+            <div class="control-group">
+                <label class="control-label">Paper Roll Width</label>
+                <div class="width-toggle-buttons">
+                    <button type="button" class="toggle-btn" data-width="58">2" (58mm) Standard</button>
+                    <button type="button" class="toggle-btn" data-width="80">3" (80mm) Wide</button>
+                </div>
             </div>
-            <div style="text-align: left; font-size: 10px; margin-top: 2px;">
-                Cashier: {{ bill.cashier_name or 'Unknown' }} | Mode: {{ bill.payment_mode }}
+
+            <!-- Font Size -->
+            <div class="control-group">
+                <label class="control-label">Font Size</label>
+                <div class="slider-container">
+                    <input type="range" id="font-size-slider" min="9" max="14" step="1">
+                    <span class="slider-value" id="font-size-val">11px</span>
+                </div>
+            </div>
+
+            <!-- Line Height -->
+            <div class="control-group">
+                <label class="control-label">Line Spacing (Height)</label>
+                <div class="slider-container">
+                    <input type="range" id="line-height-slider" min="1.0" max="1.6" step="0.1">
+                    <span class="slider-value" id="line-height-val">1.2</span>
+                </div>
+            </div>
+
+            <!-- Character Column Width (Dynamic character limit fitting narrow rolls) -->
+            <div class="control-group">
+                <label class="control-label">Characters per Line (Width)</label>
+                <div class="slider-container">
+                    <input type="range" id="char-limit-slider" min="24" max="48" step="1">
+                    <span class="slider-value" id="char-limit-val">28 chars</span>
+                </div>
+                <p style="font-size: 10px; color: #718096; margin-top: 4px; line-height: 1.3;">
+                    Reduce this value (e.g. to 26 or 28 chars) if items or prices on the right edge are getting cut off or wrapping on your narrow paper.
+                </p>
+            </div>
+
+            <!-- Auto-Print Toggle -->
+            <div class="control-group auto-print-row" style="margin-bottom: 16px;">
+                <span class="control-label" style="margin-bottom: 0;">Auto-Print on Load</span>
+                <label class="switch-label">
+                    <input type="checkbox" id="auto-print-switch" class="switch-input">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+
+            <!-- Bluetooth Driverless Printing -->
+            <div style="margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px; margin-bottom: 16px;">
+                <label class="control-label" style="margin-bottom: 4px;">Direct Bluetooth Print (Driverless)</label>
+                <p style="font-size: 11px; color: #718096; margin-bottom: 10px;">
+                    Print directly to a wireless Bluetooth printer. No drivers required.
+                </p>
+                <div style="font-size: 12px; color: #4A5568; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                    <span>Status:</span>
+                    <span id="bt-status-text" style="font-weight: bold; color: #718096;">🔴 Disconnected</span>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <button type="button" class="btn btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;" onclick="connectBluetooth()">
+                        🔌 Connect Printer
+                    </button>
+                    <button type="button" id="bt-test-btn" class="btn btn-secondary" style="display: none; padding: 10px 12px; font-size: 13px; font-weight: 600; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;" onclick="printTestReceipt()">
+                        📄 Test Slip
+                    </button>
+                </div>
+                <button type="button" id="bt-print-btn" class="btn" style="display: none; width: 100%; margin-bottom: 10px; background-color: #2B6CB0; color: white;" onclick="printViaBluetooth()">
+                    🔵 Print via Bluetooth
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="border-top: 1px solid #E2E8F0; padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="window.print()">
+                    🖨️ Print via Browser Dialog
+                </button>
+                <a href="/shop" class="btn btn-secondary" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    ↩️ Back to POS Shop
+                </a>
             </div>
         </div>
 
-        <div style="margin-top: 8px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-weight: bold; font-size: 10px; display: flex;">
-            <div style="flex: 2;">Item</div>
-            <div style="flex: 1; text-align: center;">Qty</div>
-            <div style="flex: 1; text-align: right;">Total</div>
-        </div>
+        <!-- Live Receipt Preview Section -->
+        <div class="receipt-preview-section">
+            <div class="receipt-preview-card" id="receipt-container">
+                
+                <div class="receipt-header">
+                    <h2 style="font-size: 15px; margin-bottom: 4px; font-weight: 700; line-height: 1.2;">Ponnangai<br>Enterprises</h2>
+                    <div style="font-size: 11px; margin-bottom: 2px;">Housekeeping Products</div>
+                    <div style="font-size: 9px; margin-bottom: 4px;">Thank you for shopping!</div>
+                    
+                    <div class="receipt-bill-meta" style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 8px;">
+                        <span>Bill #: {{ bill.id }}</span>
+                        <span>{{ bill.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    <div class="receipt-cashier-meta" style="text-align: left; font-size: 9px; margin-top: 2px;">
+                        Cashier: {{ bill.cashier_name or 'Unknown' }} | Mode: {{ bill.payment_mode }}
+                    </div>
+                </div>
 
-        {% for item in bill.items %}
-        <div class="receipt-item">
-            <div style="flex: 2; word-break: break-word;">{{ item.product.name if item.product else 'Deleted Item' }}</div>
-            <div style="flex: 1; text-align: center;">{{ item.quantity }}</div>
-            <div style="flex: 1; text-align: right;">{{ "%.2f"|format(item.price_at_sale * item.quantity) }}</div>
-        </div>
-        {% endfor %}
+                <div style="margin-top: 8px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-weight: bold; font-size: 9px; display: flex;">
+                    <div style="flex: 2;">Item</div>
+                    <div style="flex: 1; text-align: center;">Qty</div>
+                    <div style="flex: 1; text-align: right;">Total</div>
+                </div>
 
-        <div style="margin-top: 8px;">
-            <div style="display: flex; justify-content: space-between; font-size: 10px;">
-                <span>Subtotal:</span>
-                <span>{{ "%.2f"|format(bill.total_amount) }}</span>
+                {% for item in bill.items %}
+                <div class="receipt-item">
+                    <div style="flex: 2; word-break: break-word;">{{ item.product.name if item.product else 'Deleted Item' }}</div>
+                    <div style="flex: 1; text-align: center;">{{ item.quantity }}</div>
+                    <div style="flex: 1; text-align: right;">{{ "%.2f"|format(item.price_at_sale * item.quantity) }}</div>
+                </div>
+                {% endfor %}
+
+                <div class="receipt-summary" style="margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 9px;">
+                        <span>Subtotal:</span>
+                        <span>{{ "%.2f"|format(bill.total_amount) }}</span>
+                    </div>
+                    {% if bill.discount > 0 %}
+                    <div style="display: flex; justify-content: space-between; font-size: 9px; color: #4A5568;">
+                        <span>Discount:</span>
+                        <span>- {{ "%.2f"|format(bill.discount) }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="receipt-total">
+                        <span>FINAL TOTAL:</span>
+                        <span>₹{{ "%.2f"|format(bill.final_amount) }}</span>
+                    </div>
+                </div>
+                
+                <div class="receipt-footer" style="text-align: center; font-size: 9px; margin-top: 16px; font-style: italic;">
+                    Please visit again!
+                </div>
+
             </div>
-            {% if bill.discount > 0 %}
-            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #4A5568;">
-                <span>Discount:</span>
-                <span>- {{ "%.2f"|format(bill.discount) }}</span>
-            </div>
-            {% endif %}
-            
-            <div class="receipt-total">
-                <span>FINAL TOTAL:</span>
-                <span>₹{{ "%.2f"|format(bill.final_amount) }}</span>
-            </div>
-        </div>
-        
-        <div style="text-align: center; font-size: 10px; margin-top: 16px; font-style: italic;">
-            Please visit again!
         </div>
 
     </div>
 
     <script>
-        // Auto-trigger print dialog when the page loads
+        // --- Printer Configuration State ---
+        const DEFAULT_SETTINGS = {
+            width: '58',
+            fontSize: '10',
+            lineHeight: '1.0',
+            charLimit: '32', // Calibrated ideal characters for 2" Niyama print
+            autoPrint: true
+        };
+
+        function getSettings() {
+            const width = localStorage.getItem('pos_print_width') || DEFAULT_SETTINGS.width;
+            const defaultCharLimit = width === '58' ? DEFAULT_SETTINGS.charLimit : '48';
+            return {
+                width: width,
+                fontSize: localStorage.getItem('pos_print_fontSize') || DEFAULT_SETTINGS.fontSize,
+                lineHeight: localStorage.getItem('pos_print_lineHeight') || DEFAULT_SETTINGS.lineHeight,
+                charLimit: localStorage.getItem('pos_print_charLimit') || defaultCharLimit,
+                autoPrint: localStorage.getItem('pos_print_autoPrint') !== 'false'
+            };
+        }
+
+        function saveSettings(settings) {
+            localStorage.setItem('pos_print_width', settings.width);
+            localStorage.setItem('pos_print_fontSize', settings.fontSize);
+            localStorage.setItem('pos_print_lineHeight', settings.lineHeight);
+            localStorage.setItem('pos_print_charLimit', settings.charLimit);
+            localStorage.setItem('pos_print_autoPrint', settings.autoPrint);
+        }
+
+        function applySettings() {
+            const settings = getSettings();
+            
+            // Width toggles
+            document.querySelectorAll('.width-toggle-buttons .toggle-btn').forEach(btn => {
+                if (btn.dataset.width === settings.width) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // Font size slider
+            const fontSlider = document.getElementById('font-size-slider');
+            const fontVal = document.getElementById('font-size-val');
+            fontSlider.value = settings.fontSize;
+            fontVal.textContent = settings.fontSize + 'px';
+            
+            // Line spacing slider
+            const heightSlider = document.getElementById('line-height-slider');
+            const heightVal = document.getElementById('line-height-val');
+            heightSlider.value = settings.lineHeight;
+            heightVal.textContent = settings.lineHeight;
+
+            // Character width slider limits & value adjustment
+            const charSlider = document.getElementById('char-limit-slider');
+            const charVal = document.getElementById('char-limit-val');
+            if (settings.width === '58') {
+                charSlider.min = '24';
+                charSlider.max = '34';
+            } else {
+                charSlider.min = '40';
+                charSlider.max = '48';
+            }
+            charSlider.value = settings.charLimit;
+            charVal.textContent = settings.charLimit + ' chars';
+            
+            // Auto print switch
+            const autoSwitch = document.getElementById('auto-print-switch');
+            autoSwitch.checked = settings.autoPrint;
+            
+            const is58 = settings.width === '58';
+            
+            // CRITICAL CALIBRATION FOR NARROW ROLLS (less than 5.5cm):
+            // Physical paper is 55mm / 58mm, but actual printable zone is narrower (typically 40mm - 48mm).
+            // We set CSS print width to 44mm (down from 58mm) to guarantee right-aligned margins fit inside without clipping.
+            const previewWidth = is58 ? '240px' : '380px';
+            const printWidth = is58 ? '44mm' : '72mm';
+            const printPadding = is58 ? '1mm' : '3mm';
+            
+            // Apply variables to preview card
+            const container = document.getElementById('receipt-container');
+            container.style.setProperty('--receipt-preview-width', previewWidth);
+            container.style.setProperty('--receipt-preview-font-size', settings.fontSize + 'px');
+            container.style.setProperty('--receipt-preview-line-height', settings.lineHeight);
+            
+            // Apply variables to actual printer Stylesheet
+            container.style.setProperty('--print-width', printWidth);
+            container.style.setProperty('--print-font-size', settings.fontSize + 'px');
+            container.style.setProperty('--print-line-height', settings.lineHeight);
+            container.style.setProperty('--print-padding', printPadding);
+        }
+
+        // --- Web Bluetooth Direct ESC/POS Driverless Engine ---
+        let bluetoothDevice = null;
+        let writeCharacteristic = null;
+
+        async function connectToDevice(device) {
+            const statusText = document.getElementById('bt-status-text');
+            statusText.innerHTML = `<span style="color: #D69E2E;">🟡 Connecting to ${device.name || 'Printer'}...</span>`;
+            
+            bluetoothDevice = device;
+            bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+            
+            const server = await bluetoothDevice.gatt.connect();
+            statusText.innerHTML = '<span style="color: #D69E2E;">🟡 Discovering printer services...</span>';
+            
+            let service = null;
+            const serviceUUIDs = [
+                '0000ffe0-0000-1000-8000-00805f9b34fb', // Standard BLE Serial (HM-10 module, widely used by Niyama/MTP)
+                '000018f0-0000-1000-8000-00805f9b34fb', // Standard Bluetooth Thermal printer service
+                '49535343-fe7d-4ae5-8fa9-9fafd205e455'  // Microchip BLE module
+            ];
+            
+            for (const uuid of serviceUUIDs) {
+                try {
+                    service = await server.getPrimaryService(uuid);
+                    if (service) break;
+                } catch (e) {
+                    console.log(`Service ${uuid} not discovered, checking next service...`);
+                }
+            }
+            
+            if (!service) {
+                try {
+                    const services = await server.getPrimaryServices();
+                    if (services.length > 0) {
+                        service = services[0];
+                    }
+                } catch (e) {
+                    console.error("Failed to inspect primary services", e);
+                }
+            }
+            
+            if (!service) {
+                throw new Error("No print service discovered on this Niyama device.");
+            }
+            
+            statusText.innerHTML = '<span style="color: #D69E2E;">🟡 Initializing data channel...</span>';
+            const characteristics = await service.getCharacteristics();
+            for (const char of characteristics) {
+                if (char.properties.write || char.properties.writeWithoutResponse) {
+                    writeCharacteristic = char;
+                    break;
+                }
+            }
+            
+            if (!writeCharacteristic) {
+                throw new Error("No write capability found on this Niyama device.");
+            }
+            
+            statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
+            document.getElementById('bt-print-btn').style.display = 'block';
+            document.getElementById('bt-test-btn').style.display = 'block';
+        }
+
+        async function connectBluetooth() {
+            const statusText = document.getElementById('bt-status-text');
+            statusText.innerHTML = '<span style="color: #D69E2E;">🟡 Connecting...</span>';
+            try {
+                if (!navigator.bluetooth) {
+                    throw new Error("Web Bluetooth API is not supported in this browser. Please use Google Chrome or Microsoft Edge on a Bluetooth-enabled PC.");
+                }
+
+                const options = {
+                    acceptAllDevices: true,
+                    optionalServices: [
+                        '0000ffe0-0000-1000-8000-00805f9b34fb',
+                        '000018f0-0000-1000-8000-00805f9b34fb',
+                        '49535343-fe7d-4ae5-8fa9-9fafd205e455'
+                    ]
+                };
+                
+                const device = await navigator.bluetooth.requestDevice(options);
+                await connectToDevice(device);
+            } catch (err) {
+                console.error("Bluetooth connection failed", err);
+                statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Connection Failed: ${err.message || err}</span>`;
+                writeCharacteristic = null;
+                bluetoothDevice = null;
+            }
+        }
+
+        async function autoConnectBluetooth() {
+            if (!navigator.bluetooth || !navigator.bluetooth.getDevices) {
+                return;
+            }
+            const statusText = document.getElementById('bt-status-text');
+            try {
+                const devices = await navigator.bluetooth.getDevices();
+                if (devices.length > 0) {
+                    statusText.innerHTML = `<span style="color: #D69E2E;">🟡 Auto-connecting to paired printer...</span>`;
+                    await connectToDevice(devices[0]);
+                }
+            } catch (err) {
+                console.error("Auto-connect failed", err);
+                statusText.innerHTML = '<span style="color: #718096; font-weight: bold;">🔴 Disconnected</span>';
+            }
+        }
+
+        function onDisconnected() {
+            const statusText = document.getElementById('bt-status-text');
+            statusText.innerHTML = '<span style="color: #718096; font-weight: bold;">🔴 Disconnected</span>';
+            writeCharacteristic = null;
+            bluetoothDevice = null;
+            document.getElementById('bt-print-btn').style.display = 'none';
+            document.getElementById('bt-test-btn').style.display = 'none';
+            // Auto-reconnect in 2 seconds to make the connection highly stable & self-healing
+            setTimeout(autoConnectBluetooth, 2000);
+        }
+
+        // --- Lightweight ESC/POS Command Packetizer ---
+        class EscPosEncoder {
+            constructor(charLimit = 28) {
+                this.charLimit = charLimit;
+                this.buffer = [];
+            }
+
+            addRaw(bytes) {
+                this.buffer = this.buffer.concat(bytes);
+                return this;
+            }
+
+            init() {
+                this.addRaw([0x1B, 0x40]);
+                return this;
+            }
+
+            align(type) {
+                const alignMap = { left: 0x00, center: 0x01, right: 0x02 };
+                this.addRaw([0x1B, 0x61, alignMap[type] || 0x00]);
+                return this;
+            }
+
+            bold(enable) {
+                this.addRaw([0x1B, 0x45, enable ? 0x01 : 0x00]);
+                return this;
+            }
+
+            fontSize(size) {
+                if (size === 'double') {
+                    this.addRaw([0x1D, 0x21, 0x11]); // Double height + width
+                } else {
+                    this.addRaw([0x1D, 0x21, 0x00]); // Normal size
+                }
+                return this;
+            }
+
+            text(str) {
+                // Replaces ₹ with standard Rs. for legacy thermal print chipsets
+                let cleanStr = str.replace(/₹/g, 'Rs.');
+                const encoder = new TextEncoder();
+                const encoded = encoder.encode(cleanStr);
+                this.buffer = this.buffer.concat(Array.from(encoded));
+                return this;
+            }
+
+            line(str = '') {
+                this.text(str + '\n');
+                return this;
+            }
+
+            header(str) {
+                this.align('center').fontSize('double').bold(true).line(str).fontSize('normal').bold(false).align('left');
+                return this;
+            }
+
+            divider() {
+                this.line('-'.repeat(this.charLimit));
+                return this;
+            }
+
+            row(left, right) {
+                const spaceCount = this.charLimit - (left.length + right.length);
+                if (spaceCount > 0) {
+                    this.line(left + ' '.repeat(spaceCount) + right);
+                } else if (spaceCount === 0) {
+                    this.line(left + right);
+                } else {
+                    const maxLeftLen = this.charLimit - right.length - 1;
+                    const truncatedLeft = left.substring(0, maxLeftLen);
+                    const extraSpaces = this.charLimit - (truncatedLeft.length + right.length);
+                    this.line(truncatedLeft + ' '.repeat(extraSpaces) + right);
+                }
+                return this;
+            }
+
+            itemRow(itemName, qty, total) {
+                const qtyStr = String(qty);
+                const totalStr = String(total);
+                
+                const itemColWidth = this.charLimit - 12; // Standard: Qty(4), Total(8)
+                const qtyColWidth = 4;
+                const totalColWidth = 8;
+
+                let left = itemName;
+                if (left.length > itemColWidth) {
+                    left = left.substring(0, itemColWidth - 1);
+                }
+                const leftPadded = left.padEnd(itemColWidth, ' ');
+                const centerPadded = qtyStr.padStart(qtyColWidth, ' ');
+                const rightPadded = totalStr.padStart(totalColWidth, ' ');
+
+                this.line(leftPadded + centerPadded + rightPadded);
+                return this;
+            }
+
+            feed(lines = 3) {
+                this.addRaw(new Array(lines).fill(0x0A));
+                return this;
+            }
+
+            getBytes() {
+                return new Uint8Array(this.buffer);
+            }
+        }
+
+        async function sendPrintData(bytes) {
+            const statusText = document.getElementById('bt-status-text');
+            if (!writeCharacteristic) {
+                alert("Niyama printer is not connected. Connect via Bluetooth first!");
+                return;
+            }
+
+            statusText.innerHTML = '<span style="color: #D69E2E; font-weight: bold;">🟡 Sending to printer...</span>';
+            const CHUNK_SIZE = 20; // standard BLE transmission chunk MTU
+            try {
+                for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+                    const chunk = bytes.slice(i, i + CHUNK_SIZE);
+                    await writeCharacteristic.writeValue(chunk);
+                    // Minimal delay to prevent hardware buffer congestion
+                    await new Promise(resolve => setTimeout(resolve, 35));
+                }
+                statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
+            } catch (err) {
+                console.error("Wireless printing failed", err);
+                statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Print Failed: ${err.message || err}</span>`;
+            }
+        }
+
+        function compileReceipt() {
+            const settings = getSettings();
+            const charLimit = parseInt(settings.charLimit);
+            const encoder = new EscPosEncoder(charLimit);
+            
+            encoder.init();
+            
+            // Header Store Name
+            const storeHeader = document.querySelector('.receipt-header h2');
+            const storeNameLines = storeHeader.innerHTML.split(/<br\s*\/?>/i).map(s => s.trim());
+            storeNameLines.forEach(line => {
+                if (line) encoder.header(line);
+            });
+            
+            // Store Metadata Subheaders
+            const headers = document.querySelectorAll('.receipt-header div');
+            headers.forEach(div => {
+                if (div.style.display === 'flex' || div.style.textAlign === 'left') return;
+                encoder.align('center').line(div.textContent.trim());
+            });
+            
+            // Bill & Time Details
+            const billFlex = document.querySelector('.receipt-header .receipt-bill-meta');
+            if (billFlex) {
+                const spans = billFlex.querySelectorAll('span');
+                if (spans.length >= 2) {
+                    const billNo = spans[0].textContent.trim();
+                    const timeStr = spans[1].textContent.trim();
+                    encoder.align('left').row(billNo, timeStr);
+                }
+            }
+            
+            // Cashier details
+            const cashierDiv = document.querySelector('.receipt-header .receipt-cashier-meta');
+            if (cashierDiv) {
+                encoder.align('left').line(cashierDiv.textContent.trim());
+            }
+            
+            encoder.divider();
+            
+            // Table Column Headers
+            encoder.align('left').itemRow("Item", "Qty", "Total");
+            encoder.divider();
+            
+            // Items List
+            const items = document.querySelectorAll('.receipt-item');
+            items.forEach(item => {
+                const divs = item.querySelectorAll('div');
+                if (divs.length >= 3) {
+                    const name = divs[0].textContent.trim();
+                    const qty = divs[1].textContent.trim();
+                    const total = divs[2].textContent.trim();
+                    encoder.itemRow(name, qty, total);
+                }
+            });
+            
+            encoder.divider();
+            
+            // Billing totals summary
+            const summaryDivs = document.querySelectorAll('#receipt-container .receipt-summary > div');
+            summaryDivs.forEach(div => {
+                const spans = div.querySelectorAll('span');
+                if (spans.length >= 2) {
+                    const label = spans[0].textContent.trim();
+                    const val = spans[1].textContent.trim();
+                    if (div.classList.contains('receipt-total')) {
+                        encoder.bold(true).row(label, val).bold(false);
+                    } else {
+                        encoder.row(label, val);
+                    }
+                }
+            });
+            
+            // Receipt Footer Greetings
+            const footer = document.querySelector('#receipt-container .receipt-footer');
+            if (footer) {
+                encoder.feed(1).align('center').line(footer.textContent.trim());
+            }
+            
+            // Feed & Tear serration gap
+            encoder.feed(5);
+            
+            // Paper Cut Command
+            encoder.addRaw([0x1D, 0x56, 0x42, 0x00]);
+            
+            return encoder.getBytes();
+        }
+
+        async function printViaBluetooth() {
+            const bytes = compileReceipt();
+            await sendPrintData(bytes);
+        }
+
+        async function printTestReceipt() {
+            const settings = getSettings();
+            const charLimit = parseInt(settings.charLimit);
+            const encoder = new EscPosEncoder(charLimit);
+            
+            encoder.init();
+            encoder.align('center').bold(true).fontSize('double').line("Niyama POS").fontSize('normal').bold(false);
+            encoder.divider();
+            encoder.bold(true).line("Bluetooth Pairing Success!").bold(false);
+            encoder.line("Your thermal printer is");
+            encoder.line("fully connected & ready.");
+            encoder.divider();
+            encoder.feed(5);
+            encoder.addRaw([0x1D, 0x56, 0x42, 0x00]);
+            
+            const bytes = encoder.getBytes();
+            await sendPrintData(bytes);
+        }
+
+        // --- Initialization and Events binding ---
         window.onload = function() {
-            setTimeout(() => {
-                window.print();
-            }, 500);
+            // Force user's ideal calibration settings on first load to update previous cached configs
+            if (!localStorage.getItem('pos_print_calibrated_ideal_v4')) {
+                localStorage.setItem('pos_print_width', '58');
+                localStorage.setItem('pos_print_fontSize', '10');
+                localStorage.setItem('pos_print_lineHeight', '1.0');
+                localStorage.setItem('pos_print_charLimit', '32');
+                localStorage.setItem('pos_print_calibrated_ideal_v4', 'true');
+            }
+
+            applySettings();
+            
+            // Background Auto Connect to paired printer on page load
+            autoConnectBluetooth();
+            
+            // Setup controls events
+            document.querySelectorAll('.width-toggle-buttons .toggle-btn').forEach(btn => {
+                btn.onclick = function(e) {
+                    const width = e.target.dataset.width;
+                    const settings = getSettings();
+                    settings.width = width;
+                    // Reset character limit to safe width-specific defaults
+                    settings.charLimit = width === '58' ? '32' : '48';
+                    saveSettings(settings);
+                    applySettings();
+                };
+            });
+            
+            document.getElementById('font-size-slider').oninput = function(e) {
+                const settings = getSettings();
+                settings.fontSize = e.target.value;
+                saveSettings(settings);
+                applySettings();
+            };
+            
+            document.getElementById('line-height-slider').oninput = function(e) {
+                const settings = getSettings();
+                settings.lineHeight = e.target.value;
+                saveSettings(settings);
+                applySettings();
+            };
+
+            document.getElementById('char-limit-slider').oninput = function(e) {
+                const settings = getSettings();
+                settings.charLimit = e.target.value;
+                saveSettings(settings);
+                applySettings();
+            };
+            
+            document.getElementById('auto-print-switch').onchange = function(e) {
+                const settings = getSettings();
+                settings.autoPrint = e.target.checked;
+                saveSettings(settings);
+                applySettings();
+            };
+            
+            // Auto Browser Print
+            const settings = getSettings();
+            if (settings.autoPrint) {
+                setTimeout(() => {
+                    window.print();
+                }, 600);
+            }
         };
     </script>
 </body>
