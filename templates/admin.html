@@ -338,8 +338,7 @@
                 <div class="card" style="background-color: #FFF5F5; border-color: #FEB2B2;">
                     <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">System Reset (Danger)
                     </h2>
-                    <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">Wipe all sales history and reset
-                        all stock to 0. Cannot be undone.</p>
+                    <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">Permanently delete ALL products, catalogs, inventories, bills, and sales history. Cannot be undone.</p>
                     <button class="btn btn-destructive" onclick="resetSystem()">Reset Database</button>
                 </div>
                 {% endif %}
@@ -392,7 +391,7 @@
 
 
         async function resetSystem() {
-            if (confirm("Are you absolutely sure? This will permanently delete ALL bills and sales history, and set ALL stock across ALL shops to 0.")) {
+            if (confirm("Are you absolutely sure? This will permanently delete ALL products, shop inventories, bills, and sales history. This CANNOT be undone.")) {
                 const check = prompt("Type RESET to confirm:");
                 if (check !== "RESET") return;
 

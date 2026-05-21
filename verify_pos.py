@@ -162,7 +162,7 @@ def test_isolated_catalog_and_soft_delete():
             func.sum(BillItem.quantity * BillItem.price_at_sale).label("total_revenue")
         ).join(BillItem, Product.id == BillItem.product_id)\
          .join(Bill, Bill.id == BillItem.bill_id)\
-         .filter(Bill.cashier_id == sk_a.id)\
+         .filter(Bill.cashier_id == sk_a.id, Bill.is_cancelled == False)\
          .group_by(Product.name).all()
         
         breakdown = {row[0]: {"qty": row[1], "revenue": row[2]} for row in items_query}

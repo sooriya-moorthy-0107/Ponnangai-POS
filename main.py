@@ -11,7 +11,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 from starlette.middleware.sessions import SessionMiddleware
 
 # --- Configuration & Setup ---
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ponnangai_pos.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://pos_user:pos_password@localhost:5432/ponnangai_pos")
 
 # Adjust postgres scheme for SQLAlchemy 1.4+ compatibility if needed
 if DATABASE_URL.startswith("postgres://"):
@@ -87,6 +87,7 @@ class Bill(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     cashier_id = Column(Integer, ForeignKey("users.id"))
     cashier_name = Column(String, nullable=True)
+    is_cancelled = Column(Boolean, default=False)
 
     cashier = relationship("User")
     items = relationship("BillItem", back_populates="bill")
@@ -142,6 +143,19 @@ try:
 except Exception:
     db_init.rollback()
 
+# Upgrade bills table to support is_cancelled
+try:
+    db_init.execute(text("ALTER TABLE bills ADD COLUMN is_cancelled BOOLEAN DEFAULT FALSE"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
+try:
+    db_init.execute(text("UPDATE bills SET is_cancelled = FALSE WHERE is_cancelled IS NULL"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
 # Migration: Assign existing products without shopkeeper_id to the first Shopkeeper
 try:
     first_sk = db_init.query(User).filter(User.role == "Shopkeeper").first()
@@ -175,9 +189,8 @@ def seed_db():
         # Create initial users
         admin = User(username="admin", password="admin123", role="Admin")
         manager = User(username="manager", password="manager123", role="Manager")
-        shopkeeper = User(username="shopkeeper", password="shopkeeper123", role="Shopkeeper")
         owner = User(username="owner", password="owner123", role="Owner")
-        db.add_all([admin, manager, shopkeeper, owner])
+        db.add_all([admin, manager, owner])
         db.commit()
     else:
         owner = db.query(User).filter(User.role == "Owner").first()
@@ -225,27 +238,48 @@ async def logout(request: Request):
     return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
 @app.get("/shop", response_class=HTMLResponse)
-async def shop_page(request: Request, db: Session = Depends(get_db)):
+async def shop_page(request: Request, shopkeeper_id: int = None, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner"]:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    # Only show products that have a stock > 0 in this shopkeeper's inventory
-    inventory = db.query(ShopInventory).filter(
-        ShopInventory.shopkeeper_id == user.id,
-        ShopInventory.stock > 0
-    ).all()
-    inv_map = {inv.product_id: inv.stock for inv in inventory}
+    # Get active shopkeepers list
+    shopkeepers = db.query(User).filter(User.role == "Shopkeeper", User.is_deleted == False).all()
     
-    product_ids = list(inv_map.keys())
-    if product_ids:
-        products = db.query(Product).filter(Product.id.in_(product_ids), Product.is_deleted == False).all()
-        for p in products:
-            p.stock = inv_map.get(p.id, 0)
+    # Determine which shopkeeper's inventory to show
+    if user.role == "Shopkeeper":
+        target_shopkeeper_id = user.id
     else:
-        products = []
+        if shopkeeper_id:
+            target_shopkeeper_id = int(shopkeeper_id)
+        elif shopkeepers:
+            target_shopkeeper_id = shopkeepers[0].id
+        else:
+            target_shopkeeper_id = user.id
+
+    # Fetch active products for targeted shopkeeper (even if out of stock)
+    products = db.query(Product).filter(
+        Product.shopkeeper_id == target_shopkeeper_id,
+        Product.is_deleted == False
+    ).all()
+    
+    shop_invs = db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == target_shopkeeper_id).all()
+    inv_map = {inv.product_id: inv.stock for inv in shop_invs}
+    
+    for p in products:
+        p.stock = inv_map.get(p.id, 0)
         
-    return templates.TemplateResponse(request=request, name="shop.html", context={"request": request, "user": user, "products": products})
+    target_sk = db.query(User).filter(User.id == target_shopkeeper_id).first()
+    target_sk_name = target_sk.username if target_sk else "Unknown Shop"
+        
+    return templates.TemplateResponse(request=request, name="shop.html", context={
+        "request": request,
+        "user": user,
+        "products": products,
+        "shopkeepers": shopkeepers,
+        "target_shopkeeper_id": target_shopkeeper_id,
+        "target_sk_name": target_sk_name
+    })
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page(request: Request, db: Session = Depends(get_db)):
@@ -271,8 +305,8 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
         shop_inventory[inv.shopkeeper_id][inv.product_id] = inv.stock
         
     # Dashboard metrics
-    total_revenue = db.query(func.sum(Bill.final_amount)).scalar() or 0.0
-    total_sales = db.query(Bill).count()
+    total_revenue = db.query(func.sum(Bill.final_amount)).filter(Bill.is_cancelled == False).scalar() or 0.0
+    total_sales = db.query(Bill).filter(Bill.is_cancelled == False).count()
     
     # Low stock alerts across active shops and active products (ignores soft-deleted stocks)
     low_stock_alerts = db.query(ShopInventory).join(Product).join(User, ShopInventory.shopkeeper_id == User.id).filter(
@@ -284,8 +318,8 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
     # Shop performance for active shopkeepers
     shop_performance = []
     for sk in shopkeepers:
-        sales = db.query(Bill).filter(Bill.cashier_id == sk.id).count()
-        rev = db.query(func.sum(Bill.final_amount)).filter(Bill.cashier_id == sk.id).scalar() or 0.0
+        sales = db.query(Bill).filter(Bill.cashier_id == sk.id, Bill.is_cancelled == False).count()
+        rev = db.query(func.sum(Bill.final_amount)).filter(Bill.cashier_id == sk.id, Bill.is_cancelled == False).scalar() or 0.0
         shop_performance.append({
             "shopkeeper": sk,
             "sales": sales,
@@ -316,12 +350,17 @@ async def receipt_page(request: Request, bill_id: int, db: Session = Depends(get
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
         
-    return templates.TemplateResponse(request=request, name="receipt.html", context={"request": request, "bill": bill, "user": user})
+    bill_number = db.query(Bill).filter(
+        Bill.cashier_id == bill.cashier_id,
+        Bill.id <= bill.id
+    ).count()
+        
+    return templates.TemplateResponse(request=request, name="receipt.html", context={"request": request, "bill": bill, "bill_number": bill_number, "user": user})
 
 # --- API Routes ---
 
 @app.get("/api/bills/history")
-async def get_bill_history(request: Request, db: Session = Depends(get_db)):
+async def get_bill_history(request: Request, shopkeeper_id: int = None, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
@@ -329,20 +368,28 @@ async def get_bill_history(request: Request, db: Session = Depends(get_db)):
     query = db.query(Bill)
     if user.role == "Shopkeeper":
         query = query.filter(Bill.cashier_id == user.id)
+    elif shopkeeper_id:
+        query = query.filter(Bill.cashier_id == shopkeeper_id)
         
     # Get last 20 bills
     bills = query.order_by(Bill.timestamp.desc()).limit(20).all()
     
     result = []
     for b in bills:
+        bill_number = db.query(Bill).filter(
+            Bill.cashier_id == b.cashier_id,
+            Bill.id <= b.id
+        ).count()
         result.append({
             "id": b.id,
+            "bill_number": bill_number,
             "total_amount": b.total_amount,
             "discount": b.discount,
             "final_amount": b.final_amount,
             "payment_mode": b.payment_mode,
             "timestamp": b.timestamp.strftime('%Y-%m-%d %H:%M'),
-            "cashier_name": b.cashier_name
+            "cashier_name": b.cashier_name,
+            "is_cancelled": b.is_cancelled
         })
         
     return {"status": "success", "bills": result}
@@ -356,6 +403,11 @@ async def get_bill_details(request: Request, bill_id: int, db: Session = Depends
     bill = db.query(Bill).filter(Bill.id == bill_id).first()
     if not bill:
         return JSONResponse(status_code=404, content={"detail": "Bill not found"})
+        
+    bill_number = db.query(Bill).filter(
+        Bill.cashier_id == bill.cashier_id,
+        Bill.id <= bill.id
+    ).count()
         
     items = []
     for item in bill.items:
@@ -371,12 +423,14 @@ async def get_bill_details(request: Request, bill_id: int, db: Session = Depends
         "status": "success",
         "bill": {
             "id": bill.id,
+            "bill_number": bill_number,
             "total_amount": bill.total_amount,
             "discount": bill.discount,
             "final_amount": bill.final_amount,
             "payment_mode": bill.payment_mode,
             "timestamp": bill.timestamp.strftime('%Y-%m-%d %H:%M'),
             "cashier_name": bill.cashier_name,
+            "is_cancelled": bill.is_cancelled,
             "items": items
         }
     }
@@ -387,25 +441,50 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
     if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
         
+    target_shopkeeper_id = data.get("shopkeeper_id") or user.id
+    if target_shopkeeper_id:
+        target_shopkeeper_id = int(target_shopkeeper_id)
+        
+    sk_user = db.query(User).filter(User.id == target_shopkeeper_id, User.is_deleted == False).first()
+    if not sk_user:
+        return JSONResponse(status_code=400, content={"detail": "Invalid active shopkeeper"})
+        
     # Expected payload: {"items": [{"id": 1, "qty": 2}], "discount": 10.0, "payment_mode": "Cash"}
     total_amount = 0.0
     bill_items = []
     
+    # Pass 1: Validate available stock for all items
     for item in data.get("items", []):
         product = db.query(Product).filter(Product.id == item["id"]).first()
         if not product:
             continue
             
-        # Deduct stock
         shop_inv = db.query(ShopInventory).filter(
-            ShopInventory.shopkeeper_id == user.id, 
+            ShopInventory.shopkeeper_id == target_shopkeeper_id,
             ShopInventory.product_id == product.id
         ).first()
+        
+        current_stock = shop_inv.stock if shop_inv else 0
+        if current_stock < item["qty"]:
+            return JSONResponse(
+                status_code=400,
+                content={"detail": f"Insufficient stock for '{product.name}'. Only {current_stock} left, but {item['qty']} were requested."}
+            )
+            
+    # Pass 2: Deduct stock and compile bill items
+    for item in data.get("items", []):
+        product = db.query(Product).filter(Product.id == item["id"]).first()
+        if not product:
+            continue
+            
+        shop_inv = db.query(ShopInventory).filter(
+            ShopInventory.shopkeeper_id == target_shopkeeper_id, 
+            ShopInventory.product_id == product.id
+        ).first()
+        
         if shop_inv:
             shop_inv.stock -= item["qty"]
-            if shop_inv.stock < 0:
-                 shop_inv.stock = 0
-             
+            
         line_total = product.price * item["qty"]
         total_amount += line_total
         
@@ -419,13 +498,17 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
     discount = float(data.get("discount", 0.0))
     final_amount = max(0, total_amount - discount)
     
+    cashier_name = sk_user.username
+    if user.id != sk_user.id:
+        cashier_name = f"{sk_user.username} ({user.username})"
+    
     new_bill = Bill(
         total_amount=total_amount,
         discount=discount,
         final_amount=final_amount,
         payment_mode=data.get("payment_mode", "Cash"),
-        cashier_id=user.id,
-        cashier_name=user.username
+        cashier_id=target_shopkeeper_id,
+        cashier_name=cashier_name
     )
     
     db.add(new_bill)
@@ -458,22 +541,24 @@ async def revert_bill(request: Request, bill_id: int, db: Session = Depends(get_
             ShopInventory.shopkeeper_id == bill.cashier_id,
             ShopInventory.product_id == item.product_id
         ).first()
+        max_stock = 0
         if shop_inv:
             shop_inv.stock += item.quantity
+            max_stock = shop_inv.stock
             
         items_data.append({
             "id": item.product.id,
             "name": item.product.name,
             "price": item.price_at_sale,
-            "qty": item.quantity
+            "qty": item.quantity,
+            "maxStock": max_stock
         })
         
     discount = bill.discount
     payment_mode = bill.payment_mode
     
-    # Delete bill items and bill
-    db.query(BillItem).filter(BillItem.bill_id == bill.id).delete()
-    db.delete(bill)
+    # Mark the bill as cancelled in database
+    bill.is_cancelled = True
     db.commit()
     
     return {
@@ -532,6 +617,35 @@ async def update_inventory(request: Request, data: dict, db: Session = Depends(g
     db.commit()
     return {"status": "success", "detail": "Stock updated successfully"}
 
+@app.get("/api/inventory/data/{shopkeeper_id}")
+async def get_shopkeeper_inventory_data(request: Request, shopkeeper_id: int, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Manager", "Owner", "Shopkeeper"]:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    if user.role == "Shopkeeper" and user.id != shopkeeper_id:
+        raise HTTPException(status_code=403, detail="Unauthorized: Shopkeepers can only access their own inventory data.")
+        
+    products = db.query(Product).filter(
+        Product.shopkeeper_id == shopkeeper_id,
+        Product.is_deleted == False
+    ).all()
+    
+    shop_invs = db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == shopkeeper_id).all()
+    inv_map = {inv.product_id: inv.stock for inv in shop_invs}
+    
+    data = []
+    for p in products:
+        data.append({
+            "id": p.id,
+            "name": p.name,
+            "price": p.price,
+            "stock": inv_map.get(p.id, 0),
+            "image_filename": p.image_filename
+        })
+        
+    return {"status": "success", "products": data}
+
 @app.get("/api/inventory/template/{shopkeeper_id}")
 async def get_inventory_template(request: Request, shopkeeper_id: int, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -561,6 +675,24 @@ async def get_inventory_template(request: Request, shopkeeper_id: int, db: Sessi
     }
     return Response(content=output.getvalue(), media_type="text/csv", headers=headers)
 
+def clean_csv_val(val):
+    if val is None:
+        return ""
+    s = str(val).strip()
+    if len(s) >= 2:
+        if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+            s = s[1:-1].strip()
+    return s
+
+def parse_csv_int(val, default=None):
+    cleaned = clean_csv_val(val)
+    if not cleaned:
+        return default
+    try:
+        return int(float(cleaned))
+    except (ValueError, TypeError):
+        return default
+
 @app.post("/api/inventory/bulk_upload")
 async def bulk_upload_inventory(request: Request, shopkeeper_id: int = Form(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -574,27 +706,73 @@ async def bulk_upload_inventory(request: Request, shopkeeper_id: int = Form(...)
         
     content = await file.read()
     try:
-        decoded = content.decode('utf-8')
+        decoded = content.decode('utf-8-sig')
     except Exception:
-        return JSONResponse(status_code=400, content={"detail": "Could not decode file. Ensure it is a valid CSV."})
-        
-    reader = csv.DictReader(io.StringIO(decoded))
+        try:
+            decoded = content.decode('utf-8')
+        except Exception:
+            try:
+                decoded = content.decode('latin-1')
+            except Exception:
+                return JSONResponse(status_code=400, content={"detail": "Could not decode file. Ensure it is a valid CSV."})
+                
+    # Sniff CSV delimiter (comma vs semicolon vs tab vs pipe)
+    first_line = ""
+    for line in decoded.splitlines():
+        if line.strip():
+            first_line = line
+            break
+            
+    delimiter = ','
+    if first_line:
+        delimiters = [',', ';', '\t', '|']
+        counts = {d: first_line.count(d) for d in delimiters}
+        best_delim = max(counts, key=counts.get)
+        if counts[best_delim] > 0:
+            delimiter = best_delim
+            
+    reader = csv.DictReader(io.StringIO(decoded), delimiter=delimiter)
     
     updated_count = 0
     for row in reader:
-        prod_id = row.get("Product ID") or row.get("product_id")
-        prod_name = row.get("Product Name") or row.get("name") or row.get("Product")
-        new_stock = row.get("New Stock") or row.get("stock") or row.get("NewStock")
-        
-        if (prod_id or prod_name) and new_stock and str(new_stock).strip() != "":
-            try:
-                nstock = int(float(new_stock))
+        # Standardize keys by lowercasing and stripping special chars
+        norm_row = {}
+        for k, v in row.items():
+            if k is not None:
+                norm_key = str(k).strip().lower().replace(' ', '').replace('-', '').replace('_', '').replace('.', '')
+                norm_row[norm_key] = v
+                
+        # Find explicit Product ID (avoid serial number collision)
+        prod_id = None
+        for key in ["productid", "prodid", "id", "itemid"]:
+            if key in norm_row:
+                prod_id = norm_row[key]
+                break
+                
+        # Find Product Name
+        prod_name = None
+        for key in ["productname", "name", "product", "itemname", "item"]:
+            if key in norm_row:
+                prod_name = norm_row[key]
+                break
+                
+        # Find New Stock / Qty
+        new_stock = None
+        for key in ["newstock", "stock", "currentstock", "newqty", "newquantity", "qty", "quantity", "stockcount", "count"]:
+            if key in norm_row and norm_row[key] is not None and str(norm_row[key]).strip() != "":
+                new_stock = norm_row[key]
+                break
+                
+        if (prod_id or prod_name) and new_stock is not None:
+            nstock = parse_csv_int(new_stock, None)
+            if nstock is not None:
                 product = None
                 
-                # Compatibility fallback: match by ID if ID column is present and has integer value
-                if prod_id and str(prod_id).strip() != "":
+                # Compatibility fallback: match by ID if ID column is present and valid
+                cleaned_prod_id = clean_csv_val(prod_id)
+                if cleaned_prod_id:
                     try:
-                        pid = int(float(prod_id))
+                        pid = int(float(cleaned_prod_id))
                         product = db.query(Product).filter(
                             Product.id == pid,
                             Product.shopkeeper_id == shopkeeper_id,
@@ -602,16 +780,17 @@ async def bulk_upload_inventory(request: Request, shopkeeper_id: int = Form(...)
                         ).first()
                     except ValueError:
                         pass
-                
-                # Primary modern matching: match by Product Name (case-insensitive stripped lookup)
-                if not product and prod_name:
-                    p_name = str(prod_name).strip().lower()
+                        
+                # Primary modern matching: match by Product Name (robust space/hyphen insensitive)
+                cleaned_prod_name = clean_csv_val(prod_name)
+                if not product and cleaned_prod_name:
+                    p_name_norm = cleaned_prod_name.lower().replace(' ', '').replace('-', '')
                     product = db.query(Product).filter(
-                        func.lower(func.trim(Product.name)) == p_name,
+                        func.replace(func.replace(func.lower(Product.name), ' ', ''), '-', '') == p_name_norm,
                         Product.shopkeeper_id == shopkeeper_id,
                         Product.is_deleted == False
                     ).first()
-                
+                    
                 if product:
                     inv = db.query(ShopInventory).filter(
                         ShopInventory.shopkeeper_id == shopkeeper_id,
@@ -621,11 +800,9 @@ async def bulk_upload_inventory(request: Request, shopkeeper_id: int = Form(...)
                         inv = ShopInventory(shopkeeper_id=shopkeeper_id, product_id=product.id, stock=nstock)
                         db.add(inv)
                     else:
-                        inv.stock = nstock
+                        inv.stock += nstock
                     updated_count += 1
-            except ValueError:
-                continue
-                
+                    
     db.commit()
     return {"status": "success", "detail": f"Successfully updated {updated_count} items."}
 
@@ -636,15 +813,23 @@ async def reset_system(request: Request, db: Session = Depends(get_db)):
     if not user or user.role != "Admin":
         return JSONResponse(status_code=403, content={"detail": "Unauthorized. Only Admin can reset the system."})
         
-    # Delete all bills and bill items
+    # Delete all bills, bill items, shop inventories, and products (preserving users)
     db.query(BillItem).delete()
     db.query(Bill).delete()
+    db.query(ShopInventory).delete()
+    db.query(Product).delete()
     
-    # Reset all inventory to 0
-    db.query(ShopInventory).update({ShopInventory.stock: 0})
-    
+    # Also clean up any uploaded product image files starting with "product_" to free disk space
+    try:
+        if os.path.exists("photos"):
+            for filename in os.listdir("photos"):
+                if filename.startswith("product_"):
+                    os.remove(os.path.join("photos", filename))
+    except Exception:
+        pass
+        
     db.commit()
-    return {"status": "success", "detail": "System successfully reset to zero."}
+    return {"status": "success", "detail": "System, products, and sales successfully reset."}
 
 @app.post("/api/products/add")
 async def add_product(request: Request, data: dict, db: Session = Depends(get_db)):
@@ -701,30 +886,85 @@ async def bulk_upload_products(request: Request, shopkeeper_id: int = Form(...),
         
     content = await file.read()
     try:
-        decoded = content.decode('utf-8')
+        decoded = content.decode('utf-8-sig')
     except Exception:
-        return JSONResponse(status_code=400, content={"detail": "Could not decode file. Ensure it is a valid CSV."})
-        
-    reader = csv.DictReader(io.StringIO(decoded))
+        try:
+            decoded = content.decode('utf-8')
+        except Exception:
+            try:
+                decoded = content.decode('latin-1')
+            except Exception:
+                return JSONResponse(status_code=400, content={"detail": "Could not decode file. Ensure it is a valid CSV."})
+                
+    # Sniff CSV delimiter (comma vs semicolon vs tab vs pipe)
+    first_line = ""
+    for line in decoded.splitlines():
+        if line.strip():
+            first_line = line
+            break
+            
+    delimiter = ','
+    if first_line:
+        delimiters = [',', ';', '\t', '|']
+        counts = {d: first_line.count(d) for d in delimiters}
+        best_delim = max(counts, key=counts.get)
+        if counts[best_delim] > 0:
+            delimiter = best_delim
+            
+    reader = csv.DictReader(io.StringIO(decoded), delimiter=delimiter)
     
     added_count = 0
     updated_count = 0
     
     for row in reader:
-        name = row.get("Product Name") or row.get("name") or row.get("Product")
-        price_val = row.get("Price") or row.get("price") or row.get("Rate")
-        stock_val = row.get("Initial Stock") or row.get("stock") or row.get("initial_stock") or row.get("Stock")
-        image_val = row.get("Image Name") or row.get("image") or row.get("Image Filename")
-        
-        if name and price_val:
-            try:
-                p_name = str(name).strip()
-                p_price = float(price_val)
-                p_stock = int(float(stock_val)) if (stock_val and str(stock_val).strip() != "") else 0
+        # Standardize keys by lowercasing and stripping special chars
+        norm_row = {}
+        for k, v in row.items():
+            if k is not None:
+                norm_key = str(k).strip().lower().replace(' ', '').replace('-', '').replace('_', '').replace('.', '')
+                norm_row[norm_key] = v
                 
-                # Check if product already exists for this shopkeeper (active or soft-deleted, case-insensitive)
+        name = None
+        for key in ["productname", "name", "product", "itemname", "item"]:
+            if key in norm_row:
+                name = norm_row[key]
+                break
+
+        price_val = None
+        for key in ["price", "rate", "cost", "mrp", "unitprice", "amount"]:
+            if key in norm_row:
+                price_val = norm_row[key]
+                break
+
+        stock_val = None
+        for key in ["initialstock", "stock", "newstock", "qty", "quantity", "initialqty", "currentstock", "count"]:
+            if key in norm_row:
+                stock_val = norm_row[key]
+                break
+
+        image_val = None
+        for key in ["imagename", "image", "imagefilename", "img", "photo", "pic"]:
+            if key in norm_row:
+                image_val = norm_row[key]
+                break
+                
+        cleaned_name = clean_csv_val(name)
+        cleaned_price = clean_csv_val(price_val)
+        
+        if cleaned_name and cleaned_price:
+            try:
+                p_name = cleaned_name
+                p_price = float(cleaned_price)
+                
+                # Check for explicit stock
+                p_stock = 0
+                if stock_val is not None:
+                    p_stock = parse_csv_int(stock_val, 0)
+                
+                # Check if product already exists for this shopkeeper (active or soft-deleted, robust space & hyphen insensitive)
+                p_name_norm = p_name.lower().replace(' ', '').replace('-', '')
                 existing = db.query(Product).filter(
-                    func.lower(func.trim(Product.name)) == p_name.lower(),
+                    func.replace(func.replace(func.lower(Product.name), ' ', ''), '-', '') == p_name_norm,
                     Product.shopkeeper_id == shopkeeper_id
                 ).first()
                 
@@ -732,8 +972,9 @@ async def bulk_upload_products(request: Request, shopkeeper_id: int = Form(...),
                     # Update existing product (reactivate if soft-deleted)
                     existing.price = p_price
                     existing.is_deleted = False
-                    if image_val and str(image_val).strip() != "":
-                        raw_img = str(image_val).strip()
+                    cleaned_image = clean_csv_val(image_val)
+                    if cleaned_image:
+                        raw_img = cleaned_image
                         image_filename = raw_img.lower().replace(" ", "_").replace("-", "")
                         if not image_filename.endswith(".jpg"):
                             image_filename += ".jpg"
@@ -749,13 +990,14 @@ async def bulk_upload_products(request: Request, shopkeeper_id: int = Form(...),
                         inv = ShopInventory(shopkeeper_id=shopkeeper_id, product_id=existing.id, stock=p_stock)
                         db.add(inv)
                     else:
-                        inv.stock = p_stock
+                        inv.stock += p_stock
                     db.commit()
                     updated_count += 1
                 else:
                     # Create new shopkeeper-specific product
-                    if image_val and str(image_val).strip() != "":
-                        raw_img = str(image_val).strip()
+                    cleaned_image = clean_csv_val(image_val)
+                    if cleaned_image:
+                        raw_img = cleaned_image
                         image_filename = raw_img.lower().replace(" ", "_").replace("-", "")
                         if not image_filename.endswith(".jpg"):
                             image_filename += ".jpg"
@@ -904,7 +1146,7 @@ async def get_shop_analytics(request: Request, shop_id: int, db: Session = Depen
     if not target_shop:
         return JSONResponse(status_code=404, content={"detail": "Shop not found"})
         
-    bills = db.query(Bill).filter(Bill.cashier_id == shop_id).all()
+    bills = db.query(Bill).filter(Bill.cashier_id == shop_id, Bill.is_cancelled == False).all()
     total_sales = len(bills)
     total_revenue = sum(b.final_amount for b in bills)
     
@@ -914,7 +1156,7 @@ async def get_shop_analytics(request: Request, shop_id: int, db: Session = Depen
         func.sum(BillItem.quantity * BillItem.price_at_sale).label("total_revenue")
     ).join(BillItem, Product.id == BillItem.product_id)\
      .join(Bill, Bill.id == BillItem.bill_id)\
-     .filter(Bill.cashier_id == shop_id)\
+     .filter(Bill.cashier_id == shop_id, Bill.is_cancelled == False)\
      .group_by(Product.name).all()
      
     breakdown = [{"product_name": row[0], "qty": row[1], "revenue": row[2]} for row in items_query]
