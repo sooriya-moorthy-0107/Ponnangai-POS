@@ -11,7 +11,14 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 from starlette.middleware.sessions import SessionMiddleware
 
 # --- Configuration & Setup ---
-DATABASE_URL = "sqlite:///./ponnangai_pos.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ponnangai_pos.db")
+# If SQLite is used, ensure parent directory exists (needed for container volume mounts)
+if DATABASE_URL.startswith("sqlite:///"):
+    db_path = DATABASE_URL.replace("sqlite:///", "")
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -229,7 +236,41 @@ async def receipt_page(request: Request, bill_id: int, db: Session = Depends(get
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
         
-    return templates.TemplateResponse(request=request, name="receipt.html", context={"request": request, "bill": bill})
+    return templates.TemplateResponse(request=request, name="receipt.html", context={"request": request, "bill": bill, "user": user})
+
+@app.get("/api/bills/{bill_id}")
+async def get_bill_details(request: Request, bill_id: int, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+    
+    bill = db.query(Bill).filter(Bill.id == bill_id).first()
+    if not bill:
+        return JSONResponse(status_code=404, content={"detail": "Bill not found"})
+        
+    items = []
+    for item in bill.items:
+        items.append({
+            "product_id": item.product_id,
+            "name": item.product.name if item.product else "Deleted Item",
+            "quantity": item.quantity,
+            "price": item.price_at_sale,
+            "total": item.price_at_sale * item.quantity
+        })
+        
+    return {
+        "status": "success",
+        "bill": {
+            "id": bill.id,
+            "total_amount": bill.total_amount,
+            "discount": bill.discount,
+            "final_amount": bill.final_amount,
+            "payment_mode": bill.payment_mode,
+            "timestamp": bill.timestamp.strftime('%Y-%m-%d %H:%M'),
+            "cashier_name": bill.cashier_name,
+            "items": items
+        }
+    }
 
 # --- API Routes ---
 

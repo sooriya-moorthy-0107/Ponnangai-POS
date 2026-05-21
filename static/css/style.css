@@ -302,6 +302,256 @@ input:focus, select:focus {
     margin-top: 8px;
 }
 
+/* Receipt Screen Layout and Controls */
+.receipt-page-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 950px;
+    margin: 30px auto;
+    gap: 24px;
+    padding: 0 16px;
+}
+
+@media (min-width: 768px) {
+    .receipt-page-container {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+    .print-controls-panel {
+        flex: 1.2;
+        position: sticky;
+        top: 30px;
+    }
+    .receipt-preview-section {
+        flex: 0.8;
+        display: flex;
+        justify-content: center;
+    }
+}
+
+.print-controls-panel {
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    border: 1px solid #E2E8F0;
+}
+
+.receipt-preview-section {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+/* Receipt container for realistic screen mockup */
+.receipt-preview-card {
+    background: white;
+    width: var(--receipt-preview-width, 300px);
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    border: 1px solid #E2E8F0;
+    position: relative;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: var(--receipt-preview-font-size, 11px);
+    line-height: var(--receipt-preview-line-height, 1.3);
+    color: #000;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), font-size 0.2s ease, line-height 0.2s ease;
+}
+
+/* Serrated edge effect on screen for retail billing software */
+.receipt-preview-card::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(-135deg, white 4px, transparent 0), linear-gradient(135deg, white 4px, transparent 0);
+    background-size: 8px 8px;
+}
+
+.receipt-header {
+    text-align: center;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 6px;
+}
+
+.receipt-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.receipt-total {
+    border-top: 1px dashed #000;
+    margin-top: 6px;
+    padding-top: 6px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Form Groups for controls */
+.control-group {
+    margin-bottom: 18px;
+}
+
+.control-label {
+    display: block;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: var(--text-color);
+}
+
+.width-toggle-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.toggle-btn {
+    flex: 1;
+    background: #F7FAFC;
+    border: 1px solid #E2E8F0;
+    padding: 10px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-color);
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+    background: #EDF2F7;
+}
+
+.toggle-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.slider-container input[type="range"] {
+    flex: 1;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.slider-value {
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 32px;
+    text-align: right;
+    color: #718096;
+}
+
+/* Toggle Switch */
+.switch-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    justify-content: space-between;
+}
+
+.switch-input {
+    display: none;
+}
+
+.switch-slider {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    background-color: #CBD5E0;
+    border-radius: 34px;
+    transition: background-color 0.2s;
+}
+
+.switch-slider::before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.switch-input:checked + .switch-slider {
+    background-color: var(--primary);
+}
+
+.switch-input:checked + .switch-slider::before {
+    transform: translateX(20px);
+}
+
+/* Step by Step Printer Setup Guide */
+.setup-guide-box {
+    background: #F7FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--border-radius);
+    padding: 16px;
+    margin-top: 16px;
+    display: none; /* Controlled via JS */
+    animation: fadeIn 0.3s ease;
+}
+
+.setup-guide-box.show {
+    display: block;
+}
+
+.setup-step {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.setup-step:last-child {
+    margin-bottom: 0;
+}
+
+.step-num {
+    background: var(--primary);
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    margin-right: 10px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.step-text {
+    color: #4A5568;
+}
+
+.step-text strong {
+    color: var(--text-color);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Receipt Print Styles */
 @media print {
     @page {
@@ -310,23 +560,31 @@ input:focus, select:focus {
     body {
         background-color: white;
     }
-    body * {
-        visibility: hidden;
-    }
-    #receipt-container, #receipt-container * {
-        visibility: visible;
+    body > :not(#receipt-container) {
+        display: none !important;
     }
     #receipt-container {
+        display: block !important;
+    }
+    #receipt-container {
+        display: block !important;
         position: absolute;
         left: 0;
         top: 0;
-        width: 58mm;
-        margin: 0;
-        padding: 0 2mm;
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 12px;
-        color: #000;
-        line-height: 1.2;
+        width: var(--print-width, 58mm);
+        margin: 0 !important;
+        padding: 0 var(--print-padding, 2mm) !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: var(--print-font-size, 11px) !important;
+        color: #000 !important;
+        line-height: var(--print-line-height, 1.2) !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: white !important;
+    }
+    /* Hide scrollbars, decorative serrated borders etc in print */
+    #receipt-container::after {
+        display: none !important;
     }
     .no-print {
         display: none !important;
@@ -350,4 +608,111 @@ input:focus, select:focus {
         display: flex;
         justify-content: space-between;
     }
+}
+
+/* ==========================================================================
+   Sleek Modern Modal System (Glassmorphic Overlay & Responsive Containment)
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease-in-out;
+    padding: 16px;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-container {
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: scale(0.95);
+    transition: transform 0.25s ease-in-out;
+    border: 1px solid #E2E8F0;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-overlay.active .modal-container {
+    transform: scale(1);
+}
+
+.modal-header {
+    padding: var(--spacing);
+    border-bottom: 1px solid #E2E8F0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #F7FAFC;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+}
+
+.modal-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 0;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #A0AEC0;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.modal-close-btn:hover {
+    color: var(--text-color);
+}
+
+.modal-body {
+    padding: var(--spacing);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-footer {
+    padding: var(--spacing);
+    border-top: 1px solid #E2E8F0;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background-color: #F7FAFC;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+/* Offline Receipt Wrapper on Screen for print preview modal */
+.receipt-modal-preview-box {
+    display: flex;
+    justify-content: center;
+    background-color: #EDF2F7;
+    padding: var(--spacing);
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: var(--spacing);
+    border: 1px inset #E2E8F0;
 }

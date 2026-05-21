@@ -11,6 +11,9 @@
         <h1>Ponnangai POS</h1>
         <div style="display: flex; gap: 8px; align-items: center;">
             <span style="font-size: 14px; font-weight: 600;">{{ user.username }} ({{ user.role }})</span>
+            <button id="printer-status-btn" class="btn btn-secondary btn-small" style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; gap: 6px; font-weight: bold; width: auto;" onclick="openPrinterModal()">
+                🔌 <span id="header-printer-status">Disconnected</span>
+            </button>
             <button class="btn btn-secondary btn-small" onclick="document.getElementById('bulk-upload-form').style.display='flex'">Bulk CSV</button>
             <a href="/logout" class="btn btn-destructive btn-small" style="text-decoration: none;">Logout</a>
             {% if user.role in ['Admin', 'Owner', 'Manager'] %}
@@ -138,5 +141,128 @@
             }
         }
     </script>
+
+    <!-- Printer Settings Modal -->
+    <div id="printer-settings-modal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>🖨️ Thermal Printer Setup</h3>
+                <button class="modal-close-btn" onclick="closePrinterModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 12px; color: #718096; margin-bottom: 16px;">
+                    Configure and pair your **Niyama** thermal printer via Bluetooth.
+                </p>
+                
+                <div style="font-size: 13px; color: #4A5568; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; background: #EDF2F7; padding: 10px; border-radius: 8px;">
+                    <span>Connection Status:</span>
+                    <span id="bt-status-text" style="font-weight: bold; color: #718096;">🔴 Disconnected</span>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                    <button type="button" class="btn btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;" onclick="connectBluetooth()">
+                        🔌 Pair / Connect
+                    </button>
+                    <button type="button" id="bt-test-btn" class="btn btn-secondary" style="display: none; padding: 10px 12px; font-size: 13px; font-weight: 600; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;" onclick="printTestReceipt()">
+                        📄 Test Slip
+                    </button>
+                </div>
+
+                <!-- ROLE-RESTRICTED CONFIGURATION AREA (Only Admin) -->
+                {% if user.role == 'Admin' %}
+                <div style="border-top: 1px solid #E2E8F0; padding-top: 16px; margin-top: 8px;">
+                    <h4 style="font-size: 13px; color: var(--primary); margin-bottom: 12px;">Admin Receipt Calibration</h4>
+
+                    <!-- Width Toggle -->
+                    <div class="control-group">
+                        <label class="control-label">Paper Roll Width</label>
+                        <div class="width-toggle-buttons">
+                            <button type="button" class="toggle-btn" data-width="58">2" (58mm) Standard</button>
+                            <button type="button" class="toggle-btn" data-width="80">3" (80mm) Wide</button>
+                        </div>
+                    </div>
+
+                    <!-- Font Size -->
+                    <div class="control-group">
+                        <label class="control-label">Font Size</label>
+                        <div class="slider-container">
+                            <input type="range" id="font-size-slider" min="9" max="14" step="1">
+                            <span class="slider-value" id="font-size-val">10px</span>
+                        </div>
+                    </div>
+
+                    <!-- Line Height -->
+                    <div class="control-group">
+                        <label class="control-label">Line Spacing</label>
+                        <div class="slider-container">
+                            <input type="range" id="line-height-slider" min="1.0" max="1.6" step="0.1">
+                            <span class="slider-value" id="line-height-val">1.0</span>
+                        </div>
+                    </div>
+
+                    <!-- Character Limit -->
+                    <div class="control-group">
+                        <label class="control-label">Characters per Line</label>
+                        <div class="slider-container">
+                            <input type="range" id="char-limit-slider" min="24" max="48" step="1">
+                            <span class="slider-value" id="char-limit-val">32 chars</span>
+                        </div>
+                        <p style="font-size: 10px; color: #718096; margin-top: 4px; line-height: 1.3;">
+                            Decrease limit if text wraps incorrectly on physical paper.
+                        </p>
+                    </div>
+
+                    <!-- Auto-Print Toggle -->
+                    <div class="control-group auto-print-row" style="margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+                        <span class="control-label" style="margin-bottom: 0;">Auto-Print on Checkout</span>
+                        <label class="switch-label">
+                            <input type="checkbox" id="auto-print-switch" class="switch-input">
+                            <span class="switch-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-small" onclick="closePrinterModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Success / Receipt Preview Modal -->
+    <div id="receipt-preview-modal" class="modal-overlay">
+        <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header" style="background-color: #E6FFFA;">
+                <h3 style="color: #319795;">🎉 Bill Created Successfully!</h3>
+                <button class="modal-close-btn" onclick="closeReceiptModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="receipt-modal-preview-box">
+                    <div class="receipt-preview-card" id="receipt-container-preview" style="box-shadow: none; border: none; margin-bottom: 0;">
+                        <!-- Receipt content dynamically generated here -->
+                    </div>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
+                    <button id="modal-bt-print-btn" class="btn" style="background-color: #2B6CB0; color: white;" onclick="printActiveBillBluetooth()">
+                        🔵 Print via Bluetooth
+                    </button>
+                    <button class="btn btn-secondary" style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748;" onclick="printActiveBillBrowser()">
+                        🖨️ Print via Browser Dialog
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer" style="background-color: #E6FFFA;">
+                <button class="btn btn-small" style="background-color: #319795; width: 100%;" onclick="closeReceiptModal()">
+                    Done & New Sale
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Print-Only Container for Browser print dialog -->
+    <div id="receipt-container" class="no-print" style="display: none;">
+        <!-- Filled dynamically before printing -->
+    </div>
 </body>
 </html>
