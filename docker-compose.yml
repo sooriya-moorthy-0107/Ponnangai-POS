@@ -1,4 +1,17 @@
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: ponnangai_pos_db
+    environment:
+      - POSTGRES_USER=pos_user
+      - POSTGRES_PASSWORD=pos_password
+      - POSTGRES_DB=ponnangai_pos
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
   pos-app:
     build:
       context: .
@@ -7,10 +20,14 @@ services:
     ports:
       - "1745:8000"
     environment:
-      - DATABASE_URL=sqlite:///./data/ponnangai_pos.db
+      - DATABASE_URL=postgresql://pos_user:pos_password@db:5432/ponnangai_pos
+    depends_on:
+      - db
     volumes:
-      # Bind mount the data directory to persist the SQLite database safely
-      - ./data:/app/data
       # Bind mount the photos directory to keep uploaded product images safe
       - ./photos:/app/photos
     restart: unless-stopped
+
+volumes:
+  pgdata:
+

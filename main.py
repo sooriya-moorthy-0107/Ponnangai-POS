@@ -6,20 +6,27 @@ from fastapi import FastAPI, Depends, HTTPException, status, Form, Request, Uplo
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, func
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, func, Boolean, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 from starlette.middleware.sessions import SessionMiddleware
 
 # --- Configuration & Setup ---
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ponnangai_pos.db")
-# If SQLite is used, ensure parent directory exists (needed for container volume mounts)
+
+# Adjust postgres scheme for SQLAlchemy 1.4+ compatibility if needed
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Configure database engine based on dialect
 if DATABASE_URL.startswith("sqlite:///"):
     db_path = DATABASE_URL.replace("sqlite:///", "")
     db_dir = os.path.dirname(db_path)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -47,6 +54,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
     role = Column(String, nullable=False) # Admin, Owner, Manager, Shopkeeper
+    is_deleted = Column(Boolean, default=False)
 
 class Product(Base):
     __tablename__ = "products"
@@ -54,6 +62,10 @@ class Product(Base):
     name = Column(String, index=True, nullable=False)
     price = Column(Float, nullable=False)
     image_filename = Column(String, nullable=True)
+    shopkeeper_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_deleted = Column(Boolean, default=False)
+
+    shopkeeper = relationship("User")
 
 class ShopInventory(Base):
     __tablename__ = "shop_inventories"
@@ -93,6 +105,55 @@ class BillItem(Base):
 # Create tables
 Base.metadata.create_all(bind=engine)
 
+# Schema upgrade (adding shopkeeper_id and is_deleted columns dynamically if missing)
+db_init = SessionLocal()
+try:
+    if DATABASE_URL.startswith("sqlite:///"):
+        db_init.execute(text("ALTER TABLE products ADD COLUMN shopkeeper_id INTEGER"))
+    else:
+        db_init.execute(text("ALTER TABLE products ADD COLUMN shopkeeper_id INTEGER REFERENCES users(id)"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
+try:
+    db_init.execute(text("ALTER TABLE products ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
+# Ensure all products have is_deleted set to FALSE if it is NULL
+try:
+    db_init.execute(text("UPDATE products SET is_deleted = FALSE WHERE is_deleted IS NULL"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
+# Upgrade users table to support soft delete/archiving
+try:
+    db_init.execute(text("ALTER TABLE users ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
+try:
+    db_init.execute(text("UPDATE users SET is_deleted = FALSE WHERE is_deleted IS NULL"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
+# Migration: Assign existing products without shopkeeper_id to the first Shopkeeper
+try:
+    first_sk = db_init.query(User).filter(User.role == "Shopkeeper").first()
+    if first_sk:
+        db_init.execute(text(f"UPDATE products SET shopkeeper_id = {first_sk.id} WHERE shopkeeper_id IS NULL"))
+        db_init.commit()
+except Exception as e:
+    db_init.rollback()
+    print(f"Startup migration error: {e}")
+finally:
+    db_init.close()
+
 # --- Dependencies ---
 def get_db():
     db = SessionLocal()
@@ -105,7 +166,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     user_id = request.session.get("user_id")
     if not user_id:
         return None
-    return db.query(User).filter(User.id == user_id).first()
+    return db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
 
 # --- Initial Seed Data ---
 def seed_db():
@@ -148,7 +209,7 @@ async def login_page(request: Request):
 @app.post("/login")
 async def do_login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     username_clean = username.strip()
-    user = db.query(User).filter(User.username == username_clean).first()
+    user = db.query(User).filter(User.username == username_clean, User.is_deleted == False).first()
     if not user or user.password != password:
         return templates.TemplateResponse(request=request, name="login.html", context={"request": request, "error": "Invalid username or password"})
     
@@ -169,11 +230,21 @@ async def shop_page(request: Request, db: Session = Depends(get_db)):
     if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner"]:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    inventory = db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == user.id).all()
+    # Only show products that have a stock > 0 in this shopkeeper's inventory
+    inventory = db.query(ShopInventory).filter(
+        ShopInventory.shopkeeper_id == user.id,
+        ShopInventory.stock > 0
+    ).all()
     inv_map = {inv.product_id: inv.stock for inv in inventory}
-    products = db.query(Product).all()
-    for p in products:
-        p.stock = inv_map.get(p.id, 0)
+    
+    product_ids = list(inv_map.keys())
+    if product_ids:
+        products = db.query(Product).filter(Product.id.in_(product_ids), Product.is_deleted == False).all()
+        for p in products:
+            p.stock = inv_map.get(p.id, 0)
+    else:
+        products = []
+        
     return templates.TemplateResponse(request=request, name="shop.html", context={"request": request, "user": user, "products": products})
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -183,9 +254,13 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
     if not user or user.role not in ["Admin", "Owner", "Manager"]:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    products = db.query(Product).all()
-    users = db.query(User).all()
+    products = db.query(Product).filter(Product.is_deleted == False).all()
+    # Filter out soft-deleted users/staff from active views
+    users = db.query(User).filter(User.is_deleted == False).all()
     shopkeepers = [u for u in users if u.role == "Shopkeeper"]
+    
+    # Load archived shopkeepers specifically for historical analytics
+    archived_shopkeepers = db.query(User).filter(User.role == "Shopkeeper", User.is_deleted == True).all()
     
     # Inventory mapping: shop_inventory[shopkeeper_id][product_id] = stock
     all_inventory = db.query(ShopInventory).all()
@@ -199,10 +274,14 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
     total_revenue = db.query(func.sum(Bill.final_amount)).scalar() or 0.0
     total_sales = db.query(Bill).count()
     
-    # Low stock alerts across all shops
-    low_stock_alerts = db.query(ShopInventory).filter(ShopInventory.stock < 10).all()
+    # Low stock alerts across active shops and active products (ignores soft-deleted stocks)
+    low_stock_alerts = db.query(ShopInventory).join(Product).join(User, ShopInventory.shopkeeper_id == User.id).filter(
+        ShopInventory.stock < 10,
+        Product.is_deleted == False,
+        User.is_deleted == False
+    ).all()
     
-    # Shop performance
+    # Shop performance for active shopkeepers
     shop_performance = []
     for sk in shopkeepers:
         sales = db.query(Bill).filter(Bill.cashier_id == sk.id).count()
@@ -219,6 +298,7 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
         "products": products,
         "users": users,
         "shopkeepers": shopkeepers,
+        "archived_shopkeepers": archived_shopkeepers,
         "shop_inventory": shop_inventory,
         "total_revenue": total_revenue,
         "total_sales": total_sales,
@@ -458,14 +538,21 @@ async def get_inventory_template(request: Request, shopkeeper_id: int, db: Sessi
         
     if user.role == "Shopkeeper" and user.id != shopkeeper_id:
         raise HTTPException(status_code=403, detail="Unauthorized: Shopkeepers can only access their own inventory template.")
+    
+    # Query only active products scoped to this shopkeeper
+    products = db.query(Product).filter(
+        Product.shopkeeper_id == shopkeeper_id,
+        Product.is_deleted == False
+    ).all()
     shop_invs = db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == shopkeeper_id).all()
+    inv_map = {inv.product_id: inv.stock for inv in shop_invs}
     
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Product ID", "Product Name", "Current Stock", "New Stock"])
+    writer.writerow(["S.No.", "Product Name", "Current Stock", "New Stock"])
     
-    for inv in shop_invs:
-        writer.writerow([inv.product_id, inv.product.name, inv.stock, ""])
+    for idx, p in enumerate(products, 1):
+        writer.writerow([idx, p.name, inv_map.get(p.id, 0), ""])
         
     headers = {
         "Content-Disposition": f"attachment; filename=shop_{shopkeeper_id}_inventory_template.csv"
@@ -493,18 +580,46 @@ async def bulk_upload_inventory(request: Request, shopkeeper_id: int = Form(...)
     
     updated_count = 0
     for row in reader:
-        prod_id = row.get("Product ID")
-        new_stock = row.get("New Stock")
-        if prod_id and new_stock and str(new_stock).strip() != "":
+        prod_id = row.get("Product ID") or row.get("product_id")
+        prod_name = row.get("Product Name") or row.get("name") or row.get("Product")
+        new_stock = row.get("New Stock") or row.get("stock") or row.get("NewStock")
+        
+        if (prod_id or prod_name) and new_stock and str(new_stock).strip() != "":
             try:
-                pid = int(prod_id)
-                nstock = int(new_stock)
-                inv = db.query(ShopInventory).filter(
-                    ShopInventory.shopkeeper_id == shopkeeper_id,
-                    ShopInventory.product_id == pid
-                ).first()
-                if inv:
-                    inv.stock = nstock
+                nstock = int(float(new_stock))
+                product = None
+                
+                # Compatibility fallback: match by ID if ID column is present and has integer value
+                if prod_id and str(prod_id).strip() != "":
+                    try:
+                        pid = int(float(prod_id))
+                        product = db.query(Product).filter(
+                            Product.id == pid,
+                            Product.shopkeeper_id == shopkeeper_id,
+                            Product.is_deleted == False
+                        ).first()
+                    except ValueError:
+                        pass
+                
+                # Primary modern matching: match by Product Name (case-sensitive stripped lookup)
+                if not product and prod_name:
+                    p_name = str(prod_name).strip()
+                    product = db.query(Product).filter(
+                        Product.name == p_name,
+                        Product.shopkeeper_id == shopkeeper_id,
+                        Product.is_deleted == False
+                    ).first()
+                
+                if product:
+                    inv = db.query(ShopInventory).filter(
+                        ShopInventory.shopkeeper_id == shopkeeper_id,
+                        ShopInventory.product_id == product.id
+                    ).first()
+                    if not inv:
+                        inv = ShopInventory(shopkeeper_id=shopkeeper_id, product_id=product.id, stock=nstock)
+                        db.add(inv)
+                    else:
+                        inv.stock = nstock
                     updated_count += 1
             except ValueError:
                 continue
@@ -538,22 +653,21 @@ async def add_product(request: Request, data: dict, db: Session = Depends(get_db
     name = data.get("name")
     price = data.get("price")
     stock = data.get("stock", 0)
+    shopkeeper_id = data.get("shopkeeper_id")
     
-    if not name or price is None:
-        return JSONResponse(status_code=400, content={"detail": "Missing name or price"})
+    if not name or price is None or not shopkeeper_id:
+        return JSONResponse(status_code=400, content={"detail": "Missing name, price, or shopkeeper_id"})
         
-    new_product = Product(name=name, price=float(price))
+    new_product = Product(name=name, price=float(price), shopkeeper_id=int(shopkeeper_id), is_deleted=False)
     db.add(new_product)
     db.commit()
     db.refresh(new_product)
     
-    # Initialize stock for all shopkeepers
-    shopkeepers = db.query(User).filter(User.role == "Shopkeeper").all()
-    for sk in shopkeepers:
-        db.add(ShopInventory(shopkeeper_id=sk.id, product_id=new_product.id, stock=int(stock)))
+    # Initialize stock for the specific shopkeeper
+    db.add(ShopInventory(shopkeeper_id=int(shopkeeper_id), product_id=new_product.id, stock=int(stock)))
     db.commit()
     
-    return {"status": "success", "detail": "Product added successfully"}
+    return {"status": "success", "detail": "Product added to shop successfully"}
 
 @app.get("/api/products/template")
 async def get_products_template(request: Request, db: Session = Depends(get_db)):
@@ -575,7 +689,7 @@ async def get_products_template(request: Request, db: Session = Depends(get_db))
     return Response(content=output.getvalue(), media_type="text/csv", headers=headers)
 
 @app.post("/api/products/bulk_upload")
-async def bulk_upload_products(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def bulk_upload_products(request: Request, shopkeeper_id: int = Form(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user or user.role not in ["Admin", "Manager", "Owner"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
@@ -591,13 +705,13 @@ async def bulk_upload_products(request: Request, file: UploadFile = File(...), d
         
     reader = csv.DictReader(io.StringIO(decoded))
     
-    shopkeepers = db.query(User).filter(User.role == "Shopkeeper").all()
-    
     added_count = 0
+    updated_count = 0
+    
     for row in reader:
         name = row.get("Product Name") or row.get("name") or row.get("Product")
         price_val = row.get("Price") or row.get("price") or row.get("Rate")
-        stock_val = row.get("Initial Stock") or row.get("stock") or row.get("initial_stock")
+        stock_val = row.get("Initial Stock") or row.get("stock") or row.get("initial_stock") or row.get("Stock")
         image_val = row.get("Image Name") or row.get("image") or row.get("Image Filename")
         
         if name and price_val:
@@ -606,32 +720,66 @@ async def bulk_upload_products(request: Request, file: UploadFile = File(...), d
                 p_price = float(price_val)
                 p_stock = int(stock_val) if (stock_val and str(stock_val).strip() != "") else 0
                 
-                existing = db.query(Product).filter(Product.name == p_name).first()
+                # Check if product already exists for this shopkeeper (active or soft-deleted)
+                existing = db.query(Product).filter(
+                    Product.name == p_name,
+                    Product.shopkeeper_id == shopkeeper_id
+                ).first()
+                
                 if existing:
-                    continue
-                
-                if image_val and str(image_val).strip() != "":
-                    raw_img = str(image_val).strip()
-                    image_filename = raw_img.lower().replace(" ", "_").replace("-", "")
-                    if not image_filename.endswith(".jpg"):
-                        image_filename += ".jpg"
+                    # Update existing product (reactivate if soft-deleted)
+                    existing.price = p_price
+                    existing.is_deleted = False
+                    if image_val and str(image_val).strip() != "":
+                        raw_img = str(image_val).strip()
+                        image_filename = raw_img.lower().replace(" ", "_").replace("-", "")
+                        if not image_filename.endswith(".jpg"):
+                            image_filename += ".jpg"
+                        existing.image_filename = image_filename
+                    db.commit()
+                    
+                    # Update or create ShopInventory record
+                    inv = db.query(ShopInventory).filter(
+                        ShopInventory.shopkeeper_id == shopkeeper_id,
+                        ShopInventory.product_id == existing.id
+                    ).first()
+                    if not inv:
+                        inv = ShopInventory(shopkeeper_id=shopkeeper_id, product_id=existing.id, stock=p_stock)
+                        db.add(inv)
+                    else:
+                        inv.stock = p_stock
+                    db.commit()
+                    updated_count += 1
                 else:
-                    image_filename = p_name.lower().replace(" ", "_").replace("-", "") + ".jpg"
-                
-                new_product = Product(name=p_name, price=p_price, image_filename=image_filename)
-                db.add(new_product)
-                db.commit()
-                db.refresh(new_product)
-                
-                for sk in shopkeepers:
-                    db.add(ShopInventory(shopkeeper_id=sk.id, product_id=new_product.id, stock=p_stock))
-                db.commit()
-                
-                added_count += 1
+                    # Create new shopkeeper-specific product
+                    if image_val and str(image_val).strip() != "":
+                        raw_img = str(image_val).strip()
+                        image_filename = raw_img.lower().replace(" ", "_").replace("-", "")
+                        if not image_filename.endswith(".jpg"):
+                            image_filename += ".jpg"
+                    else:
+                        image_filename = p_name.lower().replace(" ", "_").replace("-", "") + ".jpg"
+                    
+                    new_product = Product(
+                        name=p_name,
+                        price=p_price,
+                        image_filename=image_filename,
+                        shopkeeper_id=shopkeeper_id,
+                        is_deleted=False
+                    )
+                    db.add(new_product)
+                    db.commit()
+                    db.refresh(new_product)
+                    
+                    # Add stock to shop inventory
+                    db.add(ShopInventory(shopkeeper_id=shopkeeper_id, product_id=new_product.id, stock=p_stock))
+                    db.commit()
+                    added_count += 1
             except (ValueError, TypeError):
                 continue
                 
-    return {"status": "success", "detail": f"Successfully added {added_count} products and initialized inventory."}
+    return {"status": "success", "detail": f"Successfully processed CSV: added {added_count} products and updated {updated_count} products."}
+
 @app.post("/api/products/delete")
 async def delete_product(request: Request, data: dict, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -641,16 +789,18 @@ async def delete_product(request: Request, data: dict, db: Session = Depends(get
     product_id = data.get("id")
     if product_id is None:
         return JSONResponse(status_code=400, content={"detail": "Missing product ID"})
+    try:
+        product_id = int(product_id)
+    except (ValueError, TypeError):
+        return JSONResponse(status_code=400, content={"detail": "Invalid product ID format"})
         
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         return JSONResponse(status_code=404, content={"detail": "Product not found"})
         
-    # Delete associated shop inventory records first
-    db.query(ShopInventory).filter(ShopInventory.product_id == product_id).delete()
-    
-    # Delete the product
-    db.delete(product)
+    # Soft delete: set is_deleted = True and set stock = 0
+    product.is_deleted = True
+    db.query(ShopInventory).filter(ShopInventory.product_id == product_id).update({ShopInventory.stock: 0})
     db.commit()
     
     return {"status": "success", "detail": f"Product '{product.name}' deleted successfully"}
@@ -672,7 +822,7 @@ async def add_user(request: Request, data: dict, db: Session = Depends(get_db)):
     if user.role == "Manager" and role != "Shopkeeper":
         return JSONResponse(status_code=403, content={"detail": "Managers can only create Shopkeeper accounts"})
         
-    existing_user = db.query(User).filter(User.username == username).first()
+    existing_user = db.query(User).filter(User.username == username, User.is_deleted == False).first()
     if existing_user:
         return JSONResponse(status_code=400, content={"detail": "Username already exists"})
         
@@ -681,11 +831,7 @@ async def add_user(request: Request, data: dict, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
-    if role == "Shopkeeper":
-        products = db.query(Product).all()
-        for p in products:
-            db.add(ShopInventory(shopkeeper_id=new_user.id, product_id=p.id, stock=0))
-        db.commit()
+    # Every new shop starts from zero and doesn't auto-create zero-stock inventory records.
         
     return {"status": "success", "detail": f"{role} '{username}' created successfully"}
 
@@ -718,22 +864,33 @@ async def delete_user(request: Request, data: dict, db: Session = Depends(get_db
         return JSONResponse(status_code=403, content={"detail": "Unauthorized. Only Admin/Owner can delete."})
         
     target_id = data.get("user_id")
-    target_user = db.query(User).filter(User.id == target_id).first()
+    if target_id is None:
+        return JSONResponse(status_code=400, content={"detail": "Missing user ID"})
+    try:
+        target_id = int(target_id)
+    except (ValueError, TypeError):
+        return JSONResponse(status_code=400, content={"detail": "Invalid user ID format"})
+        
+    target_user = db.query(User).filter(User.id == target_id, User.is_deleted == False).first()
     if not target_user:
         return JSONResponse(status_code=404, content={"detail": "User not found"})
         
     if target_user.id == user.id:
         return JSONResponse(status_code=400, content={"detail": "Cannot delete yourself"})
         
-    # Remove ShopInventory
-    db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == target_id).delete()
+    # Soft delete: set is_deleted = True and rename to release unique constraint
+    target_user.is_deleted = True
+    original_username = target_user.username
+    target_user.username = f"{original_username} (Archived - {datetime.now().strftime('%Y-%m-%d %H:%M')})"
     
-    # Detach Bills to keep historical data intact
-    db.query(Bill).filter(Bill.cashier_id == target_id).update({"cashier_id": None})
+    # Soft-delete all products of this shopkeeper so they are hidden from all active POS/admin views
+    db.query(Product).filter(Product.shopkeeper_id == target_id).update({Product.is_deleted: True})
     
-    db.delete(target_user)
+    # Set active stock of deleted shopkeeper products to 0 to prevent rogue stock alerts
+    db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == target_id).update({ShopInventory.stock: 0})
+    
     db.commit()
-    return {"status": "success", "detail": "User deleted"}
+    return {"status": "success", "detail": f"User '{original_username}' successfully archived and deleted."}
 
 @app.get("/api/analytics/shop/{shop_id}")
 async def get_shop_analytics(request: Request, shop_id: int, db: Session = Depends(get_db)):
