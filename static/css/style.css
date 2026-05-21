@@ -560,13 +560,14 @@ input:focus, select:focus {
     body {
         background-color: white;
     }
-    body * {
-        visibility: hidden;
-    }
-    #receipt-container, #receipt-container * {
-        visibility: visible;
+    body > :not(#receipt-container) {
+        display: none !important;
     }
     #receipt-container {
+        display: block !important;
+    }
+    #receipt-container {
+        display: block !important;
         position: absolute;
         left: 0;
         top: 0;
@@ -607,4 +608,111 @@ input:focus, select:focus {
         display: flex;
         justify-content: space-between;
     }
+}
+
+/* ==========================================================================
+   Sleek Modern Modal System (Glassmorphic Overlay & Responsive Containment)
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease-in-out;
+    padding: 16px;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-container {
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: scale(0.95);
+    transition: transform 0.25s ease-in-out;
+    border: 1px solid #E2E8F0;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-overlay.active .modal-container {
+    transform: scale(1);
+}
+
+.modal-header {
+    padding: var(--spacing);
+    border-bottom: 1px solid #E2E8F0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #F7FAFC;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+}
+
+.modal-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 0;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #A0AEC0;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.modal-close-btn:hover {
+    color: var(--text-color);
+}
+
+.modal-body {
+    padding: var(--spacing);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-footer {
+    padding: var(--spacing);
+    border-top: 1px solid #E2E8F0;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background-color: #F7FAFC;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+/* Offline Receipt Wrapper on Screen for print preview modal */
+.receipt-modal-preview-box {
+    display: flex;
+    justify-content: center;
+    background-color: #EDF2F7;
+    padding: var(--spacing);
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: var(--spacing);
+    border: 1px inset #E2E8F0;
 }

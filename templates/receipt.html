@@ -19,6 +19,8 @@
                 Optimize receipt layout specifically for your **Niyama** thermal printer.
             </p>
 
+            <!-- ROLE-RESTRICTED CONFIGURATION AREA (Only Admin) -->
+            {% if user.role == 'Admin' %}
             <!-- Width Toggle -->
             <div class="control-group">
                 <label class="control-label">Paper Roll Width</label>
@@ -66,6 +68,7 @@
                     <span class="switch-slider"></span>
                 </label>
             </div>
+            {% endif %}
 
             <!-- Bluetooth Driverless Printing -->
             <div style="margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px; margin-bottom: 16px;">
@@ -200,36 +203,42 @@
                 } else {
                     btn.classList.remove('active');
                 }
-            });
-            
-            // Font size slider
+               // Font size slider
             const fontSlider = document.getElementById('font-size-slider');
             const fontVal = document.getElementById('font-size-val');
-            fontSlider.value = settings.fontSize;
-            fontVal.textContent = settings.fontSize + 'px';
+            if (fontSlider && fontVal) {
+                fontSlider.value = settings.fontSize;
+                fontVal.textContent = settings.fontSize + 'px';
+            }
             
             // Line spacing slider
             const heightSlider = document.getElementById('line-height-slider');
             const heightVal = document.getElementById('line-height-val');
-            heightSlider.value = settings.lineHeight;
-            heightVal.textContent = settings.lineHeight;
-
+            if (heightSlider && heightVal) {
+                heightSlider.value = settings.lineHeight;
+                heightVal.textContent = settings.lineHeight;
+            }
+ 
             // Character width slider limits & value adjustment
             const charSlider = document.getElementById('char-limit-slider');
             const charVal = document.getElementById('char-limit-val');
-            if (settings.width === '58') {
-                charSlider.min = '24';
-                charSlider.max = '34';
-            } else {
-                charSlider.min = '40';
-                charSlider.max = '48';
+            if (charSlider && charVal) {
+                if (settings.width === '58') {
+                    charSlider.min = '24';
+                    charSlider.max = '34';
+                } else {
+                    charSlider.min = '40';
+                    charSlider.max = '48';
+                }
+                charSlider.value = settings.charLimit;
+                charVal.textContent = settings.charLimit + ' chars';
             }
-            charSlider.value = settings.charLimit;
-            charVal.textContent = settings.charLimit + ' chars';
             
             // Auto print switch
             const autoSwitch = document.getElementById('auto-print-switch');
-            autoSwitch.checked = settings.autoPrint;
+            if (autoSwitch) {
+                autoSwitch.checked = settings.autoPrint;
+            }
             
             const is58 = settings.width === '58';
             
@@ -620,15 +629,12 @@
                 localStorage.setItem('pos_print_fontSize', '10');
                 localStorage.setItem('pos_print_lineHeight', '1.0');
                 localStorage.setItem('pos_print_charLimit', '32');
-                localStorage.setItem('pos_print_calibrated_ideal_v4', 'true');
-            }
-
             applySettings();
             
             // Background Auto Connect to paired printer on page load
             autoConnectBluetooth();
             
-            // Setup controls events
+            // Setup controls events (only if buttons exist in the DOM)
             document.querySelectorAll('.width-toggle-buttons .toggle-btn').forEach(btn => {
                 btn.onclick = function(e) {
                     const width = e.target.dataset.width;
@@ -641,33 +647,45 @@
                 };
             });
             
-            document.getElementById('font-size-slider').oninput = function(e) {
-                const settings = getSettings();
-                settings.fontSize = e.target.value;
-                saveSettings(settings);
-                applySettings();
-            };
+            const fontSlider = document.getElementById('font-size-slider');
+            if (fontSlider) {
+                fontSlider.oninput = function(e) {
+                    const settings = getSettings();
+                    settings.fontSize = e.target.value;
+                    saveSettings(settings);
+                    applySettings();
+                };
+            }
             
-            document.getElementById('line-height-slider').oninput = function(e) {
-                const settings = getSettings();
-                settings.lineHeight = e.target.value;
-                saveSettings(settings);
-                applySettings();
-            };
-
-            document.getElementById('char-limit-slider').oninput = function(e) {
-                const settings = getSettings();
-                settings.charLimit = e.target.value;
-                saveSettings(settings);
-                applySettings();
-            };
+            const heightSlider = document.getElementById('line-height-slider');
+            if (heightSlider) {
+                heightSlider.oninput = function(e) {
+                    const settings = getSettings();
+                    settings.lineHeight = e.target.value;
+                    saveSettings(settings);
+                    applySettings();
+                };
+            }
+ 
+            const charSlider = document.getElementById('char-limit-slider');
+            if (charSlider) {
+                charSlider.oninput = function(e) {
+                    const settings = getSettings();
+                    settings.charLimit = e.target.value;
+                    saveSettings(settings);
+                    applySettings();
+                };
+            }
             
-            document.getElementById('auto-print-switch').onchange = function(e) {
-                const settings = getSettings();
-                settings.autoPrint = e.target.checked;
-                saveSettings(settings);
-                applySettings();
-            };
+            const autoSwitch = document.getElementById('auto-print-switch');
+            if (autoSwitch) {
+                autoSwitch.onchange = function(e) {
+                    const settings = getSettings();
+                    settings.autoPrint = e.target.checked;
+                    saveSettings(settings);
+                    applySettings();
+                };
+            }
             
             // Auto Browser Print
             const settings = getSettings();

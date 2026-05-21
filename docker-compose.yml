@@ -5,10 +5,12 @@ services:
       dockerfile: Dockerfile
     container_name: ponnangai_pos_app
     ports:
-      - "1745:8000"
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/ponnangai_pos.db
     volumes:
-      # Bind mount the SQLite database to persist data outside the container lifecycle
-      - ./ponnangai_pos.db:/app/ponnangai_pos.db
+      # Bind mount the data directory to persist the SQLite database safely
+      - ./data:/app/data
       # Bind mount the photos directory to keep uploaded product images safe
       - ./photos:/app/photos
     restart: unless-stopped
