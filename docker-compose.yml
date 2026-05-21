@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: ponnangai_pos_app
     ports:
-      - "8000:8000"
+      - "1745:8000"
     environment:
       - DATABASE_URL=sqlite:///./data/ponnangai_pos.db
     volumes:
