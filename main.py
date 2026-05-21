@@ -318,6 +318,35 @@ async def receipt_page(request: Request, bill_id: int, db: Session = Depends(get
         
     return templates.TemplateResponse(request=request, name="receipt.html", context={"request": request, "bill": bill, "user": user})
 
+# --- API Routes ---
+
+@app.get("/api/bills/history")
+async def get_bill_history(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        
+    query = db.query(Bill)
+    if user.role == "Shopkeeper":
+        query = query.filter(Bill.cashier_id == user.id)
+        
+    # Get last 20 bills
+    bills = query.order_by(Bill.timestamp.desc()).limit(20).all()
+    
+    result = []
+    for b in bills:
+        result.append({
+            "id": b.id,
+            "total_amount": b.total_amount,
+            "discount": b.discount,
+            "final_amount": b.final_amount,
+            "payment_mode": b.payment_mode,
+            "timestamp": b.timestamp.strftime('%Y-%m-%d %H:%M'),
+            "cashier_name": b.cashier_name
+        })
+        
+    return {"status": "success", "bills": result}
+
 @app.get("/api/bills/{bill_id}")
 async def get_bill_details(request: Request, bill_id: int, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -351,33 +380,6 @@ async def get_bill_details(request: Request, bill_id: int, db: Session = Depends
             "items": items
         }
     }
-
-# --- API Routes ---
-
-@app.get("/api/bills/history")
-async def get_bill_history(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
-    if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner"]:
-        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
-        
-    query = db.query(Bill)
-    if user.role == "Shopkeeper":
-        query = query.filter(Bill.cashier_id == user.id)
-        
-    # Get last 20 bills
-    bills = query.order_by(Bill.timestamp.desc()).limit(20).all()
-    
-    result = []
-    for b in bills:
-        result.append({
-            "id": b.id,
-            "total_amount": b.total_amount,
-            "final_amount": b.final_amount,
-            "payment_mode": b.payment_mode,
-            "timestamp": b.timestamp.strftime('%Y-%m-%d %H:%M')
-        })
-        
-    return {"status": "success", "bills": result}
 
 @app.post("/api/bills")
 async def create_bill(request: Request, data: dict, db: Session = Depends(get_db)):
@@ -601,11 +603,11 @@ async def bulk_upload_inventory(request: Request, shopkeeper_id: int = Form(...)
                     except ValueError:
                         pass
                 
-                # Primary modern matching: match by Product Name (case-sensitive stripped lookup)
+                # Primary modern matching: match by Product Name (case-insensitive stripped lookup)
                 if not product and prod_name:
-                    p_name = str(prod_name).strip()
+                    p_name = str(prod_name).strip().lower()
                     product = db.query(Product).filter(
-                        Product.name == p_name,
+                        func.lower(func.trim(Product.name)) == p_name,
                         Product.shopkeeper_id == shopkeeper_id,
                         Product.is_deleted == False
                     ).first()
@@ -718,11 +720,11 @@ async def bulk_upload_products(request: Request, shopkeeper_id: int = Form(...),
             try:
                 p_name = str(name).strip()
                 p_price = float(price_val)
-                p_stock = int(stock_val) if (stock_val and str(stock_val).strip() != "") else 0
+                p_stock = int(float(stock_val)) if (stock_val and str(stock_val).strip() != "") else 0
                 
-                # Check if product already exists for this shopkeeper (active or soft-deleted)
+                # Check if product already exists for this shopkeeper (active or soft-deleted, case-insensitive)
                 existing = db.query(Product).filter(
-                    Product.name == p_name,
+                    func.lower(func.trim(Product.name)) == p_name.lower(),
                     Product.shopkeeper_id == shopkeeper_id
                 ).first()
                 
