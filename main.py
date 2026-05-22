@@ -1159,11 +1159,13 @@ async def reset_system(request: Request, db: Session = Depends(get_db)):
         db.query(Product).delete()
         db.query(FactorySessionBalance).delete()
         db.query(FactorySession).delete()
+        db.query(User).filter(User.is_deleted == True).delete()
         try:
             db.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('bill_items', 'bills', 'shop_inventories', 'products', 'factory_session_balances', 'factory_sessions')"))
         except Exception:
             pass
     elif dialect in ['postgresql', 'postgres']:
+        db.query(User).filter(User.is_deleted == True).delete()
         db.execute(text("TRUNCATE TABLE bill_items, bills, shop_inventories, products, factory_session_balances, factory_sessions RESTART IDENTITY CASCADE"))
     else:
         db.query(BillItem).delete()
@@ -1172,6 +1174,7 @@ async def reset_system(request: Request, db: Session = Depends(get_db)):
         db.query(Product).delete()
         db.query(FactorySessionBalance).delete()
         db.query(FactorySession).delete()
+        db.query(User).filter(User.is_deleted == True).delete()
     
     # Also clean up any uploaded product image files starting with "product_" to free disk space
     try:
