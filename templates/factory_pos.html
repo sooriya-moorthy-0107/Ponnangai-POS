@@ -488,74 +488,307 @@ async function loadBillForReceipt(billId) {
             activeBillData = null;
         }
 
-        // Printer Bluetooth logic
-        function openPrinterModal() { document.getElementById('printer-settings-modal').classList.add('active'); }
-        function closePrinterModal() { document.getElementById('printer-settings-modal').classList.remove('active'); }
+        // --- Web Bluetooth Direct ESC/POS Driverless Engine ---
+
+        async function connectToDevice(device) {
+            const statusText = document.getElementById('bt-status-text');
+            statusText.innerHTML = `<span style="color: #D69E2E;">🟡 Connecting to ${device.name || 'Printer'}...</span>`;
+
+            bluetoothDevice = device;
+            bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+            const server = await bluetoothDevice.gatt.connect();
+            statusText.innerHTML = '<span style="color: #D69E2E;">🟡 Discovering printer services...</span>';
+
+            let service = null;
+            const serviceUUIDs = [
+                '0000ffe0-0000-1000-8000-00805f9b34fb', // Standard BLE Serial
+                '000018f0-0000-1000-8000-00805f9b34fb', // Standard Bluetooth Thermal printer service
+                '49535343-fe7d-4ae5-8fa9-9fafd205e455'  // Microchip BLE module
+            ];
+
+            for (const uuid of serviceUUIDs) {
+                try {
+                    service = await server.getPrimaryService(uuid);
+                    if (service) break;
+                } catch (e) {
+                    console.log(`Service ${uuid} not discovered, checking next service...`);
+                }
+            }
+
+            if (!service) {
+                try {
+                    const services = await server.getPrimaryServices();
+                    if (services.length > 0) {
+                        service = services[0];
+                    }
+                } catch (e) {
+                    console.error("Failed to inspect primary services", e);
+                }
+            }
+
+            if (!service) {
+                throw new Error("No print service discovered on this Niyama device.");
+            }
+
+            statusText.innerHTML = '<span style="color: #D69E2E;">🟡 Initializing data channel...</span>';
+            const characteristics = await service.getCharacteristics();
+            for (const char of characteristics) {
+                if (char.properties.write || char.properties.writeWithoutResponse) {
+                    printCharacteristic = char;
+                    break;
+                }
+            }
+
+            if (!printCharacteristic) {
+                throw new Error("No write capability found on this Niyama device.");
+            }
+
+            statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
+            document.getElementById('header-printer-status').innerText = 'Connected';
+            document.getElementById('bt-test-btn').style.display = 'inline-block';
+        }
 
         async function connectBluetooth() {
+            const statusText = document.getElementById('bt-status-text');
+            statusText.innerHTML = '<span style="color: #D69E2E;">🟡 Connecting...</span>';
             try {
-                document.getElementById('bt-status-text').innerText = '🟡 Scanning...';
-                bluetoothDevice = await navigator.bluetooth.requestDevice({
-                    filters: [{ namePrefix: 'Niyama' }, { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
-                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
-                });
-
-                const server = await bluetoothDevice.gatt.connect();
-                const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-                const characteristics = await service.getCharacteristics();
-                printCharacteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
-
-                if (printCharacteristic) {
-                    document.getElementById('bt-status-text').innerText = '🟢 Connected';
-                    document.getElementById('header-printer-status').innerText = 'Connected';
-                    document.getElementById('bt-test-btn').style.display = 'inline-block';
+                if (!navigator.bluetooth) {
+                    throw new Error("Web Bluetooth API is not supported in this browser.");
                 }
-            } catch(e) {
-                document.getElementById('bt-status-text').innerText = '🔴 Connection Failed';
+
+                const options = {
+                    acceptAllDevices: true,
+                    optionalServices: [
+                        '0000ffe0-0000-1000-8000-00805f9b34fb',
+                        '000018f0-0000-1000-8000-00805f9b34fb',
+                        '49535343-fe7d-4ae5-8fa9-9fafd205e455'
+                    ]
+                };
+
+                const device = await navigator.bluetooth.requestDevice(options);
+                await connectToDevice(device);
+            } catch (err) {
+                console.error("Bluetooth connection failed", err);
+                statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Connection Failed</span>`;
                 document.getElementById('header-printer-status').innerText = 'Disconnected';
+                printCharacteristic = null;
+                bluetoothDevice = null;
+            }
+        }
+
+        async function autoConnectBluetooth() {
+            if (!navigator.bluetooth || !navigator.bluetooth.getDevices) {
+                return;
+            }
+            const statusText = document.getElementById('bt-status-text');
+            try {
+                const devices = await navigator.bluetooth.getDevices();
+                if (devices.length > 0) {
+                    statusText.innerHTML = `<span style="color: #D69E2E;">🟡 Auto-connecting to paired printer...</span>`;
+                    await connectToDevice(devices[0]);
+                }
+            } catch (err) {
+                console.error("Auto-connect failed", err);
+                statusText.innerHTML = '<span style="color: #718096; font-weight: bold;">🔴 Disconnected</span>';
+            }
+        }
+
+        function onDisconnected() {
+            const statusText = document.getElementById('bt-status-text');
+            statusText.innerHTML = '<span style="color: #718096; font-weight: bold;">🔴 Disconnected</span>';
+            document.getElementById('header-printer-status').innerText = 'Disconnected';
+            printCharacteristic = null;
+            bluetoothDevice = null;
+            document.getElementById('bt-test-btn').style.display = 'none';
+            // Auto-reconnect in 2 seconds
+            setTimeout(autoConnectBluetooth, 2000);
+        }
+
+        // --- Lightweight ESC/POS Command Packetizer ---
+        class EscPosEncoder {
+            constructor(charLimit = 32) { // Defaulting to 32 chars for 58mm
+                this.charLimit = charLimit;
+                this.buffer = [];
+            }
+
+            addRaw(bytes) {
+                this.buffer = this.buffer.concat(bytes);
+                return this;
+            }
+
+            init() {
+                this.addRaw([0x1B, 0x40]);
+                return this;
+            }
+
+            align(type) {
+                const alignMap = { left: 0x00, center: 0x01, right: 0x02 };
+                this.addRaw([0x1B, 0x61, alignMap[type] || 0x00]);
+                return this;
+            }
+
+            bold(enable) {
+                this.addRaw([0x1B, 0x45, enable ? 0x01 : 0x00]);
+                return this;
+            }
+
+            fontSize(size) {
+                if (size === 'double') {
+                    this.addRaw([0x1D, 0x21, 0x11]); // Double height + width
+                } else {
+                    this.addRaw([0x1D, 0x21, 0x00]); // Normal size
+                }
+                return this;
+            }
+
+            text(str) {
+                let cleanStr = str.replace(/₹/g, 'Rs.');
+                const encoder = new TextEncoder();
+                const encoded = encoder.encode(cleanStr);
+                this.buffer = this.buffer.concat(Array.from(encoded));
+                return this;
+            }
+
+            line(str = '') {
+                this.text(str + '\n');
+                return this;
+            }
+
+            header(str) {
+                this.align('center').fontSize('double').bold(true).line(str).fontSize('normal').bold(false).align('left');
+                return this;
+            }
+
+            divider() {
+                this.line('-'.repeat(this.charLimit));
+                return this;
+            }
+
+            row(left, right) {
+                const spaceCount = this.charLimit - (left.length + right.length);
+                if (spaceCount > 0) {
+                    this.line(left + ' '.repeat(spaceCount) + right);
+                } else if (spaceCount === 0) {
+                    this.line(left + right);
+                } else {
+                    const maxLeftLen = this.charLimit - right.length - 1;
+                    const truncatedLeft = left.substring(0, maxLeftLen);
+                    const extraSpaces = this.charLimit - (truncatedLeft.length + right.length);
+                    this.line(truncatedLeft + ' '.repeat(extraSpaces) + right);
+                }
+                return this;
+            }
+
+            itemRow(itemName, qty, total) {
+                const qtyStr = String(qty);
+                const totalStr = String(total);
+                const itemColWidth = this.charLimit - 12; 
+                const qtyColWidth = 4;
+                const totalColWidth = 8;
+
+                let left = itemName;
+                if (left.length > itemColWidth) {
+                    left = left.substring(0, itemColWidth - 1);
+                }
+                const leftPadded = left.padEnd(itemColWidth, ' ');
+                const centerPadded = qtyStr.padStart(qtyColWidth, ' ');
+                const rightPadded = totalStr.padStart(totalColWidth, ' ');
+
+                this.line(leftPadded + centerPadded + rightPadded);
+                return this;
+            }
+
+            feed(lines = 3) {
+                this.addRaw(new Array(lines).fill(0x0A));
+                return this;
+            }
+
+            getBytes() {
+                return new Uint8Array(this.buffer);
+            }
+        }
+
+        async function sendPrintData(bytes) {
+            const statusText = document.getElementById('bt-status-text');
+            if (!printCharacteristic) {
+                alert("Niyama printer is not connected. Connect via Bluetooth first!");
+                return;
+            }
+
+            statusText.innerHTML = '<span style="color: #D69E2E; font-weight: bold;">🟡 Sending to printer...</span>';
+            const CHUNK_SIZE = 20;
+            try {
+                for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+                    const chunk = bytes.slice(i, i + CHUNK_SIZE);
+                    await printCharacteristic.writeValue(chunk);
+                    await new Promise(resolve => setTimeout(resolve, 35));
+                }
+                statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
+            } catch (err) {
+                console.error("Wireless printing failed", err);
+                statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Print Failed: ${err.message || err}</span>`;
             }
         }
 
         async function printTestReceipt() {
-            if (!printCharacteristic) return;
-            try {
-                let data = new Uint8Array([0x1B, 0x40]); 
-                await printCharacteristic.writeValue(data);
-                let encoder = new TextEncoder();
-                await printCharacteristic.writeValue(encoder.encode("Niyama Bluetooth Printer\nTEST SUCCESSFUL\n\n\n\n"));
-            } catch(e) { }
+            const encoder = new EscPosEncoder(32);
+            encoder.init();
+            encoder.align('center').bold(true).fontSize('double').line("Niyama POS").fontSize('normal').bold(false);
+            encoder.divider();
+            encoder.bold(true).line("Bluetooth Pairing Success!").bold(false);
+            encoder.line("Your thermal printer is");
+            encoder.line("fully connected & ready.");
+            encoder.divider();
+            encoder.feed(5);
+            encoder.addRaw([0x1D, 0x56, 0x42, 0x00]);
+
+            await sendPrintData(encoder.getBytes());
         }
 
         async function printActiveBillBluetooth() {
-            if (!printCharacteristic || !activeBillData) return;
+            if (!printCharacteristic || !activeBillData) {
+                alert("Printer not connected or no active bill to print.");
+                return;
+            }
             try {
                 let bill = activeBillData;
-                let encoder = new TextEncoder();
-                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x40]));
-                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x61, 0x01]));
-                await printCharacteristic.writeValue(encoder.encode("PONNANGAI ENTERPRISES\nFactory Outlet\n"));
-                await printCharacteristic.writeValue(encoder.encode(`Bill: #${bill.bill_number}\nDate: ${bill.timestamp}\n`));
-                await printCharacteristic.writeValue(encoder.encode("--------------------------------\n"));
+                const encoder = new EscPosEncoder(32); // Use 32 char limit as standard
+
+                encoder.init();
+                encoder.header("PONNANGAI ENTERPRISES");
+                encoder.align('center').line("Factory Outlet Sales");
+                encoder.align('left');
                 
-                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x61, 0x00]));
+                encoder.row(`Bill: #${bill.bill_number}`, bill.timestamp);
+                encoder.line(`Cashier: ${bill.cashier_name}`);
+                encoder.divider();
+
+                encoder.itemRow("Item", "Qty", "Amount");
+                encoder.divider();
+
                 for (let item of bill.items) {
                     let qtyStr = `${item.quantity}`;
-                    let nameLine = item.name.substring(0, 20);
-                    let amtStr = `Rs.${item.total.toFixed(2)}`;
-                    let padCount = 32 - (nameLine.length + amtStr.length);
-                    let spaces = padCount > 0 ? ' '.repeat(padCount) : ' ';
-                    await printCharacteristic.writeValue(encoder.encode(`${nameLine}${spaces}${amtStr}\n  Qty: ${qtyStr}\n`));
+                    let amtStr = `${item.total.toFixed(2)}`;
+                    encoder.itemRow(item.name, qtyStr, amtStr);
                 }
-                await printCharacteristic.writeValue(encoder.encode("--------------------------------\n"));
+
+                encoder.divider();
                 
-                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x61, 0x02]));
-                await printCharacteristic.writeValue(encoder.encode(`Subtotal: Rs.${bill.total_amount.toFixed(2)}\n`));
-                if (bill.discount > 0) await printCharacteristic.writeValue(encoder.encode(`Discount: Rs.${bill.discount.toFixed(2)}\n`));
-                await printCharacteristic.writeValue(encoder.encode(`Total Paid: Rs.${bill.final_amount.toFixed(2)}\n`));
+                encoder.row("Subtotal:", `${bill.total_amount.toFixed(2)}`);
+                if (bill.discount > 0) {
+                    encoder.row("Discount:", `${bill.discount.toFixed(2)}`);
+                }
+                encoder.bold(true).row("Total Paid:", `Rs.${bill.final_amount.toFixed(2)}`).bold(false);
                 
-                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x61, 0x01]));
-                await printCharacteristic.writeValue(encoder.encode("\nThank You! Visit Again\n\n\n\n"));
-            } catch(err) { }
+                encoder.feed(1).align('center').line("Thank You! Visit Again");
+                encoder.feed(5);
+                encoder.addRaw([0x1D, 0x56, 0x42, 0x00]); // Paper Cut
+
+                await sendPrintData(encoder.getBytes());
+            } catch(err) {
+                console.error("Failed to compile receipt", err);
+            }
         }
 
         function printActiveBillBrowser() {
