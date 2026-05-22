@@ -43,7 +43,7 @@
         <div style="display: flex; gap: var(--spacing); flex-wrap: wrap;">
 
             <!-- Inventory Management (Admin/Manager) -->
-            <div class="card" style="flex: 2; min-width: 300px; display: flex; flex-direction: column;">
+            <div class="card" style="flex: 3; min-width: 300px; display: flex; flex-direction: column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
                     <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
                         🏪 Shop Inventories & Catalog
@@ -71,7 +71,9 @@
                                         <th>S.No.</th>
                                         <th style="width: 50px;">Image</th>
                                         <th>Product Name</th>
+                                        {% if sk.role != 'Factory' %}
                                         <th>Price (₹)</th>
+                                        {% endif %}
                                         <th>Stock</th>
                                         {% if user.role in ['Admin', 'Manager', 'Owner'] %}
                                         <th>Update Stock</th>
@@ -96,20 +98,30 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ product.name }}</td>
+                                        {% if sk.role != 'Factory' %}
                                         <td>{{ "%.2f"|format(product.price) }}</td>
+                                        {% endif %}
                                         <td>
+                                            {% if sk.role == 'Factory' %}
+                                            <span style="color: #718096; font-style: italic;">N/A (Shift-Based)</span>
+                                            {% else %}
                                             <span style="{% if stk < 10 %}color: var(--destructive); font-weight: bold;{% endif %}">
                                                 {{ stk }}
                                             </span>
+                                            {% endif %}
                                         </td>
                                         {% if user.role in ['Admin', 'Manager', 'Owner'] %}
                                         <td>
+                                            {% if sk.role == 'Factory' %}
+                                            <span style="color: #718096; font-style: italic;">Factory session balance</span>
+                                            {% else %}
                                             <div style="display: flex; gap: 4px; max-width: 150px;">
                                                 <input type="number" id="stock-{{ sk.id }}-{{ product.id }}" value="{{ stk }}"
                                                     style="margin-bottom: 0; padding: 6px;">
                                                 <button class="btn btn-small"
                                                     onclick="updateStock({{ sk.id }}, {{ product.id }})">Save</button>
                                             </div>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             <div style="display: flex; gap: 8px; align-items: center;">
@@ -135,7 +147,7 @@
                             <!-- Shopkeeper Action Controls -->
                             <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
                                 <button class="btn btn-small" onclick="toggleAddProductForm({{ sk.id }})">➕ Add Product</button>
-                                <button class="btn btn-secondary btn-small" onclick="toggleBulkUploadForm({{ sk.id }})">📦 Bulk Add/Edit Products (CSV)</button>
+                                <button class="btn btn-secondary btn-small" onclick="toggleBulkUploadForm({{ sk.id }})">Bulk Add/Edit Products (CSV)</button>
                                 <button class="btn btn-secondary btn-small" onclick="toggleBulkStockForm({{ sk.id }})">📈 Bulk Update Stock (CSV)</button>
                             </div>
 
@@ -146,13 +158,24 @@
                                     <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Product Name</label>
                                     <input type="text" id="new-product-name-{{ sk.id }}" placeholder="e.g. Floor Cleaner 1L" style="margin-bottom: 0;">
                                 </div>
-                                <div style="flex: 1; min-width: 100px;">
+                                <div style="flex: 1; min-width: 100px; {% if sk.role == 'Factory' %}display: none;{% endif %}">
                                     <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Price (₹)</label>
-                                    <input type="number" id="new-product-price-{{ sk.id }}" placeholder="0.00" step="0.01" style="margin-bottom: 0;">
+                                    <input type="number" id="new-product-price-{{ sk.id }}" placeholder="0.00" step="0.01" value="{% if sk.role == 'Factory' %}0{% endif %}" style="margin-bottom: 0;">
                                 </div>
                                 <div style="flex: 1; min-width: 100px;">
                                     <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Initial Stock</label>
-                                    <input type="number" id="new-product-stock-{{ sk.id }}" placeholder="0" style="margin-bottom: 0;">
+                                    <input type="number" id="new-product-stock-{{ sk.id }}" placeholder="0" {% if sk.role == 'Factory' %}value="0" disabled title="Stock managed via morning opening balance"{% endif %} style="margin-bottom: 0;">
+                                </div>
+                                <div style="flex: 1; min-width: 110px;">
+                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Product Type</label>
+                                    <select id="new-product-type-{{ sk.id }}" style="margin-bottom: 0; padding: 12px; border: 1px solid #E2E8F0; border-radius: var(--border-radius); font-size: 16px;">
+                                        <option value="solid" selected>Solid</option>
+                                        <option value="liquid" {% if sk.role == 'Factory' %}selected{% endif %}>Liquid</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 1; min-width: 90px;">
+                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Unit</label>
+                                    <input type="text" id="new-product-unit-{{ sk.id }}" placeholder="e.g. Pcs" value="{% if sk.role == 'Factory' %}Liters{% else %}Pcs{% endif %}" style="margin-bottom: 0;">
                                 </div>
                                 <button class="btn btn-small" onclick="addNewProductToShop({{ sk.id }})">Save</button>
                                 <button class="btn btn-secondary btn-small" onclick="toggleAddProductForm({{ sk.id }})">Cancel</button>
@@ -296,6 +319,7 @@
                                 <option value="Manager">Manager</option>
                                 {% endif %}
                                 <option value="Shopkeeper" selected>Shopkeeper</option>
+                                <option value="Factory">Factory Cashier</option>
                             </select>
                         </div>
                         <div style="display: flex; gap: 8px; margin-top: 8px;">
@@ -346,6 +370,105 @@
 
             </div>
         </div>
+        
+        <!-- Factory Shifts & Stock Reconciliation Reports -->
+        <div class="card" style="margin-top: var(--spacing);">
+            <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin-bottom: 16px;">
+                Factory Shift Reconciliation Reports
+            </h2>
+            
+            {% if factory_sessions %}
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                {% for fs in factory_sessions %}
+                <div class="card" style="margin-bottom: 0; background-color: {% if fs.status == 'open' %}#EBF8FF{% else %}#F7FAFC{% endif %}; border: 1px solid {% if fs.status == 'open' %}#90CDF4{% else %}#E2E8F0{% endif %};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing);">
+                        <div>
+                            <span style="background-color: {% if fs.status == 'open' %}#3182CE{% else %}#4A5568{% endif %}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase;">
+                                {{ fs.status }}
+                            </span>
+                            <strong style="margin-left: 8px; font-size: 16px;">{{ fs.cashier.username }}</strong>
+                            <span style="color: #718096; font-size: 14px; margin-left: 12px;">
+                                Started: {{ fs.start_time.strftime('%Y-%m-%d %I:%M %p') }}
+                            </span>
+                            {% if fs.end_time %}
+                            <span style="color: #718096; font-size: 14px; margin-left: 12px;">
+                                Closed: {{ fs.end_time.strftime('%Y-%m-%d %I:%M %p') }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary btn-small" onclick="toggleSessionDetails({{ fs.id }})">
+                                Show/Hide Balance Sheet
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Expandable details -->
+                    <div id="session-details-{{ fs.id }}" style="display: none; margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px; overflow-x: auto;">
+                        <table class="admin-table" style="background: white; border-radius: 8px; width: 100%;">
+                            <thead>
+                                <tr style="background-color: #EDF2F7;">
+                                    <th>Product Name</th>
+                                    <th>Type</th>
+                                    <th style="text-align: right;">Opening Bal</th>
+                                    <th style="text-align: right;">Quantity Sold</th>
+                                    <th style="text-align: right;">Expected Stock</th>
+                                    <th style="text-align: right;">Actual Physical Stock</th>
+                                    <th style="text-align: right;">Discrepancy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bal in fs.balances %}
+                                <tr>
+                                    <td><strong>{{ bal.product.name }}</strong></td>
+                                    <td>
+                                        <span style="text-transform: capitalize; font-size: 12px; font-weight: bold; padding: 2px 6px; border-radius: 4px; background-color: {% if bal.product.product_type == 'liquid' %}#EBF8FF; color: #2B6CB0;{% else %}#EDF2F7; color: #4A5568;{% endif %};">
+                                            {{ bal.product.product_type }}
+                                        </span>
+                                    </td>
+                                    <td style="text-align: right;">{{ "%.2f"|format(bal.opening_balance) }} {{ bal.product.unit }}</td>
+                                    <td style="text-align: right; color: var(--primary); font-weight: 600;">
+                                        -{{ "%.2f"|format(bal.quantity_sold) }} {{ bal.product.unit }}
+                                    </td>
+                                    <td style="text-align: right;">{{ "%.2f"|format(bal.closing_balance) }} {{ bal.product.unit }}</td>
+                                    <td style="text-align: right; font-weight: bold;">
+                                        {% if fs.status == 'open' %}
+                                        <span style="color: #A0AEC0; font-style: italic;">Shift active</span>
+                                        {% else %}
+                                        {{ "%.2f"|format(bal.actual_balance) }} {{ bal.product.unit }}
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: right; font-weight: bold;">
+                                        {% if fs.status == 'open' %}
+                                        -
+                                        {% else %}
+                                            {% if bal.discrepancy < 0 %}
+                                            <span style="color: var(--destructive); background-color: #FED2D2; padding: 2px 6px; border-radius: 4px;">
+                                                {{ "%.2f"|format(bal.discrepancy) }}
+                                            </span>
+                                            {% elif bal.discrepancy > 0 %}
+                                            <span style="color: #2F855A; background-color: #C6F6D5; padding: 2px 6px; border-radius: 4px;">
+                                                +{{ "%.2f"|format(bal.discrepancy) }}
+                                            </span>
+                                            {% else %}
+                                            <span style="color: #4A5568; background-color: #EDF2F7; padding: 2px 6px; border-radius: 4px;">0.00</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; color: #718096; padding: 24px;">
+                No factory shift reconciliation reports logged yet.
+            </div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Shop Analytics Modal -->
@@ -389,6 +512,12 @@
     </div>
 
     <script>
+        function toggleSessionDetails(sessionId) {
+            const el = document.getElementById(`session-details-${sessionId}`);
+            if (el) {
+                el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            }
+        }
 
 
         async function resetSystem() {
@@ -487,12 +616,16 @@
             const nameEl = document.getElementById(`new-product-name-${shopkeeperId}`);
             const priceEl = document.getElementById(`new-product-price-${shopkeeperId}`);
             const stockEl = document.getElementById(`new-product-stock-${shopkeeperId}`);
+            const typeEl = document.getElementById(`new-product-type-${shopkeeperId}`);
+            const unitEl = document.getElementById(`new-product-unit-${shopkeeperId}`);
             
             if (!nameEl || !priceEl || !stockEl) return;
             
             const name = nameEl.value.trim();
             const price = priceEl.value;
             const stock = stockEl.value;
+            const product_type = typeEl ? typeEl.value : "solid";
+            const unit = unitEl ? unitEl.value.trim() : "Pcs";
             
             if (!name || !price) {
                 alert('Please provide at least product name and price.');
@@ -507,7 +640,9 @@
                         name: name,
                         price: parseFloat(price),
                         stock: parseInt(stock) || 0,
-                        shopkeeper_id: parseInt(shopkeeperId)
+                        shopkeeper_id: parseInt(shopkeeperId),
+                        product_type: product_type,
+                        unit: unit
                     })
                 });
                 

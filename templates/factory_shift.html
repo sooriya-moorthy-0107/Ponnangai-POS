@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Factory Shift - Ponnangai Factory</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container" style="max-width: 950px; margin: 40px auto;">
+        
+        {% if session_status == 'none' %}
+        <!-- START SHIFT SECTION -->
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: var(--primary); font-size: 32px; font-weight: 700; margin: 0 0 8px 0;">Start Factory Shift</h1>
+            <p style="color: #475569; font-size: 16px; margin: 0;">Welcome, <strong>{{ user.username }}</strong>! Enter the morning opening stock to start your shift.</p>
+        </header>
+
+        <div class="card">
+            {% if last_balances %}
+            <div style="background: #e2e8f0; color: #1e293b; padding: 12px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <span>We found yesterday's closing stock counts.</span>
+                <button type="button" class="btn btn-secondary btn-small" onclick="populateYesterday()">Copy Stock</button>
+            </div>
+            {% endif %}
+
+            <form action="/factory/start" method="POST" id="start-day-form">
+                
+                {% if liquid_products %}
+                <div style="font-size: 18px; font-weight: 600; color: var(--primary); margin: 24px 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Liquid Items (Loose Quantity)</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;">
+                    {% for p in liquid_products %}
+                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-weight: 600; font-size: 17px;">{{ p.name }}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" step="any" min="0" 
+                                   id="opening_{{ p.id }}" name="opening_{{ p.id }}" 
+                                   value="0.0" data-yesterday="{{ last_balances.get(p.id, 0.0) }}"
+                                   style="width: 100px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: right; margin-bottom: 0; font-size: 16px;" required>
+                            <span style="font-size: 16px; font-weight: 600; color: #64748b; width: 45px;">Ltrs</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if solid_products %}
+                <div style="font-size: 18px; font-weight: 600; color: var(--primary); margin: 24px 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Solid / Bulk Items</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;">
+                    {% for p in solid_products %}
+                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-weight: 600; font-size: 17px;">{{ p.name }}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" step="any" min="0" 
+                                   id="opening_{{ p.id }}" name="opening_{{ p.id }}" 
+                                   value="0.0" data-yesterday="{{ last_balances.get(p.id, 0.0) }}"
+                                   style="width: 100px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: right; margin-bottom: 0; font-size: 16px;" required>
+                            <span style="font-size: 16px; font-weight: 600; color: #64748b; width: 45px;">{{ p.unit }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if not liquid_products and not solid_products %}
+                <div style="text-align: center; padding: 40px; color: #64748b;">
+                    No products are assigned to your factory user. Please log in as Admin/Manager to assign products to your cashier account.
+                </div>
+                {% else %}
+                <button type="submit" class="btn" style="width: 100%; margin-top: 24px; padding: 16px; font-size: 18px;">Start Shift</button>
+                {% endif %}
+            </form>
+        </div>
+
+        <script>
+            function populateYesterday() {
+                const inputs = document.querySelectorAll('input[type="number"]');
+                inputs.forEach(input => {
+                    const yestVal = input.getAttribute('data-yesterday');
+                    if (yestVal !== null) {
+                        input.value = parseFloat(yestVal);
+                    }
+                });
+            }
+        </script>
+        <!-- END OF START SHIFT SECTION -->
+
+
+        {% else %}
+        <!-- END SHIFT SECTION -->
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: var(--primary); font-size: 32px; font-weight: 700; margin: 0 0 8px 0;">End Factory Shift</h1>
+            <p style="color: #475569; font-size: 16px; margin: 0;">Ready to wrap up, <strong>{{ user.username }}</strong>? Verify expected balances and report actual stock.</p>
+        </header>
+
+        <div class="card">
+            <!-- Metrics Summary Cards -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 30px;">
+                <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+                    <div style="font-size: 14px; font-weight: 500; color: #475569; margin-bottom: 6px;">Total Bills Issued</div>
+                    <div style="font-size: 28px; font-weight: 700; color: var(--primary);">{{ total_sales }}</div>
+                </div>
+                <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+                    <div style="font-size: 14px; font-weight: 500; color: #475569; margin-bottom: 6px;">Total Sales Value</div>
+                    <div style="font-size: 28px; font-weight: 700; color: var(--primary);">₹{{ "%.2f"|format(total_revenue) }}</div>
+                </div>
+            </div>
+
+            <!-- Reconciliation Form -->
+            <form action="/factory/end" method="POST" id="end-shift-form">
+                
+                <h3 style="font-size: 16px; margin: 0 0 16px 0; color: var(--primary);">Reconciliation Sheet</h3>
+                
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; margin-bottom: 24px; font-size: 16px;">
+                        <thead>
+                            <tr style="background: #f8fafc; color: #1e293b;">
+                                <th style="text-align: left; padding: 12px 16px; font-weight: 600;">Product</th>
+                                <th style="text-align: left; padding: 12px 16px; font-weight: 600;">Opening</th>
+                                <th style="text-align: left; padding: 12px 16px; font-weight: 600;">Sold Qty</th>
+                                <th style="text-align: left; padding: 12px 16px; font-weight: 600;">Expected Closing</th>
+                                <th style="text-align: left; padding: 12px 16px; font-weight: 600;">Actual Count</th>
+                                <th style="text-align: left; padding: 12px 16px; font-weight: 600;">Discrepancy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bal in balances %}
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 14px 16px; font-weight: 600;">{{ bal.product.name }}</td>
+                                <td style="padding: 14px 16px;">{{ "%.2f"|format(bal.opening_balance) }} {{ bal.product.unit }}</td>
+                                <td style="padding: 14px 16px; color: var(--primary); font-weight: 600;">-{{ "%.2f"|format(bal.quantity_sold) }} {{ bal.product.unit }}</td>
+                                <td style="padding: 14px 16px;">
+                                    <strong id="expected_{{ bal.product_id }}">{{ "%.2f"|format(bal.closing_balance) }}</strong> {{ bal.product.unit }}
+                                </td>
+                                <td style="padding: 14px 16px; display: flex; align-items: center; gap: 6px;">
+                                    <input type="number" step="any" min="0" 
+                                           id="actual_{{ bal.product_id }}" name="actual_{{ bal.product_id }}"
+                                           value="{{ '%.2f'|format(bal.closing_balance) }}" 
+                                           style="width: 90px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; font-size: 16px; text-align: right; outline: none;"
+                                           oninput="calculateDiscrepancy({{ bal.product_id }})">
+                                    <span style="font-size: 14px; font-weight: 600; color: #64748b;">{{ bal.product.unit }}</span>
+                                </td>
+                                <td style="padding: 14px 16px; font-weight: 600;" id="disc_{{ bal.product_id }}">0.00</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="submit" class="btn btn-destructive" style="width: 100%; padding: 16px; font-size: 18px;">Update & Complete Shift</button>
+                <a href="/factory" style="display: block; text-align: center; margin-top: 16px; color: #64748b; font-size: 14px; font-weight: 500; text-decoration: none;">Go Back to POS</a>
+            </form>
+        </div>
+
+        <script>
+            function calculateDiscrepancy(productId) {
+                const expectedEl = document.getElementById(`expected_${productId}`);
+                const actualEl = document.getElementById(`actual_${productId}`);
+                const discEl = document.getElementById(`disc_${productId}`);
+
+                const expectedVal = parseFloat(expectedEl.innerText) || 0;
+                const actualVal = parseFloat(actualEl.value) || 0;
+                const discrepancy = actualVal - expectedVal;
+
+                discEl.innerText = (discrepancy >= 0 ? '+' : '') + discrepancy.toFixed(2);
+
+                if (Math.abs(discrepancy) < 0.001) {
+                    discEl.style.color = '#64748b';
+                } else if (discrepancy > 0) {
+                    discEl.style.color = '#16a34a';
+                } else {
+                    discEl.style.color = '#dc2626';
+                }
+            }
+
+            window.addEventListener('load', () => {
+                const inputs = document.querySelectorAll('input[type="number"]');
+                inputs.forEach(input => {
+                    const id = input.id.replace('actual_', '');
+                    if(id) calculateDiscrepancy(id);
+                });
+            });
+        </script>
+        <!-- END OF END SHIFT SECTION -->
+        {% endif %}
+
+    </div>
+</body>
+</html>

@@ -18,6 +18,12 @@
             </div>
             {% endif %}
 
+            {% if success %}
+            <div style="background-color: #C6F6D5; color: #22543D; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center; font-size: 14px; font-weight: bold; border: 1px solid #38A169;">
+                {{ success }}
+            </div>
+            {% endif %}
+
             <form action="/login" method="POST">
                 <div style="margin-bottom: 16px;">
                     <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Username</label>

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Factory POS - Ponnangai</title>
+    <link rel="icon" type="image/png" href="/static/images/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .cart-qty-ctrl input::-webkit-outer-spin-button,
+        .cart-qty-ctrl input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Ponnangai Factory POS</h1>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 14px; font-weight: 600;">👨‍💼 Cashier: {{ user.username }}</span>
+            <button id="printer-status-btn" class="btn btn-secondary btn-small"
+                style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; gap: 6px; font-weight: bold; width: auto;"
+                onclick="openPrinterModal()">
+                🔌 <span id="header-printer-status">Disconnected</span>
+            </button>
+            <a href="/factory/shift" class="btn btn-destructive btn-small" style="text-decoration: none;">End Day & Close Shift</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="shop-layout">
+            <!-- Bill History Sidebar -->
+            <div class="bill-history-section card">
+                <h2 style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                    Recent Bills</h2>
+                <div id="bill-history-container">
+                    <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div class="product-grid">
+                {% for p in liquid_products %}
+                <div class="product-card" onclick="addLiquid({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }})" style="cursor: pointer;">
+                    {% if p.image_filename %}
+                    <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
+                    {% else %}
+                    <div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>
+                    {% endif %}
+                    <div class="product-name">{{ p.name }}</div>
+                    
+                    <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
+                </div>
+                {% endfor %}
+
+                {% for p in solid_products %}
+                <div class="product-card" onclick="addSolid({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }}, '{{ p.unit }}')" style="cursor: pointer;">
+                    {% if p.image_filename %}
+                    <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
+                    {% else %}
+                    <div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>
+                    {% endif %}
+                    <div class="product-name">{{ p.name }}</div>
+                    
+                    <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
+                </div>
+                {% endfor %}
+
+                {% if not liquid_products and not solid_products %}
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
+                    No products found. Please ask the Manager to add some inventory.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Cart Section -->
+            <div class="cart-section card">
+                <h2 style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                    Current Bill</h2>
+
+                <div id="cart-items" style="min-height: 150px;">
+                    <div style="text-align: center; color: #A0AEC0; margin-top: 40px; font-size: 14px;">Tap products to add them to cart</div>
+                </div>
+
+                <div class="bill-summary">
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span id="cart-subtotal">₹0.00</span>
+                    </div>
+                    <div class="summary-row" style="align-items: center;">
+                        <span>Discount (₹)</span>
+                        <input type="number" id="discount-input" min="0" value="0" oninput="calculateTotal()"
+                            style="width: 80px; padding: 4px; margin-bottom: 0; text-align: right;">
+                    </div>
+                    <div class="summary-row" style="margin-top: 8px;">
+                        <span>Payment Mode</span>
+                        <select id="payment-mode" style="width: auto; padding: 4px; margin-bottom: 0;">
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Card">Card</option>
+                        </select>
+                    </div>
+                    <div class="summary-row summary-total" style="margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px;">
+                        <span>Final Total</span>
+                        <span id="cart-final-total">₹0.00</span>
+                    </div>
+                </div>
+
+                <button class="btn" style="margin-top: 24px; font-size: 18px; padding: 16px;" onclick="submitBill()">
+                    Confirm & Print Bill
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals (Printer, Receipt, etc.) hidden for brevity, but retaining logic -->
+    <div id="printer-settings-modal" class="modal-overlay">
+        <div class="modal-container" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>🖨️ Niyama Thermal Printer</h3>
+                <button class="modal-close-btn" onclick="closePrinterModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size: 13px; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; background: #EDF2F7; padding: 10px; border-radius: 8px;">
+                    <span>Connection Status:</span>
+                    <span id="bt-status-text" style="font-weight: bold; color: #718096;">🔴 Disconnected</span>
+                </div>
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                    <button type="button" class="btn" style="flex: 1; padding: 10px; font-size: 13px; background: var(--primary);" onclick="connectBluetooth()">🔌 Connect Printer</button>
+                    <button type="button" id="bt-test-btn" class="btn" style="display: none; padding: 10px; font-size: 13px; background: #e2e8f0; color: #1a202c;" onclick="printTestReceipt()">📄 Print Test Slip</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePrinterModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="receipt-preview-modal" class="modal-overlay">
+        <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header" style="background-color: #E6FFFA;">
+                <h3 style="color: #319795;">🎉 Bill Created!</h3>
+                <button class="modal-close-btn" onclick="closeReceiptModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="receipt-modal-preview-box">
+                    <div class="receipt-preview-card" id="receipt-container-preview" style="box-shadow: none; border: none; margin-bottom: 0;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
+                    <button id="modal-bt-print-btn" class="btn" style="background-color: #2B6CB0; color: white;" onclick="printActiveBillBluetooth()">🔵 Print via Bluetooth</button>
+                    <button class="btn btn-secondary" style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748;" onclick="printActiveBillBrowser()">🖨️ Print via Browser Dialog</button>
+                </div>
+            </div>
+            <div class="modal-footer" style="background-color: #E6FFFA;">
+                <button class="btn btn-small" style="background-color: #319795; width: 100%;" onclick="closeReceiptModal()">Done & New Sale</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="receipt-container" class="no-print" style="display: none;"></div>
+
+    <script>
+        const ACTIVE_CASHIER_ID = {{ target_cashier_id }};
+        let cart = [];
+        let bluetoothDevice = null;
+        let printCharacteristic = null;
+        let activeBillData = null;
+
+        function addSolid(id, name, price, unit) {
+            const existing = cart.find(i => i.id === id);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({ id, name, price, qty: 1, unit, type: 'solid' });
+            }
+            renderCart();
+        }
+
+        function addLiquid(id, name, price) {
+            const existing = cart.find(i => i.id === id);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({ id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid' });
+            }
+            renderCart();
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id !== id);
+            renderCart();
+        }
+
+        function updateAmount(id, newAmount) {
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            const val = parseFloat(newAmount);
+            if (isNaN(val) || val < 0) return;
+            item.price = val / item.qty;
+            calculateTotal();
+            renderCart(); // re-render to update line total display
+        }
+
+        function updateQty(id, newQty) {
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            const val = parseFloat(newQty);
+            if (isNaN(val) || val <= 0) {
+                removeFromCart(id);
+                return;
+            }
+            item.qty = val;
+            calculateTotal();
+            renderCart(); // re-render to update line total display
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-items');
+            if (cart.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #A0AEC0; margin-top: 40px; font-size: 14px;">Tap products to add them to cart</div>';
+                calculateTotal();
+                return;
+            }
+
+            let html = '';
+            cart.forEach(item => {
+                const step = item.type === 'liquid' ? 'any' : '1';
+                html += `
+                <div style="padding:12px 0; border-bottom:1px solid #E2E8F0;">
+                    <div class="cart-item" style="display:flex; align-items:center; justify-content:space-between; gap: 8px;">
+                        <div style="flex:2; font-weight:600; font-size:14px; color:#2D3748; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ${item.name}
+                        </div>
+                        <div style="flex:1; display:flex; align-items:center; gap:2px;">
+                            <input type="number" step="${step}" min="0.01" value="${item.qty}" 
+                                   style="width:45px; padding:4px; text-align:center; border:1px solid #CBD5E0; border-radius:4px; height:26px; font-weight:600; font-size:13px; outline:none;"
+                                   onchange="updateQty(${item.id}, this.value)">
+                            <span style="font-size:11px; color:#A0AEC0;">${item.unit}</span>
+                        </div>
+                        <div style="flex:1; display:flex; align-items:center; gap:2px; justify-content:flex-end;">
+                            <span style="font-size:12px; color:#4A5568;">₹</span>
+                            <input type="number" step="any" min="0" value="${(item.price * item.qty).toFixed(2)}"
+                                   style="width:60px; padding:4px; font-size:13px; text-align:right; border:1px solid #CBD5E0; border-radius:4px; height:26px; outline:none;"
+                                   onchange="updateAmount(${item.id}, this.value)">
+                        </div>
+                        <div style="width:24px; text-align:right;">
+                            <button class="btn-remove" style="background:#E53E3E; color:white; border:none; border-radius:4px; cursor:pointer; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px;" onclick="removeFromCart(${item.id})">X</button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+            calculateTotal();
+        }
+
+        let subtotal = 0;
+        let finalTotal = 0;
+        let discount = 0;
+
+        function calculateTotal() {
+            subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+            discount = parseFloat(document.getElementById('discount-input').value) || 0;
+            finalTotal = Math.max(0, subtotal - discount);
+
+            document.getElementById('cart-subtotal').innerText = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('cart-final-total').innerText = `₹${finalTotal.toFixed(2)}`;
+        }
+
+        async function submitBill() {
+            if (cart.length === 0) {
+                alert('Cart is empty.');
+                return;
+            }
+            const paymentMode = document.getElementById('payment-mode').value;
+            const payload = {
+                shopkeeper_id: ACTIVE_CASHIER_ID,
+                items: cart.map(i => ({ id: i.id, qty: i.qty, price: i.price })),
+                discount: discount,
+                payment_mode: paymentMode
+            };
+
+            try {
+                const res = await fetch('/api/bills', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    cart = [];
+                    renderCart();
+                    document.getElementById('discount-input').value = 0;
+                    await loadBillForReceipt(data.bill_id);
+                    loadBillHistory();
+                } else {
+                    alert(data.detail || 'Checkout failed.');
+                }
+            } catch (err) {
+                alert('Network/Server error during checkout.');
+            }
+        }
+
+                async function loadBillHistory() {
+            const container = document.getElementById('bill-history-container');
+            try {
+                const response = await fetch(`/api/bills/history?shopkeeper_id=${ACTIVE_CASHIER_ID}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    container.innerHTML = '';
+                    if (data.bills.length === 0) {
+                        container.innerHTML = '<div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">No recent bills</div>';
+                        return;
+                    }
+                    
+                    data.bills.forEach(bill => {
+                        const card = document.createElement('div');
+                        card.className = 'history-card';
+                        if (bill.is_cancelled) {
+                            card.style.opacity = '0.65';
+                            card.style.borderLeft = '4px solid #E53E3E';
+                            card.style.position = 'relative';
+                            card.style.overflow = 'hidden';
+                        }
+                        
+                        const badgeHtml = bill.is_cancelled 
+                            ? '<span style="background-color: #FFF5F5; color: #E53E3E; border: 1px solid #FEB2B2; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">CANCELLED</span>' 
+                            : '';
+                            
+                        const priceStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #A0AEC0;' : '';
+                        const titleStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #718096;' : '';
+                        
+                        const actionButtonsHtml = bill.is_cancelled ? `
+                            <button class="btn btn-small" style="background-color: #718096; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="loadBillForReceipt(${bill.id})">
+                                🖨️ Print Void Receipt
+                            </button>
+                        ` : `
+                            <button class="btn btn-small" style="background-color: var(--primary); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="loadBillForReceipt(${bill.id})">
+                                🖨️ Print Receipt
+                            </button>
+                            <div style="display: flex; gap: 6px; width: 100%;">
+                                <button class="btn btn-secondary btn-small" style="flex: 1;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
+                                    ↩️ Edit
+                                </button>
+                                <button class="btn btn-destructive btn-small" style="flex: 1;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
+                                    ❌ Cancel
+                                </button>
+                            </div>
+                        `;
+
+                        card.innerHTML = `
+                            <div class="history-card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
+                                <span style="${titleStyle}">Bill #${bill.bill_number || bill.id}</span>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    ${badgeHtml}
+                                    <span style="${priceStyle}">₹${bill.final_amount.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div class="history-card-details">
+                                ${bill.timestamp} | ${bill.payment_mode}
+                            </div>
+                            <div style="display: flex; gap: 6px; flex-direction: column;">
+                                ${actionButtonsHtml}
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
+            } catch (err) {
+                console.error("Error fetching bill history", err);
+                container.innerHTML = '<div style="color: red; text-align: center; font-size: 12px;">Failed to load history</div>';
+            }
+        }
+
+        async function revertBillFromHistory(billId, displayNo) {
+            const label = displayNo ? `#${displayNo}` : `#${billId}`;
+            if (!confirm(`Are you sure you want to revert Bill ${label}? The stock will be restored and you can edit the items in the cart.`)) return;
+            
+            try {
+                const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Load items into active cart. Map structure to factory cart item format
+                    cart = data.items.map(i => ({
+                        id: i.id,
+                        name: i.name,
+                        price: i.price,
+                        qty: i.qty,
+                        unit: 'Unit', // fallback unit
+                        type: 'solid' // fallback type
+                    }));
+                    const discountInput = document.getElementById('discount-input');
+                    if (discountInput) {
+                        discountInput.value = data.discount || 0;
+                    }
+                    renderCart();
+                    loadBillHistory();
+                } else {
+                    alert(data.detail || "Failed to revert bill");
+                }
+            } catch (err) {
+                alert("Error connecting to server.");
+                console.error(err);
+            }
+        }
+
+        async function cancelBillFromHistory(billId, displayNo) {
+            const label = displayNo ? `#${displayNo}` : `#${billId}`;
+            if (!confirm(`Are you sure you want to CANCEL Bill ${label}? The stock will be restored, and the bill will be marked as cancelled.`)) return;
+            
+            try {
+                const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`Bill ${label} has been cancelled and stock restored.`);
+                    loadBillHistory();
+                } else {
+                    alert(data.detail || "Failed to cancel bill");
+                }
+            } catch (err) {
+                alert("Error connecting to server.");
+                console.error(err);
+            }
+        }
+async function loadBillForReceipt(billId) {
+            try {
+                const res = await fetch(`/api/bills/${billId}`);
+                const data = await res.json();
+                if (res.ok && data.bill) {
+                    activeBillData = data.bill;
+                    renderReceiptHTML(data.bill);
+                    document.getElementById('receipt-preview-modal').classList.add('active');
+                }
+            } catch(e) {
+                alert('Error loading receipt data.');
+            }
+        }
+
+        function renderReceiptHTML(bill) {
+            const container = document.getElementById('receipt-container-preview');
+            let itemsHtml = '';
+            bill.items.forEach(item => {
+                itemsHtml += `
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                    <div style="flex: 2;">${item.name}</div>
+                    <div style="flex: 1; text-align: center;">${item.quantity}</div>
+                    <div style="flex: 1; text-align: right;">₹${item.total.toFixed(2)}</div>
+                </div>
+                `;
+            });
+
+            container.innerHTML = `
+            <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+                <h2 style="margin: 0; font-size: 16px;">PONNANGAI ENTERPRISES</h2>
+                <p style="margin: 2px 0; font-size: 11px;">Factory Outlet Sales</p>
+                <p style="margin: 2px 0; font-size: 11px;">Date: ${bill.timestamp}</p>
+                <p style="margin: 2px 0; font-size: 11px;">Bill No: #${bill.bill_number}</p>
+            </div>
+            <div style="border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 8px; font-weight: bold; display: flex; font-size: 11px;">
+                <div style="flex: 2;">Item</div>
+                <div style="flex: 1; text-align: center;">Qty</div>
+                <div style="flex: 1; text-align: right;">Amount</div>
+            </div>
+            <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 8px;">
+                ${itemsHtml}
+            </div>
+            <div style="font-size: 12px; display: flex; flex-direction: column; gap: 3px; align-items: flex-end; margin-bottom: 8px;">
+                <div>Subtotal: ₹${bill.total_amount.toFixed(2)}</div>
+                ${bill.discount > 0 ? `<div>Discount: ₹${bill.discount.toFixed(2)}</div>` : ''}
+                <div style="font-weight: bold; font-size: 14px;">Total Paid: ₹${bill.final_amount.toFixed(2)}</div>
+            </div>
+            <div style="text-align: center; font-size: 11px; margin-top: 10px;">
+                <p style="margin: 0; font-weight: bold;">Thank You! Visit Again</p>
+                <p style="margin: 2px 0; font-size: 9px;">Cashier: ${bill.cashier_name}</p>
+            </div>
+            `;
+
+            document.getElementById('receipt-container').innerHTML = container.innerHTML;
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-preview-modal').classList.remove('active');
+            activeBillData = null;
+        }
+
+        // Printer Bluetooth logic
+        function openPrinterModal() { document.getElementById('printer-settings-modal').classList.add('active'); }
+        function closePrinterModal() { document.getElementById('printer-settings-modal').classList.remove('active'); }
+
+        async function connectBluetooth() {
+            try {
+                document.getElementById('bt-status-text').innerText = '🟡 Scanning...';
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'Niyama' }, { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
+                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+                });
+
+                const server = await bluetoothDevice.gatt.connect();
+                const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+                const characteristics = await service.getCharacteristics();
+                printCharacteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
+
+                if (printCharacteristic) {
+                    document.getElementById('bt-status-text').innerText = '🟢 Connected';
+                    document.getElementById('header-printer-status').innerText = 'Connected';
+                    document.getElementById('bt-test-btn').style.display = 'inline-block';
+                }
+            } catch(e) {
+                document.getElementById('bt-status-text').innerText = '🔴 Connection Failed';
+                document.getElementById('header-printer-status').innerText = 'Disconnected';
+            }
+        }
+
+        async function printTestReceipt() {
+            if (!printCharacteristic) return;
+            try {
+                let data = new Uint8Array([0x1B, 0x40]); 
+                await printCharacteristic.writeValue(data);
+                let encoder = new TextEncoder();
+                await printCharacteristic.writeValue(encoder.encode("Niyama Bluetooth Printer\nTEST SUCCESSFUL\n\n\n\n"));
+            } catch(e) { }
+        }
+
+        async function printActiveBillBluetooth() {
+            if (!printCharacteristic || !activeBillData) return;
+            try {
+                let bill = activeBillData;
+                let encoder = new TextEncoder();
+                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x40]));
+                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x61, 0x01]));
+                await printCharacteristic.writeValue(encoder.encode("PONNANGAI ENTERPRISES\nFactory Outlet\n"));
+                await printCharacteristic.writeValue(encoder.encode(`Bill: #${bill.bill_number}\nDate: ${bill.timestamp}\n`));
+                await printCharacteristic.writeValue(encoder.encode("--------------------------------\n"));
+                
+                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x61, 0x00]));
+                for (let item of bill.items) {
+                    let qtyStr = `${item.quantity}`;
+                    let nameLine = item.name.substring(0, 20);
+                    let amtStr = `Rs.${item.total.toFixed(2)}`;
+                    let padCount = 32 - (nameLine.length + amtStr.length);
+                    let spaces = padCount > 0 ? ' '.repeat(padCount) : ' ';
+                    await printCharacteristic.writeValue(encoder.encode(`${nameLine}${spaces}${amtStr}\n  Qty: ${qtyStr}\n`));
+                }
+                await printCharacteristic.writeValue(encoder.encode("--------------------------------\n"));
+                
+                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x61, 0x02]));
+                await printCharacteristic.writeValue(encoder.encode(`Subtotal: Rs.${bill.total_amount.toFixed(2)}\n`));
+                if (bill.discount > 0) await printCharacteristic.writeValue(encoder.encode(`Discount: Rs.${bill.discount.toFixed(2)}\n`));
+                await printCharacteristic.writeValue(encoder.encode(`Total Paid: Rs.${bill.final_amount.toFixed(2)}\n`));
+                
+                await printCharacteristic.writeValue(new Uint8Array([0x1B, 0x61, 0x01]));
+                await printCharacteristic.writeValue(encoder.encode("\nThank You! Visit Again\n\n\n\n"));
+            } catch(err) { }
+        }
+
+        function printActiveBillBrowser() {
+            window.print();
+        }
+
+        window.addEventListener('load', () => {
+            loadBillHistory();
+        });
+    </script>
+</body>
+</html>
