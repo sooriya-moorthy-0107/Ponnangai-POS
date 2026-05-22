@@ -26,3 +26,6 @@ photos/
 Dockerfile
 docker-compose.yml
 .dockerignore
+
+# Playwright MCP temp directories
+.playwright-mcp/
