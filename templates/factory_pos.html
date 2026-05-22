@@ -229,29 +229,28 @@
             cart.forEach(item => {
                 const step = item.type === 'liquid' ? 'any' : '1';
                 html += `
-                <div style="padding:12px 0; border-bottom:1px solid #E2E8F0;">
-                    <div class="cart-item" style="display:flex; align-items:center; justify-content:space-between; gap: 8px;">
-                        <div style="flex:2; font-weight:600; font-size:14px; color:#2D3748; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${item.name}
-                        </div>
-                        <div style="flex:1; display:flex; align-items:center; gap:2px;">
+                <div style="padding:12px 0; border-bottom:1px solid #E2E8F0; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-weight:600; font-size:14px; color:#2D3748; word-break: break-word;">
+                        ${item.name}
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap: 4px;">
+                        <div style="display:flex; align-items:center; gap:2px;">
+                            <span style="font-size:11px; color:#718096; display:none;">Qty:</span>
                             <input type="number" step="${step}" min="0.01" value="${item.qty}" 
                                    style="width:45px; padding:4px; text-align:center; border:1px solid #CBD5E0; border-radius:4px; height:26px; font-weight:600; font-size:13px; outline:none;"
                                    onchange="updateQty(${item.id}, this.value)">
                             <span style="font-size:11px; color:#A0AEC0;">${item.unit}</span>
                         </div>
-                        <div style="flex:1; display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
-                            <div style="display:flex; align-items:center; gap:2px;">
-                                <span style="font-size:11px; color:#718096;">Rate: ₹</span>
-                                <input type="number" step="any" min="0" value="${item.price.toFixed(2)}"
-                                       style="width:60px; padding:4px; font-size:13px; text-align:right; border:1px solid #CBD5E0; border-radius:4px; height:26px; outline:none;"
-                                       onchange="updateRate(${item.id}, this.value)">
-                            </div>
-                            <div style="font-size:12px; font-weight:bold; color:var(--primary);">
-                                Total: ₹${(item.price * item.qty).toFixed(2)}
-                            </div>
+                        <div style="display:flex; align-items:center; gap:2px;">
+                            <span style="font-size:11px; color:#718096;">Rate:</span>
+                            <input type="number" step="any" min="0" value="${item.price.toFixed(2)}"
+                                   style="width:55px; padding:4px; font-size:13px; text-align:right; border:1px solid #CBD5E0; border-radius:4px; height:26px; outline:none;"
+                                   onchange="updateRate(${item.id}, this.value)">
                         </div>
-                        <div style="width:24px; text-align:right;">
+                        <div style="font-size:13px; font-weight:bold; color:var(--primary); text-align: right; min-width: 50px;">
+                            ₹${(item.price * item.qty).toFixed(2)}
+                        </div>
+                        <div>
                             <button class="btn-remove" style="background:#E53E3E; color:white; border:none; border-radius:4px; cursor:pointer; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px;" onclick="removeFromCart(${item.id})">X</button>
                         </div>
                     </div>
