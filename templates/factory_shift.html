@@ -12,6 +12,9 @@
         
         {% if session_status == 'none' %}
         <!-- START SHIFT SECTION -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: -20px;">
+            <a href="/logout" class="btn btn-secondary btn-small" style="text-decoration: none; border: 1px solid #CBD5E0; color: #2D3748; background: #EDF2F7;">Logout</a>
+        </div>
         <header style="text-align: center; margin-bottom: 30px;">
             <h1 style="color: var(--primary); font-size: 32px; font-weight: 700; margin: 0 0 8px 0;">Start Factory Shift</h1>
             <p style="color: #475569; font-size: 16px; margin: 0;">Welcome, <strong>{{ user.username }}</strong>! Enter the morning opening stock to start your shift.</p>
