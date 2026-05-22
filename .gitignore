@@ -192,3 +192,4 @@ __marimo__/
 # POS local data and media uploads
 data/
 photos/
+pgdata/

@@ -384,7 +384,7 @@ const DEFAULT_SETTINGS = {
     fontSize: '10',
     lineHeight: '1.0',
     charLimit: '32',
-    autoPrint: true
+    autoPrint: false
 };
 
 function getSettings() {
@@ -395,7 +395,7 @@ function getSettings() {
         fontSize: localStorage.getItem('pos_print_fontSize') || DEFAULT_SETTINGS.fontSize,
         lineHeight: localStorage.getItem('pos_print_lineHeight') || DEFAULT_SETTINGS.lineHeight,
         charLimit: localStorage.getItem('pos_print_charLimit') || defaultCharLimit,
-        autoPrint: localStorage.getItem('pos_print_autoPrint') !== 'false'
+        autoPrint: localStorage.getItem('pos_print_autoPrint') === 'true'
     };
 }
 
@@ -880,11 +880,6 @@ async function handlePrintFlow(billId) {
             if (settings.autoPrint) {
                 if (writeCharacteristic) {
                     await printActiveBillBluetooth();
-                } else {
-                    // Fallback to standard browser print if Bluetooth is disconnected
-                    setTimeout(() => {
-                        window.print();
-                    }, 500);
                 }
             }
         } else {
@@ -933,6 +928,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('pos_print_fontSize', '10');
         localStorage.setItem('pos_print_lineHeight', '1.0');
         localStorage.setItem('pos_print_charLimit', '32');
+        localStorage.setItem('pos_print_autoPrint', 'false');
         localStorage.setItem('pos_print_calibrated_ideal_v4', 'true');
     }
 
