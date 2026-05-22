@@ -188,3 +188,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# POS local data and media uploads
+data/
+photos/

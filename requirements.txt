@@ -4,3 +4,4 @@ sqlalchemy
 jinja2
 python-multipart
 itsdangerous
+psycopg2-binary

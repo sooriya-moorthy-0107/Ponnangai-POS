@@ -42,163 +42,161 @@
         <div style="display: flex; gap: var(--spacing); flex-wrap: wrap;">
 
             <!-- Inventory Management (Admin/Manager) -->
-            <div class="card" style="flex: 2; min-width: 300px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h2
-                        style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
-                        Inventory Management</h2>
-                    {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary btn-small"
-                            onclick="document.getElementById('bulk-upload-form').style.display='flex'; document.getElementById('bulk-products-form').style.display='none';">Bulk
-                            Stock CSV</button>
-                        <button class="btn btn-secondary btn-small"
-                            onclick="document.getElementById('bulk-products-form').style.display='flex'; document.getElementById('bulk-upload-form').style.display='none';">Bulk
-                            Products CSV</button>
-                        <button class="btn btn-small"
-                            onclick="document.getElementById('add-product-form').style.display='flex'">+ Add
-                            Product</button>
-                    </div>
-                    {% endif %}
+            <div class="card" style="flex: 2; min-width: 300px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                    <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
+                        🏪 Shop Inventories & Catalog
+                    </h2>
                 </div>
 
-                <div style="margin-bottom: 16px;">
-                    <label style="font-weight: 600; margin-right: 8px;">Select Shop:</label>
-                    <select id="shop-selector" onchange="showInventory(this.value)"
-                        style="padding: 6px; border-radius: 4px; border: 1px solid #CBD5E0;">
-                        {% for sk in shopkeepers %}
-                        <option value="{{ sk.id }}">{{ sk.username }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                <div id="add-product-form"
-                    style="display: none; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
-                    <div style="flex: 1; min-width: 150px;">
-                        <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Name</label>
-                        <input type="text" id="new-product-name" placeholder="e.g. Rice 1kg" style="margin-bottom: 0;">
-                    </div>
-                    <div style="flex: 1; min-width: 100px;">
-                        <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Price
-                            (₹)</label>
-                        <input type="number" id="new-product-price" placeholder="0.00" step="0.01"
-                            style="margin-bottom: 0;">
-                    </div>
-                    <div style="flex: 1; min-width: 100px;">
-                        <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Initial
-                            Stock</label>
-                        <input type="number" id="new-product-stock" placeholder="0" style="margin-bottom: 0;">
-                    </div>
-                    <button class="btn" onclick="addProduct()">Save</button>
-                    <button class="btn btn-secondary"
-                        onclick="document.getElementById('add-product-form').style.display='none'">Cancel</button>
-                </div>
-                {% endif %}
-
-                {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                <div id="bulk-upload-form"
-                    style="display: none; gap: 8px; margin-bottom: 16px; flex-direction: column; background: #EBF8FF; padding: 12px; border-radius: var(--radius); border: 1px solid #90CDF4;">
-                    <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #2B6CB0;">Bulk Update Inventory (CSV)</h3>
-                    <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">1. Select a shop from the dropdown
-                        above.<br>2. Download the template, fill in the "New Stock" column, and upload.</p>
-                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <button class="btn btn-secondary btn-small" onclick="downloadTemplate()">Download
-                            Template</button>
-                        <input type="file" id="csv-file" accept=".csv" style="font-size: 12px;">
-                        <button class="btn btn-small" onclick="uploadCsv()">Upload</button>
-                        <button class="btn btn-secondary btn-small"
-                            onclick="document.getElementById('bulk-upload-form').style.display='none'">Cancel</button>
-                    </div>
-                </div>
-                {% endif %}
-
-                {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                <div id="bulk-products-form"
-                    style="display: none; gap: 8px; margin-bottom: 16px; flex-direction: column; background: #FFF5F5; padding: 12px; border-radius: var(--radius); border: 1px solid #FEB2B2;">
-                    <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #C53030;">Bulk Add Products (CSV)</h3>
-                    <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">
-                        Upload a CSV file to add multiple new products to the catalog at once.<br>
-                        <strong>Required Columns:</strong> <code>Product Name</code>, <code>Price</code><br>
-                        <strong>Optional Columns:</strong> <code>Initial Stock</code> (assigns default stock level to
-                        all shops)<br>
-
-                    </p>
-                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <button class="btn btn-secondary btn-small" onclick="downloadProductTemplate()">Download
-                            Template</button>
-                        <input type="file" id="product-csv-file" accept=".csv" style="font-size: 12px;">
-                        <button class="btn btn-small" onclick="uploadProductCsv()"
-                            style="background-color: var(--destructive); border-color: var(--destructive);">Upload
-                            Products</button>
-                        <button class="btn btn-secondary btn-small"
-                            onclick="document.getElementById('bulk-products-form').style.display='none'">Cancel</button>
-                    </div>
-                </div>
-                {% endif %}
-
-                <div style="overflow-x: auto;">
-                    {% for sk in shopkeepers %}
-                    <table id="inventory-table-{{ sk.id }}" class="admin-table inventory-table-container"
-                        style="{% if loop.index != 1 %}display: none;{% endif %}">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th style="width: 50px;">Image</th>
-                                <th>Product Name</th>
-                                <th>Price (₹)</th>
-                                <th>Stock</th>
-                                {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                                <th>Update Stock</th>
-                                <th>Action</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for product in products %}
-                            <tr>
-                                <td>{{ product.id }}</td>
-                                <td>
-                                    {% if product.image_filename %}
-                                    <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #E2E8F0;">
-                                    {% else %}
-                                    <div style="width: 40px; height: 40px; background-color: #EDF2F7; border-radius: 4px; border: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #A0AEC0;">None</div>
-                                    {% endif %}
-                                </td>
-                                <td>{{ product.name }}</td>
-                                <td>{{ "%.2f"|format(product.price) }}</td>
-                                <td>
-                                    {% set stk = shop_inventory.get(sk.id, {}).get(product.id, 0) %}
-                                    <span
-                                        style="{% if stk < 10 %}color: var(--destructive); font-weight: bold;{% endif %}">
-                                        {{ stk }}
-                                    </span>
-                                </td>
-                                {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                                <td>
-                                    <div style="display: flex; gap: 4px; max-width: 150px;">
-                                        <input type="number" id="stock-{{ sk.id }}-{{ product.id }}" value="{{ stk }}"
-                                            style="margin-bottom: 0; padding: 6px;">
-                                        <button class="btn btn-small"
-                                            onclick="updateStock({{ sk.id }}, {{ product.id }})">Save</button>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                                        <input type="file" accept="image/*" style="font-size: 11px; max-width: 140px; padding: 2px;" onchange="uploadDirectPhoto(this, {{ product.id }})">
-                                        <button class="btn btn-destructive btn-small" onclick="deleteProduct({{ product.id }}, '{{ product.name }}')" style="width: fit-content;">Del</button>
-                                    </div>
-                                </td>{% endif %}
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="5" style="text-align: center; color: #718096;">No products found in DB.
-                                </td>
-                            </tr>
+                <div id="admin-shop-inv-section">
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-weight: 600; margin-right: 8px;">Select Shop:</label>
+                        <select id="shop-selector" onchange="showInventory(this.value)"
+                            style="padding: 6px; border-radius: 4px; border: 1px solid #CBD5E0;">
+                            {% for sk in shopkeepers %}
+                            <option value="{{ sk.id }}">{{ sk.username }}</option>
                             {% endfor %}
-                        </tbody>
-                    </table>
-                    {% endfor %}
+                        </select>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        {% for sk in shopkeepers %}
+                        <div id="inventory-table-wrapper-{{ sk.id }}" class="inventory-table-container"
+                            style="{% if loop.index != 1 %}display: none;{% endif %}">
+                            <table id="inventory-table-{{ sk.id }}" class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>S.No.</th>
+                                        <th style="width: 50px;">Image</th>
+                                        <th>Product Name</th>
+                                        <th>Price (₹)</th>
+                                        <th>Stock</th>
+                                        {% if user.role in ['Admin', 'Manager', 'Owner'] %}
+                                        <th>Update Stock</th>
+                                        <th>Actions</th>
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% set ns = namespace(has_items=false, sno=0) %}
+                                    {% for product in products %}
+                                    {% if product.shopkeeper_id == sk.id %}
+                                    {% set stk = shop_inventory.get(sk.id, {}).get(product.id, 0) %}
+                                    {% set ns.has_items = true %}
+                                    {% set ns.sno = ns.sno + 1 %}
+                                    <tr>
+                                        <td>{{ ns.sno }}</td>
+                                        <td>
+                                            {% if product.image_filename %}
+                                            <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #E2E8F0;">
+                                            {% else %}
+                                            <div style="width: 40px; height: 40px; background-color: #EDF2F7; border-radius: 4px; border: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #A0AEC0;">None</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ product.name }}</td>
+                                        <td>{{ "%.2f"|format(product.price) }}</td>
+                                        <td>
+                                            <span style="{% if stk < 10 %}color: var(--destructive); font-weight: bold;{% endif %}">
+                                                {{ stk }}
+                                            </span>
+                                        </td>
+                                        {% if user.role in ['Admin', 'Manager', 'Owner'] %}
+                                        <td>
+                                            <div style="display: flex; gap: 4px; max-width: 150px;">
+                                                <input type="number" id="stock-{{ sk.id }}-{{ product.id }}" value="{{ stk }}"
+                                                    style="margin-bottom: 0; padding: 6px;">
+                                                <button class="btn btn-small"
+                                                    onclick="updateStock({{ sk.id }}, {{ product.id }})">Save</button>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="display: flex; gap: 8px; align-items: center;">
+                                                <input type="file" accept="image/*" style="font-size: 11px; max-width: 140px; padding: 2px;" onchange="uploadDirectPhoto(this, {{ product.id }})">
+                                                <button class="btn btn-destructive btn-small" onclick="deleteProduct({{ product.id }}, '{{ product.name | replace("'", "\\'") }}')">Delete</button>
+                                            </div>
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% if not ns.has_items %}
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; color: #718096; padding: 24px;">
+                                            No active products in this shop's inventory. This shop starts completely from zero! Add products using the buttons below.
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                  </tbody>
+                            </table>
+
+                            {% if user.role in ['Admin', 'Manager', 'Owner'] %}
+                            <!-- Shopkeeper Action Controls -->
+                            <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                                <button class="btn btn-small" onclick="toggleAddProductForm({{ sk.id }})">➕ Add Product</button>
+                                <button class="btn btn-secondary btn-small" onclick="toggleBulkUploadForm({{ sk.id }})">📦 Bulk Add/Edit Products (CSV)</button>
+                                <button class="btn btn-secondary btn-small" onclick="toggleBulkStockForm({{ sk.id }})">📈 Bulk Update Stock (CSV)</button>
+                            </div>
+
+                            <!-- Inline Add Product Form -->
+                            <div id="add-product-form-{{ sk.id }}"
+                                style="display: none; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: flex-end; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
+                                <div style="flex: 2; min-width: 150px;">
+                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Product Name</label>
+                                    <input type="text" id="new-product-name-{{ sk.id }}" placeholder="e.g. Floor Cleaner 1L" style="margin-bottom: 0;">
+                                </div>
+                                <div style="flex: 1; min-width: 100px;">
+                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Price (₹)</label>
+                                    <input type="number" id="new-product-price-{{ sk.id }}" placeholder="0.00" step="0.01" style="margin-bottom: 0;">
+                                </div>
+                                <div style="flex: 1; min-width: 100px;">
+                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Initial Stock</label>
+                                    <input type="number" id="new-product-stock-{{ sk.id }}" placeholder="0" style="margin-bottom: 0;">
+                                </div>
+                                <button class="btn btn-small" onclick="addNewProductToShop({{ sk.id }})">Save</button>
+                                <button class="btn btn-secondary btn-small" onclick="toggleAddProductForm({{ sk.id }})">Cancel</button>
+                            </div>
+
+                            <!-- Inline Bulk CSV Upload Form -->
+                            <div id="bulk-upload-form-{{ sk.id }}"
+                                style="display: none; gap: 8px; margin-top: 12px; flex-direction: column; background: #FFF5F5; padding: 12px; border-radius: var(--radius); border: 1px solid #FEB2B2;">
+                                <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #C53030;">Bulk Add/Edit Products (CSV)</h3>
+                                <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">
+                                    Upload a CSV file to add or update products specifically for this shop.<br>
+                                    <strong>Required Columns:</strong> <code>Product Name</code>, <code>Price</code><br>
+                                    <strong>Optional Columns:</strong> <code>Initial Stock</code>, <code>Image Name</code><br>
+                                </p>
+                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                                    <input type="file" id="product-csv-file-{{ sk.id }}" accept=".csv" style="font-size: 12px;">
+                                    <button class="btn btn-small" onclick="uploadBulkProductsToShop({{ sk.id }})" style="background-color: var(--destructive); border-color: var(--destructive);">Upload</button>
+                                    <button class="btn btn-secondary btn-small" onclick="toggleBulkUploadForm({{ sk.id }})">Cancel</button>
+                                </div>
+                                <div>
+                                    <button class="btn btn-secondary btn-small" onclick="downloadProductTemplate()" style="background-color: white; color: #C53030; border: 1px solid #FEB2B2; padding: 4px 8px; font-size: 11px;">📥 Download Products CSV Template</button>
+                                </div>
+                            </div>
+
+                            <!-- Inline Bulk Stock Update Form -->
+                            <div id="bulk-stock-form-{{ sk.id }}"
+                                style="display: none; gap: 8px; margin-top: 12px; flex-direction: column; background: #EBF8FF; padding: 12px; border-radius: var(--radius); border: 1px solid #90CDF4;">
+                                <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #2B6CB0;">Bulk Update Stock (CSV)</h3>
+                                <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">
+                                    Upload a CSV file to update stock levels for existing products in this shop.<br>
+                                    <strong>Required Columns:</strong> <code>Product Name</code>, <code>New Stock</code>
+                                </p>
+                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                                    <input type="file" id="stock-csv-file-{{ sk.id }}" accept=".csv" style="font-size: 12px;">
+                                    <button class="btn btn-small" onclick="uploadBulkStockToShop({{ sk.id }})" style="background-color: #3182CE; border-color: #3182CE;">Upload</button>
+                                    <button class="btn btn-secondary btn-small" onclick="toggleBulkStockForm({{ sk.id }})">Cancel</button>
+                                </div>
+                                <div>
+                                    <button class="btn btn-secondary btn-small" onclick="downloadStockTemplate({{ sk.id }})" style="background-color: white; color: #2B6CB0; border: 1px solid #90CDF4; padding: 4px 8px; font-size: 11px;">📥 Download Stock CSV Template</button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
 
@@ -222,6 +220,22 @@
                         </li>
                         {% endfor %}
                     </ul>
+                    {% if archived_shopkeepers %}
+                    <div style="margin-top: 16px; border-top: 1px dashed #CBD5E0; padding-top: 12px;">
+                        <h3 style="font-size: 13px; margin-bottom: 8px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Archived Shops (History)</h3>
+                        <ul style="list-style: none; padding: 0;">
+                            {% for sk in archived_shopkeepers %}
+                            <li style="padding: 6px 0; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 13px;"
+                                onclick="viewShopAnalytics({{ sk.id }})"
+                                onmouseover="this.style.backgroundColor='#EDF2F7'"
+                                onmouseout="this.style.backgroundColor='transparent'">
+                                <span style="color: #718096; max-width: 70%; word-break: break-word;"><strong>{{ sk.username }}</strong></span>
+                                <span class="btn btn-secondary btn-small" style="padding: 2px 6px; font-size: 11px;">Analyze</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="card" style="max-height: 300px; overflow-y: auto;">
@@ -297,14 +311,14 @@
                             style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
                             <span><strong>{{ u.username }}</strong> ({{ u.role }})</span>
                             {% if user.role == 'Admin' and u.id != user.id %}
-                            <div style="display: flex; gap: 4px;">
-                                <button class="btn btn-secondary btn-small"
-                                    onclick="resetPassword({{ u.id }}, '{{ u.username }}')">Pwd</button>
-                                <button class="btn btn-secondary btn-small"
-                                    onclick="showEditUser({{ u.id }}, '{{ u.username }}', '{{ u.role }}')">Edit</button>
-                                <button class="btn btn-destructive btn-small"
-                                    onclick="deleteUser({{ u.id }}, '{{ u.username }}')">Del</button>
-                            </div>
+                             <div style="display: flex; gap: 4px;">
+                                 <button class="btn btn-secondary btn-small"
+                                     onclick="resetPassword({{ u.id }}, '{{ u.username | replace("'", "\\'") }}')">Pwd</button>
+                                 <button class="btn btn-secondary btn-small"
+                                     onclick="showEditUser({{ u.id }}, '{{ u.username | replace("'", "\\'") }}', '{{ u.role | replace("'", "\\'") }}')">Edit</button>
+                                 <button class="btn btn-destructive btn-small"
+                                     onclick="deleteUser({{ u.id }}, '{{ u.username | replace("'", "\\'") }}')">Del</button>
+                             </div>
                             {% endif %}
                         </li>
                         {% endfor %}
@@ -324,8 +338,7 @@
                 <div class="card" style="background-color: #FFF5F5; border-color: #FEB2B2;">
                     <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">System Reset (Danger)
                     </h2>
-                    <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">Wipe all sales history and reset
-                        all stock to 0. Cannot be undone.</p>
+                    <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">Permanently delete ALL products, catalogs, inventories, bills, and sales history. Cannot be undone.</p>
                     <button class="btn btn-destructive" onclick="resetSystem()">Reset Database</button>
                 </div>
                 {% endif %}
@@ -375,75 +388,10 @@
     </div>
 
     <script>
-        function downloadTemplate() {
-            const shopId = document.getElementById('shop-selector').value;
-            window.location.href = `/api/inventory/template/${shopId}`;
-        }
 
-        async function uploadCsv() {
-            const shopId = document.getElementById('shop-selector').value;
-            const fileInput = document.getElementById('csv-file');
-
-            if (fileInput.files.length === 0) {
-                alert('Please select a CSV file to upload.');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            formData.append('shopkeeper_id', shopId);
-
-            try {
-                const response = await fetch('/api/inventory/bulk_upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert(data.detail || 'Inventory updated successfully!');
-                    location.reload();
-                } else {
-                    alert(data.detail || 'Failed to upload CSV.');
-                }
-            } catch (err) {
-                alert('Error uploading CSV.');
-            }
-        }
-
-        function downloadProductTemplate() {
-            window.location.href = '/api/products/template';
-        }
-
-        async function uploadProductCsv() {
-            const fileInput = document.getElementById('product-csv-file');
-
-            if (fileInput.files.length === 0) {
-                alert('Please select a CSV file to upload.');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            try {
-                const response = await fetch('/api/products/bulk_upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert(data.detail || 'Products added successfully!');
-                    location.reload();
-                } else {
-                    alert(data.detail || 'Failed to upload CSV.');
-                }
-            } catch (err) {
-                alert('Error uploading CSV.');
-            }
-        }
 
         async function resetSystem() {
-            if (confirm("Are you absolutely sure? This will permanently delete ALL bills and sales history, and set ALL stock across ALL shops to 0.")) {
+            if (confirm("Are you absolutely sure? This will permanently delete ALL products, shop inventories, bills, and sales history. This CANNOT be undone.")) {
                 const check = prompt("Type RESET to confirm:");
                 if (check !== "RESET") return;
 
@@ -464,10 +412,148 @@
             }
         }
 
+
+        function toggleAddProductForm(shopId) {
+            const el = document.getElementById(`add-product-form-${shopId}`);
+            if (el) {
+                el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+            }
+            const bulkEl = document.getElementById(`bulk-upload-form-${shopId}`);
+            if (bulkEl) bulkEl.style.display = 'none';
+            const stockEl = document.getElementById(`bulk-stock-form-${shopId}`);
+            if (stockEl) stockEl.style.display = 'none';
+        }
+
+        function toggleBulkUploadForm(shopId) {
+            const el = document.getElementById(`bulk-upload-form-${shopId}`);
+            if (el) {
+                el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+            }
+            const addEl = document.getElementById(`add-product-form-${shopId}`);
+            if (addEl) addEl.style.display = 'none';
+            const stockEl = document.getElementById(`bulk-stock-form-${shopId}`);
+            if (stockEl) stockEl.style.display = 'none';
+        }
+
+        function toggleBulkStockForm(shopId) {
+            const el = document.getElementById(`bulk-stock-form-${shopId}`);
+            if (el) {
+                el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+            }
+            const addEl = document.getElementById(`add-product-form-${shopId}`);
+            if (addEl) addEl.style.display = 'none';
+            const bulkEl = document.getElementById(`bulk-upload-form-${shopId}`);
+            if (bulkEl) bulkEl.style.display = 'none';
+        }
+
+        function downloadProductTemplate() {
+            window.location.href = '/api/products/template';
+        }
+
+        function downloadStockTemplate(shopkeeperId) {
+            window.location.href = `/api/inventory/template/${shopkeeperId}`;
+        }
+
+        async function uploadBulkStockToShop(shopkeeperId) {
+            const fileInput = document.getElementById(`stock-csv-file-${shopkeeperId}`);
+            if (!fileInput || fileInput.files.length === 0) {
+                alert('Please select a CSV file to upload.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('shopkeeper_id', shopkeeperId);
+            
+            try {
+                const response = await fetch('/api/inventory/bulk_upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert(data.detail || 'Stock updated successfully!');
+                    location.reload();
+                } else {
+                    alert(data.detail || 'Failed to upload stock CSV.');
+                }
+            } catch (err) {
+                alert('Error uploading stock CSV.');
+            }
+        }
+
+        async function addNewProductToShop(shopkeeperId) {
+            const nameEl = document.getElementById(`new-product-name-${shopkeeperId}`);
+            const priceEl = document.getElementById(`new-product-price-${shopkeeperId}`);
+            const stockEl = document.getElementById(`new-product-stock-${shopkeeperId}`);
+            
+            if (!nameEl || !priceEl || !stockEl) return;
+            
+            const name = nameEl.value.trim();
+            const price = priceEl.value;
+            const stock = stockEl.value;
+            
+            if (!name || !price) {
+                alert('Please provide at least product name and price.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/products/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        price: parseFloat(price),
+                        stock: parseInt(stock) || 0,
+                        shopkeeper_id: parseInt(shopkeeperId)
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    alert(data.detail || 'Product added successfully!');
+                    location.reload();
+                } else {
+                    alert(data.detail || 'Failed to add product.');
+                }
+            } catch (err) {
+                alert('Error adding product.');
+            }
+        }
+
+        async function uploadBulkProductsToShop(shopkeeperId) {
+            const fileInput = document.getElementById(`product-csv-file-${shopkeeperId}`);
+            if (!fileInput || fileInput.files.length === 0) {
+                alert('Please select a CSV file to upload.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('shopkeeper_id', shopkeeperId);
+            
+            try {
+                const response = await fetch('/api/products/bulk_upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert(data.detail || 'Products uploaded successfully!');
+                    location.reload();
+                } else {
+                    alert(data.detail || 'Failed to upload CSV.');
+                }
+            } catch (err) {
+                alert('Error uploading CSV.');
+            }
+        }
+
         function showInventory(shopId) {
             document.querySelectorAll('.inventory-table-container').forEach(el => el.style.display = 'none');
-            const target = document.getElementById('inventory-table-' + shopId);
-            if (target) target.style.display = 'table';
+            const target = document.getElementById('inventory-table-wrapper-' + shopId);
+            if (target) target.style.display = 'block';
         }
 
         async function updateStock(shopkeeperId, productId) {
@@ -489,41 +575,8 @@
             }
         }
 
-        async function addProduct() {
-            const name = document.getElementById('new-product-name').value;
-            const price = document.getElementById('new-product-price').value;
-            const stock = document.getElementById('new-product-stock').value;
-
-            if (!name || !price) {
-                alert('Please provide at least a name and price.');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/products/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: name,
-                        price: parseFloat(price),
-                        stock: parseInt(stock) || 0
-                    })
-                });
-
-                if (response.ok) {
-                    alert('Product added successfully!');
-                    location.reload();
-                } else {
-                    const data = await response.json();
-                    alert(data.detail || 'Failed to add product.');
-                }
-            } catch (err) {
-                alert('Error adding product.');
-            }
-        }
-
         async function deleteProduct(productId, productName) {
-            if (confirm(`Are you sure you want to permanently DELETE product '${productName}'? This will remove it from all shops.`)) {
+            if (confirm(`Are you sure you want to delete product '${productName}'? This will soft-delete it so historical receipts and analytics are preserved, but it will be hidden from the active catalog and POS.`)) {
                 try {
                     const response = await fetch('/api/products/delete', {
                         method: 'POST',
@@ -546,10 +599,10 @@
         async function uploadDirectPhoto(input, productId) {
             const file = input.files[0];
             if (!file) return;
-
+            
             const formData = new FormData();
             formData.append('file', file);
-
+            
             try {
                 const response = await fetch('/api/products/' + productId + '/image', {
                     method: 'POST',

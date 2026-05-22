@@ -1,12 +1,20 @@
 // Cart Logic
 let cart = [];
 
-function addToCart(productId, productName, productPrice) {
+function addToCart(productId, productName, productPrice, maxStock) {
     const existingItem = cart.find(item => item.id === productId);
     if (existingItem) {
+        if (existingItem.qty >= existingItem.maxStock) {
+            alert(`Cannot add more. Only ${existingItem.maxStock} items available in stock.`);
+            return;
+        }
         existingItem.qty += 1;
     } else {
-        cart.push({ id: productId, name: productName, price: productPrice, qty: 1 });
+        if (maxStock <= 0) {
+            alert("This product is out of stock.");
+            return;
+        }
+        cart.push({ id: productId, name: productName, price: productPrice, qty: 1, maxStock: maxStock });
     }
     renderCart();
 }
@@ -14,8 +22,13 @@ function addToCart(productId, productName, productPrice) {
 function updateQty(productId, change) {
     const itemIndex = cart.findIndex(item => item.id === productId);
     if (itemIndex > -1) {
-        cart[itemIndex].qty += change;
-        if (cart[itemIndex].qty <= 0) {
+        const item = cart[itemIndex];
+        if (change > 0 && item.qty >= item.maxStock) {
+            alert(`Cannot add more. Only ${item.maxStock} items available in stock.`);
+            return;
+        }
+        item.qty += change;
+        if (item.qty <= 0) {
             cart.splice(itemIndex, 1);
         }
         renderCart();
@@ -99,7 +112,8 @@ async function submitBill() {
     const payload = {
         items: cart.map(item => ({ id: item.id, qty: item.qty })),
         discount: discount,
-        payment_mode: paymentMode
+        payment_mode: paymentMode,
+        shopkeeper_id: typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : null
     };
 
     try {
@@ -120,6 +134,9 @@ async function submitBill() {
             const discountInput = document.getElementById('discount-input');
             if (discountInput) discountInput.value = 0;
             
+            // Refresh catalog dynamically immediately
+            refreshProductCatalog();
+            
             // Refresh bill history sidebar
             fetchBillHistory();
             
@@ -139,8 +156,9 @@ async function fetchBillHistory() {
     const container = document.getElementById('bill-history-container');
     if (!container) return;
 
+    const shopkeeperId = typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : '';
     try {
-        const response = await fetch('/api/bills/history');
+        const response = await fetch(`/api/bills/history?shopkeeper_id=${shopkeeperId}`);
         const data = await response.json();
         
         if (response.ok) {
@@ -153,26 +171,51 @@ async function fetchBillHistory() {
             data.bills.forEach(bill => {
                 const card = document.createElement('div');
                 card.className = 'history-card';
+                if (bill.is_cancelled) {
+                    card.style.opacity = '0.65';
+                    card.style.borderLeft = '4px solid #E53E3E';
+                    card.style.position = 'relative';
+                    card.style.overflow = 'hidden';
+                }
+                
+                const badgeHtml = bill.is_cancelled 
+                    ? '<span style="background-color: #FFF5F5; color: #E53E3E; border: 1px solid #FEB2B2; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">CANCELLED</span>' 
+                    : '';
+                    
+                const priceStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #A0AEC0;' : '';
+                const titleStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #718096;' : '';
+                
+                const actionButtonsHtml = bill.is_cancelled ? `
+                    <button class="btn btn-small" style="background-color: #718096; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="handlePrintFlow(${bill.id})">
+                        🖨️ Print Void Receipt
+                    </button>
+                ` : `
+                    <button class="btn btn-small" style="background-color: var(--primary); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="handlePrintFlow(${bill.id})">
+                        🖨️ Print Receipt
+                    </button>
+                    <div style="display: flex; gap: 6px; width: 100%;">
+                        <button class="btn btn-secondary btn-small" style="flex: 1;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
+                            ↩️ Edit
+                        </button>
+                        <button class="btn btn-destructive btn-small" style="flex: 1;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
+                            ❌ Cancel
+                        </button>
+                    </div>
+                `;
+
                 card.innerHTML = `
-                    <div class="history-card-header">
-                        <span>Bill #${bill.id}</span>
-                        <span>₹${bill.final_amount.toFixed(2)}</span>
+                    <div class="history-card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
+                        <span style="${titleStyle}">Bill #${bill.bill_number || bill.id}</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            ${badgeHtml}
+                            <span style="${priceStyle}">₹${bill.final_amount.toFixed(2)}</span>
+                        </div>
                     </div>
                     <div class="history-card-details">
                         ${bill.timestamp} | ${bill.payment_mode}
                     </div>
                     <div style="display: flex; gap: 6px; flex-direction: column;">
-                        <button class="btn btn-small" style="background-color: var(--primary); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="handlePrintFlow(${bill.id})">
-                            🖨️ Print Receipt
-                        </button>
-                        <div style="display: flex; gap: 6px; width: 100%;">
-                            <button class="btn btn-secondary btn-small" style="flex: 1;" onclick="revertBillFromHistory(${bill.id})">
-                                ↩️ Edit
-                            </button>
-                            <button class="btn btn-destructive btn-small" style="flex: 1;" onclick="cancelBillFromHistory(${bill.id})">
-                                ❌ Cancel
-                            </button>
-                        </div>
+                        ${actionButtonsHtml}
                     </div>
                 `;
                 container.appendChild(card);
@@ -184,8 +227,9 @@ async function fetchBillHistory() {
     }
 }
 
-async function revertBillFromHistory(billId) {
-    if (!confirm(`Are you sure you want to revert Bill #${billId}? The stock will be restored and you can edit the items in the cart.`)) return;
+async function revertBillFromHistory(billId, displayNo) {
+    const label = displayNo ? `#${displayNo}` : `#${billId}`;
+    if (!confirm(`Are you sure you want to revert Bill ${label}? The stock will be restored and you can edit the items in the cart.`)) return;
     
     try {
         const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
@@ -199,6 +243,10 @@ async function revertBillFromHistory(billId) {
                 discountInput.value = data.discount;
             }
             renderCart();
+            
+            // Refresh product catalog stock levels dynamically
+            await refreshProductCatalog();
+            
             // Refresh bill history list
             fetchBillHistory();
         } else {
@@ -212,15 +260,20 @@ async function revertBillFromHistory(billId) {
 
 document.addEventListener('DOMContentLoaded', fetchBillHistory);
 
-async function cancelBillFromHistory(billId) {
-    if (!confirm(`Are you sure you want to CANCEL Bill #${billId}? The stock will be restored, and the bill will be permanently deleted.`)) return;
+async function cancelBillFromHistory(billId, displayNo) {
+    const label = displayNo ? `#${displayNo}` : `#${billId}`;
+    if (!confirm(`Are you sure you want to CANCEL Bill ${label}? The stock will be restored, and the bill will be marked as cancelled.`)) return;
     
     try {
         const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
         const data = await response.json();
         
         if (response.ok) {
-            alert(`Bill #${billId} has been cancelled and stock restored.`);
+            alert(`Bill ${label} has been cancelled and stock restored.`);
+            
+            // Refresh product catalog stock levels dynamically
+            await refreshProductCatalog();
+            
             // Refresh bill history list
             fetchBillHistory();
         } else {
@@ -229,6 +282,90 @@ async function cancelBillFromHistory(billId) {
     } catch (err) {
         alert("Error connecting to server.");
         console.error(err);
+    }
+}
+
+// Dynamic Frontend Catalog Renderer
+function renderProducts(productsList) {
+    const grid = document.querySelector('.product-grid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    if (productsList.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
+                No products found. Please ask the Manager to add some inventory.
+            </div>
+        `;
+        return;
+    }
+    
+    productsList.forEach(product => {
+        const card = document.createElement('div');
+        
+        // Escape quotes & backslashes for safe function argument passing in onclick
+        const escapedName = product.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        
+        if (product.stock > 0) {
+            card.className = 'product-card';
+            card.style.cursor = 'pointer';
+            card.setAttribute('onclick', `addToCart(${product.id}, '${escapedName}', ${product.price}, ${product.stock})`);
+            
+            const imageHtml = product.image_filename 
+                ? `<img src="/photos/${product.image_filename}" alt="${product.name}" class="product-image">`
+                : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
+                
+            const stockHtml = product.stock <= 5
+                ? `<div style="font-size: 10px; color: var(--destructive); margin-bottom: 4px; font-weight: bold;">Only ${product.stock} left!</div>`
+                : `<div style="font-size: 10px; color: #4A5568; margin-bottom: 4px;">Stock: ${product.stock}</div>`;
+                
+            card.innerHTML = `
+                ${imageHtml}
+                <div class="product-name">${product.name}</div>
+                <div class="product-price">₹${product.price.toFixed(2)}</div>
+                ${stockHtml}
+                <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
+            `;
+        } else {
+            card.className = 'product-card out-of-stock-card';
+            card.style.opacity = '0.65';
+            card.style.cursor = 'not-allowed';
+            card.style.position = 'relative';
+            
+            const imageHtml = product.image_filename 
+                ? `<img src="/photos/${product.image_filename}" alt="${product.name}" class="product-image" style="filter: grayscale(100%);">`
+                : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
+                
+            card.innerHTML = `
+                <div style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">OUT OF STOCK</div>
+                ${imageHtml}
+                <div class="product-name">${product.name}</div>
+                <div class="product-price">₹${product.price.toFixed(2)}</div>
+                <div style="font-size: 10px; color: #E53E3E; margin-bottom: 4px; font-weight: bold;">Out of Stock</div>
+                <button class="btn btn-secondary btn-small" style="margin-top: auto; cursor: not-allowed;" disabled>Out of Stock</button>
+            `;
+        }
+        grid.appendChild(card);
+    });
+}
+
+// Fetch real-time inventory from backend and refresh catalog view
+async function refreshProductCatalog() {
+    try {
+        const shopkeeperId = typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : '';
+        if (!shopkeeperId) return;
+        
+        const response = await fetch(`/api/inventory/data/${shopkeeperId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            renderProducts(data.products);
+        } else {
+            console.error("Failed to load inventory data", data.detail);
+        }
+    } catch (err) {
+        console.error("Error refreshing product catalog", err);
     }
 }
 
@@ -358,6 +495,7 @@ function openReceiptModal() {
 
 function closeReceiptModal() {
     document.getElementById('receipt-preview-modal').classList.remove('active');
+    refreshProductCatalog();
 }
 
 // GATT Server Web Bluetooth Engine
@@ -594,6 +732,11 @@ function compileReceiptBytes(billData) {
 
     encoder.init();
 
+    // If cancelled, print void alert at very top
+    if (billData.is_cancelled) {
+        encoder.align('center').bold(true).line("*** VOID / CANCELLED ***").line("*** NOT VALID RECEIPT ***").divider();
+    }
+
     // Store header names
     encoder.header("Ponnangai");
     encoder.header("Enterprises");
@@ -603,7 +746,7 @@ function compileReceiptBytes(billData) {
     encoder.align('center').line("Thank you for shopping!");
 
     // Metas
-    const billNo = `Bill #: ${billData.id}`;
+    const billNo = `Bill #: ${billData.bill_number || billData.id}`;
     const timestampStr = billData.timestamp;
     encoder.align('left').row(billNo, timestampStr);
 
@@ -628,7 +771,11 @@ function compileReceiptBytes(billData) {
         encoder.row("Discount:", `- ${billData.discount.toFixed(2)}`);
     }
 
-    encoder.bold(true).row("FINAL TOTAL:", `Rs.${billData.final_amount.toFixed(2)}`).bold(false);
+    if (billData.is_cancelled) {
+        encoder.bold(true).row("VOID TOTAL:", `Rs.${billData.final_amount.toFixed(2)}`).bold(false);
+    } else {
+        encoder.bold(true).row("FINAL TOTAL:", `Rs.${billData.final_amount.toFixed(2)}`).bold(false);
+    }
 
     // Footer greetings
     encoder.feed(1).align('center').line("Please visit again!");
@@ -643,7 +790,7 @@ function generateReceiptHtml(billData) {
     let itemsHtml = '';
     billData.items.forEach(item => {
         itemsHtml += `
-            <div class="receipt-item">
+            <div class="receipt-item" style="${billData.is_cancelled ? 'text-decoration: line-through; opacity: 0.7;' : ''}">
                 <div style="flex: 2; word-break: break-word;">${item.name}</div>
                 <div style="flex: 1; text-align: center;">${item.quantity}</div>
                 <div style="flex: 1; text-align: right;">${item.total.toFixed(2)}</div>
@@ -652,20 +799,27 @@ function generateReceiptHtml(billData) {
     });
 
     const discountHtml = billData.discount > 0 ? `
-        <div style="display: flex; justify-content: space-between; font-size: 9px; color: #4A5568;">
+        <div style="display: flex; justify-content: space-between; font-size: 9px; color: #4A5568; ${billData.is_cancelled ? 'text-decoration: line-through;' : ''}">
             <span>Discount:</span>
             <span>- ${billData.discount.toFixed(2)}</span>
         </div>
     ` : '';
 
+    const cancelledHeaderHtml = billData.is_cancelled ? `
+        <div style="background-color: #FFF5F5; color: #E53E3E; border: 2px dashed #E53E3E; padding: 8px 4px; border-radius: 4px; font-weight: 800; font-size: 11px; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px;">
+            ⚠️ VOID / CANCELLED RECEIPT ⚠️
+        </div>
+    ` : '';
+
     return `
-        <div class="receipt-header">
+        ${cancelledHeaderHtml}
+        <div class="receipt-header" style="${billData.is_cancelled ? 'opacity: 0.7;' : ''}">
             <h2 style="font-size: 15px; margin-bottom: 4px; font-weight: 700; line-height: 1.2;">Ponnangai<br>Enterprises</h2>
             <div style="font-size: 11px; margin-bottom: 2px;">Housekeeping Products</div>
             <div style="font-size: 9px; margin-bottom: 4px;">Thank you for shopping!</div>
             
             <div class="receipt-bill-meta" style="display: flex; justify-content: space-between; font-size: 9px; margin-top: 8px;">
-                <span>Bill #: ${billData.id}</span>
+                <span>Bill #: ${billData.bill_number || billData.id}</span>
                 <span>${billData.timestamp}</span>
             </div>
             <div class="receipt-cashier-meta" style="text-align: left; font-size: 9px; margin-top: 2px;">
@@ -673,7 +827,7 @@ function generateReceiptHtml(billData) {
             </div>
         </div>
 
-        <div style="margin-top: 8px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-weight: bold; font-size: 9px; display: flex;">
+        <div style="margin-top: 8px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-weight: bold; font-size: 9px; display: flex; ${billData.is_cancelled ? 'opacity: 0.7;' : ''}">
             <div style="flex: 2;">Item</div>
             <div style="flex: 1; text-align: center;">Qty</div>
             <div style="flex: 1; text-align: right;">Total</div>
@@ -682,13 +836,13 @@ function generateReceiptHtml(billData) {
         ${itemsHtml}
 
         <div class="receipt-summary" style="margin-top: 8px;">
-            <div style="display: flex; justify-content: space-between; font-size: 9px;">
+            <div style="display: flex; justify-content: space-between; font-size: 9px; ${billData.is_cancelled ? 'text-decoration: line-through; opacity: 0.7;' : ''}">
                 <span>Subtotal:</span>
                 <span>${billData.total_amount.toFixed(2)}</span>
             </div>
             ${discountHtml}
             
-            <div class="receipt-total">
+            <div class="receipt-total" style="${billData.is_cancelled ? 'text-decoration: line-through; color: #E53E3E;' : ''}">
                 <span>FINAL TOTAL:</span>
                 <span>₹${billData.final_amount.toFixed(2)}</span>
             </div>
