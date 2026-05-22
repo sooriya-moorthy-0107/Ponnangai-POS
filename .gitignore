@@ -193,3 +193,4 @@ __marimo__/
 data/
 photos/
 pgdata/
+.playwright-mcp/
