@@ -1,57 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Shop - Ponnangai POS</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
     <header>
         <h1>Ponnangai POS</h1>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             {% if user.role in ['Admin', 'Owner', 'Manager'] %}
-                <!-- Shop selector dropdown for Admin/Manager/Owner -->
-                <div style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: var(--radius);">
-                    <label for="shop-selector" style="font-size: 12px; font-weight: bold; color: white; margin-bottom: 0; white-space: nowrap;">🏪 Shop:</label>
-                    <select id="shop-selector" onchange="switchShop(this.value)" style="padding: 4px 8px; font-size: 13px; font-weight: 600; border-radius: 4px; border: 1px solid #CBD5E0; background: white; color: #2D3748; cursor: pointer; outline: none; margin-bottom: 0;">
-                        {% for sk in shopkeepers %}
-                            <option value="{{ sk.id }}" {% if sk.id == target_shopkeeper_id %}selected{% endif %}>{{ sk.username }}'s Shop</option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <!-- Shop selector dropdown for Admin/Manager/Owner -->
+            <div
+                style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: var(--radius);">
+                <label for="shop-selector"
+                    style="font-size: 12px; font-weight: bold; color: white; margin-bottom: 0; white-space: nowrap;">🏪
+                    Shop:</label>
+                <select id="shop-selector" onchange="switchShop(this.value)"
+                    style="padding: 4px 8px; font-size: 13px; font-weight: 600; border-radius: 4px; border: 1px solid #CBD5E0; background: white; color: #2D3748; cursor: pointer; outline: none; margin-bottom: 0;">
+                    {% for sk in shopkeepers %}
+                    <option value="{{ sk.id }}" {% if sk.id==target_shopkeeper_id %}selected{% endif %}>{{ sk.username
+                        }}'s Shop</option>
+                    {% endfor %}
+                </select>
+            </div>
             {% else %}
-                <span style="font-size: 14px; font-weight: 600;">🏪 {{ user.username }} ({{ user.role }})</span>
+            <span style="font-size: 14px; font-weight: 600;">🏪 {{ user.username }} ({{ user.role }})</span>
             {% endif %}
 
-            <button id="printer-status-btn" class="btn btn-secondary btn-small" style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; gap: 6px; font-weight: bold; width: auto;" onclick="openPrinterModal()">
+            <button id="printer-status-btn" class="btn btn-secondary btn-small"
+                style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; gap: 6px; font-weight: bold; width: auto;"
+                onclick="openPrinterModal()">
                 🔌 <span id="header-printer-status">Disconnected</span>
             </button>
-            <button class="btn btn-secondary btn-small" onclick="document.getElementById('bulk-upload-form').style.display='flex'">Bulk CSV</button>
+            <button class="btn btn-secondary btn-small"
+                onclick="document.getElementById('bulk-upload-form').style.display='flex'">Bulk CSV</button>
             <a href="/logout" class="btn btn-destructive btn-small" style="text-decoration: none;">Logout</a>
             {% if user.role in ['Admin', 'Owner', 'Manager'] %}
-                <a href="/admin" class="btn btn-secondary btn-small" style="text-decoration: none;">Dashboard</a>
+            <a href="/admin" class="btn btn-secondary btn-small" style="text-decoration: none;">Dashboard</a>
             {% endif %}
         </div>
     </header>
 
     <div class="container">
         <!-- Bulk Upload Form for Shopkeepers -->
-        <div id="bulk-upload-form" style="display: none; gap: 8px; margin-bottom: 16px; flex-direction: column; background: #EBF8FF; padding: 12px; border-radius: var(--radius); border: 1px solid #90CDF4;">
+        <div id="bulk-upload-form"
+            style="display: none; gap: 8px; margin-bottom: 16px; flex-direction: column; background: #EBF8FF; padding: 12px; border-radius: var(--radius); border: 1px solid #90CDF4;">
             <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #2B6CB0;">Bulk Update Inventory (CSV)</h3>
-            <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">1. Download the template for your shop.<br>2. Fill in the "New Stock" column and upload.</p>
+            <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">1. Download the template for your
+                shop.<br>2. Fill in the "New Stock" column and upload.</p>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                 <button class="btn btn-secondary btn-small" onclick="downloadTemplate()">Download Template</button>
                 <input type="file" id="csv-file" accept=".csv" style="font-size: 12px;">
                 <button class="btn btn-small" onclick="uploadCsv()">Upload</button>
-                <button class="btn btn-secondary btn-small" onclick="document.getElementById('bulk-upload-form').style.display='none'">Cancel</button>
+                <button class="btn btn-secondary btn-small"
+                    onclick="document.getElementById('bulk-upload-form').style.display='none'">Cancel</button>
             </div>
         </div>
-        
+
         <div class="shop-layout">
             <!-- Bill History Sidebar -->
             <div class="bill-history-section card">
-                <h2 style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">Recent Bills</h2>
+                <h2
+                    style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                    Recent Bills</h2>
                 <div id="bill-history-container">
                     <!-- History injected via JS -->
                     <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...</div>
@@ -62,78 +77,96 @@
             <div class="product-grid">
                 {% for product in products %}
                 {% if product.stock > 0 %}
-                <div class="product-card" onclick="addToCart({{ product.id }}, '{{ product.name | replace("'", "\\'") }}', {{ product.price }}, {{ product.stock }})" style="cursor: pointer;">
+                <div class="product-card"
+                    onclick="addToCart({{ product.id }}, '{{ product.name | replace("'", "\\'") }}', {{ product.price }}, {{ product.stock }})"
+                    style="cursor: pointer;">
                     {% if product.image_filename %}
-                        <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image">
+                    <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image">
                     {% else %}
-                        <div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>
+                    <div class="product-image"
+                        style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
+                        No Image</div>
                     {% endif %}
                     <div class="product-name">{{ product.name }}</div>
                     <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
-                    {% if product.stock <= 5 %}
-                        <div style="font-size: 10px; color: var(--destructive); margin-bottom: 4px; font-weight: bold;">Only {{ product.stock }} left!</div>
-                    {% else %}
-                        <div style="font-size: 10px; color: #4A5568; margin-bottom: 4px;">Stock: {{ product.stock }}</div>
-                    {% endif %}
-                    <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
+                    {% if product.stock <= 5 %} <div
+                        style="font-size: 10px; color: var(--destructive); margin-bottom: 4px; font-weight: bold;">Only
+                        {{ product.stock }} left!
                 </div>
                 {% else %}
-                <div class="product-card out-of-stock-card" style="opacity: 0.65; cursor: not-allowed; position: relative;">
-                    <div style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">OUT OF STOCK</div>
-                    {% if product.image_filename %}
-                        <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image" style="filter: grayscale(100%);">
-                    {% else %}
-                        <div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>
-                    {% endif %}
-                    <div class="product-name">{{ product.name }}</div>
-                    <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
-                    <div style="font-size: 10px; color: #E53E3E; margin-bottom: 4px; font-weight: bold;">Out of Stock</div>
-                    <button class="btn btn-secondary btn-small" style="margin-top: auto; cursor: not-allowed;" disabled>Out of Stock</button>
-                </div>
+                <div style="font-size: 10px; color: #4A5568; margin-bottom: 4px;">Stock: {{ product.stock }}</div>
                 {% endif %}
+                <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
+            </div>
+            {% else %}
+            <div class="product-card out-of-stock-card" style="opacity: 0.65; cursor: not-allowed; position: relative;">
+                <div
+                    style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">
+                    OUT OF STOCK</div>
+                {% if product.image_filename %}
+                <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image"
+                    style="filter: grayscale(100%);">
                 {% else %}
-                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
-                    No products found. Please ask the Manager to add some inventory.
-                </div>
-                {% endfor %}
+                <div class="product-image"
+                    style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
+                    No Image</div>
+                {% endif %}
+                <div class="product-name">{{ product.name }}</div>
+                <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
+                <div style="font-size: 10px; color: #E53E3E; margin-bottom: 4px; font-weight: bold;">Out of Stock</div>
+                <button class="btn btn-secondary btn-small" style="margin-top: auto; cursor: not-allowed;" disabled>Out
+                    of Stock</button>
             </div>
-
-            <!-- Cart Section -->
-            <div class="cart-section card">
-                <h2 style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">Current Bill</h2>
-                
-                <div id="cart-items" style="min-height: 150px;">
-                    <!-- Items will be injected here via JS -->
-                    <div style="text-align: center; color: #A0AEC0; margin-top: 40px; font-size: 14px;">Tap products to add them to cart</div>
-                </div>
-
-                <div class="bill-summary">
-                    <div class="summary-row">
-                        <span>Subtotal</span>
-                        <span id="cart-subtotal">₹0.00</span>
-                    </div>
-                    <div class="summary-row" style="align-items: center;">
-                        <span>Discount (₹)</span>
-                        <input type="number" id="discount-input" min="0" value="0" style="width: 80px; padding: 4px; margin-bottom: 0; text-align: right;">
-                    </div>
-                    <div class="summary-row" style="margin-top: 8px;">
-                        <span>Payment Mode</span>
-                        <select id="payment-mode" style="width: auto; padding: 4px; margin-bottom: 0;">
-                            <option value="Cash">Cash</option>
-                            <option value="UPI">UPI</option>
-                        </select>
-                    </div>
-                    <div class="summary-row summary-total" style="margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px;">
-                        <span>Final Total</span>
-                        <span id="cart-final-total">₹0.00</span>
-                    </div>
-                </div>
-
-                <button class="btn" style="margin-top: 24px; font-size: 18px; padding: 16px;" onclick="submitBill()">
-                    Confirm & Print Bill
-                </button>
+            {% endif %}
+            {% else %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
+                No products found. Please ask the Manager to add some inventory.
             </div>
+            {% endfor %}
         </div>
+
+        <!-- Cart Section -->
+        <div class="cart-section card">
+            <h2
+                style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                Current Bill</h2>
+
+            <div id="cart-items" style="min-height: 150px;">
+                <!-- Items will be injected here via JS -->
+                <div style="text-align: center; color: #A0AEC0; margin-top: 40px; font-size: 14px;">Tap products to add
+                    them to cart</div>
+            </div>
+
+            <div class="bill-summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="cart-subtotal">₹0.00</span>
+                </div>
+                <div class="summary-row" style="align-items: center;">
+                    <span>Discount (₹)</span>
+                    <input type="number" id="discount-input" min="0" value="0"
+                        style="width: 80px; padding: 4px; margin-bottom: 0; text-align: right;">
+                </div>
+                <div class="summary-row" style="margin-top: 8px;">
+                    <span>Payment Mode</span>
+                    <select id="payment-mode" style="width: auto; padding: 4px; margin-bottom: 0;">
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Card">Card</option>
+                    </select>
+                </div>
+                <div class="summary-row summary-total"
+                    style="margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px;">
+                    <span>Final Total</span>
+                    <span id="cart-final-total">₹0.00</span>
+                </div>
+            </div>
+
+            <button class="btn" style="margin-top: 24px; font-size: 18px; padding: 16px;" onclick="submitBill()">
+                Confirm & Print Bill
+            </button>
+        </div>
+    </div>
     </div>
 
     <script src="/static/js/app.js"></script>
@@ -150,16 +183,16 @@
 
         async function uploadCsv() {
             const fileInput = document.getElementById('csv-file');
-            
+
             if (fileInput.files.length === 0) {
                 alert('Please select a CSV file to upload.');
                 return;
             }
-            
+
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             formData.append('shopkeeper_id', ACTIVE_SHOPKEEPER_ID);
-            
+
             try {
                 const response = await fetch('/api/inventory/bulk_upload', {
                     method: 'POST',
@@ -189,17 +222,22 @@
                 <p style="font-size: 12px; color: #718096; margin-bottom: 16px;">
                     Configure and pair your **Niyama** thermal printer via Bluetooth.
                 </p>
-                
-                <div style="font-size: 13px; color: #4A5568; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; background: #EDF2F7; padding: 10px; border-radius: 8px;">
+
+                <div
+                    style="font-size: 13px; color: #4A5568; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; background: #EDF2F7; padding: 10px; border-radius: 8px;">
                     <span>Connection Status:</span>
                     <span id="bt-status-text" style="font-weight: bold; color: #718096;">🔴 Disconnected</span>
                 </div>
 
                 <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                    <button type="button" class="btn btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;" onclick="connectBluetooth()">
+                    <button type="button" class="btn btn-secondary"
+                        style="flex: 1; padding: 10px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;"
+                        onclick="connectBluetooth()">
                         🔌 Pair / Connect
                     </button>
-                    <button type="button" id="bt-test-btn" class="btn btn-secondary" style="display: none; padding: 10px 12px; font-size: 13px; font-weight: 600; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;" onclick="printTestReceipt()">
+                    <button type="button" id="bt-test-btn" class="btn btn-secondary"
+                        style="display: none; padding: 10px 12px; font-size: 13px; font-weight: 600; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;"
+                        onclick="printTestReceipt()">
                         📄 Test Slip
                     </button>
                 </div>
@@ -207,7 +245,8 @@
                 <!-- ROLE-RESTRICTED CONFIGURATION AREA (Only Admin) -->
                 {% if user.role == 'Admin' %}
                 <div style="border-top: 1px solid #E2E8F0; padding-top: 16px; margin-top: 8px;">
-                    <h4 style="font-size: 13px; color: var(--primary); margin-bottom: 12px;">Admin Receipt Calibration</h4>
+                    <h4 style="font-size: 13px; color: var(--primary); margin-bottom: 12px;">Admin Receipt Calibration
+                    </h4>
 
                     <!-- Width Toggle -->
                     <div class="control-group">
@@ -249,7 +288,8 @@
                     </div>
 
                     <!-- Auto-Print Toggle -->
-                    <div class="control-group auto-print-row" style="margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+                    <div class="control-group auto-print-row"
+                        style="margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
                         <span class="control-label" style="margin-bottom: 0;">Auto-Print on Checkout</span>
                         <label class="switch-label">
                             <input type="checkbox" id="auto-print-switch" class="switch-input">
@@ -274,22 +314,27 @@
             </div>
             <div class="modal-body">
                 <div class="receipt-modal-preview-box">
-                    <div class="receipt-preview-card" id="receipt-container-preview" style="box-shadow: none; border: none; margin-bottom: 0;">
+                    <div class="receipt-preview-card" id="receipt-container-preview"
+                        style="box-shadow: none; border: none; margin-bottom: 0;">
                         <!-- Receipt content dynamically generated here -->
                     </div>
                 </div>
-                
+
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
-                    <button id="modal-bt-print-btn" class="btn" style="background-color: #2B6CB0; color: white;" onclick="printActiveBillBluetooth()">
+                    <button id="modal-bt-print-btn" class="btn" style="background-color: #2B6CB0; color: white;"
+                        onclick="printActiveBillBluetooth()">
                         🔵 Print via Bluetooth
                     </button>
-                    <button class="btn btn-secondary" style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748;" onclick="printActiveBillBrowser()">
+                    <button class="btn btn-secondary"
+                        style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748;"
+                        onclick="printActiveBillBrowser()">
                         🖨️ Print via Browser Dialog
                     </button>
                 </div>
             </div>
             <div class="modal-footer" style="background-color: #E6FFFA;">
-                <button class="btn btn-small" style="background-color: #319795; width: 100%;" onclick="closeReceiptModal()">
+                <button class="btn btn-small" style="background-color: #319795; width: 100%;"
+                    onclick="closeReceiptModal()">
                     Done & New Sale
                 </button>
             </div>
@@ -301,4 +346,5 @@
         <!-- Filled dynamically before printing -->
     </div>
 </body>
+
 </html>
