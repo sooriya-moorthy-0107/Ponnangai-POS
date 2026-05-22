@@ -243,8 +243,9 @@
                         </div>
                         <div style="display:flex; align-items:center; gap:2px;">
                             <span style="font-size:11px; color:#718096;">Rate:</span>
-                            <input type="number" step="any" min="0" value="${item.price.toFixed(2)}"
+                            <input type="number" step="any" min="0" value="${item.price}"
                                    style="width:55px; padding:4px; font-size:13px; text-align:right; border:1px solid #CBD5E0; border-radius:4px; height:26px; outline:none;"
+                                   onfocus="if(this.value==='0') this.value='';"
                                    onchange="updateRate(${item.id}, this.value)">
                         </div>
                         <div style="font-size:13px; font-weight:bold; color:var(--primary); text-align: right; min-width: 50px;">
