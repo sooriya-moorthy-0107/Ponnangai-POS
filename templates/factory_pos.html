@@ -488,6 +488,10 @@ async function loadBillForReceipt(billId) {
             activeBillData = null;
         }
 
+        // Printer Bluetooth logic
+        function openPrinterModal() { document.getElementById('printer-settings-modal').classList.add('active'); }
+        function closePrinterModal() { document.getElementById('printer-settings-modal').classList.remove('active'); }
+
         // --- Web Bluetooth Direct ESC/POS Driverless Engine ---
 
         async function connectToDevice(device) {
