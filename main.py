@@ -86,7 +86,7 @@ class Bill(Base):
     discount = Column(Float, default=0.0)
     final_amount = Column(Float, nullable=False)
     payment_mode = Column(String, default="Cash") # Cash/UPI
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.now)
     cashier_id = Column(Integer, ForeignKey("users.id"))
     cashier_name = Column(String, nullable=True)
     is_cancelled = Column(Boolean, default=False)
@@ -109,7 +109,7 @@ class FactorySession(Base):
     __tablename__ = "factory_sessions"
     id = Column(Integer, primary_key=True, index=True)
     cashier_id = Column(Integer, ForeignKey("users.id"))
-    start_time = Column(DateTime, default=datetime.utcnow)
+    start_time = Column(DateTime, default=datetime.now)
     end_time = Column(DateTime, nullable=True)
     status = Column(String, default="open") # "open", "closed"
 

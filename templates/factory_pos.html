@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -15,6 +16,7 @@
         }
     </style>
 </head>
+
 <body>
     <header>
         <h1>Ponnangai Factory POS</h1>
@@ -25,8 +27,10 @@
                 onclick="openPrinterModal()">
                 🔌 <span id="header-printer-status">Disconnected</span>
             </button>
-            <a href="/factory/shift" class="btn btn-destructive btn-small" style="text-decoration: none;">End Day & Close Shift</a>
-            <a href="/logout" class="btn btn-secondary btn-small" style="text-decoration: none; border: 1px solid #CBD5E0; color: #2D3748; background: #EDF2F7;">Logout</a>
+            <a href="/factory/shift" class="btn btn-destructive btn-small" style="text-decoration: none;">End Day &
+                Close Shift</a>
+            <a href="/logout" class="btn btn-secondary btn-small"
+                style="text-decoration: none; border: 1px solid #CBD5E0; color: #2D3748; background: #EDF2F7;">Logout</a>
         </div>
     </header>
 
@@ -34,7 +38,8 @@
         <div class="shop-layout">
             <!-- Bill History Sidebar -->
             <div class="bill-history-section card">
-                <h2 style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                <h2
+                    style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
                     Recent Bills</h2>
                 <div id="bill-history-container">
                     <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...</div>
@@ -44,27 +49,35 @@
             <!-- Product Grid -->
             <div class="product-grid">
                 {% for p in liquid_products %}
-                <div class="product-card" onclick="addLiquid({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }})" style="cursor: pointer;">
+                <div class="product-card"
+                    onclick="addLiquid({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }})"
+                    style="cursor: pointer;">
                     {% if p.image_filename %}
                     <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
                     {% else %}
-                    <div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>
+                    <div class="product-image"
+                        style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
+                        No Image</div>
                     {% endif %}
                     <div class="product-name">{{ p.name }}</div>
-                    
+
                     <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
                 </div>
                 {% endfor %}
 
                 {% for p in solid_products %}
-                <div class="product-card" onclick="addSolid({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }}, '{{ p.unit }}')" style="cursor: pointer;">
+                <div class="product-card"
+                    onclick="addSolid({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }}, '{{ p.unit }}')"
+                    style="cursor: pointer;">
                     {% if p.image_filename %}
                     <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
                     {% else %}
-                    <div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>
+                    <div class="product-image"
+                        style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
+                        No Image</div>
                     {% endif %}
                     <div class="product-name">{{ p.name }}</div>
-                    
+
                     <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
                 </div>
                 {% endfor %}
@@ -78,11 +91,13 @@
 
             <!-- Cart Section -->
             <div class="cart-section card">
-                <h2 style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                <h2
+                    style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
                     Current Bill</h2>
 
                 <div id="cart-items" style="min-height: 150px;">
-                    <div style="text-align: center; color: #A0AEC0; margin-top: 40px; font-size: 14px;">Tap products to add them to cart</div>
+                    <div style="text-align: center; color: #A0AEC0; margin-top: 40px; font-size: 14px;">Tap products to
+                        add them to cart</div>
                 </div>
 
                 <div class="bill-summary">
@@ -103,7 +118,8 @@
                             <option value="Card">Card</option>
                         </select>
                     </div>
-                    <div class="summary-row summary-total" style="margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px;">
+                    <div class="summary-row summary-total"
+                        style="margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px;">
                         <span>Final Total</span>
                         <span id="cart-final-total">₹0.00</span>
                     </div>
@@ -124,13 +140,18 @@
                 <button class="modal-close-btn" onclick="closePrinterModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <div style="font-size: 13px; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; background: #EDF2F7; padding: 10px; border-radius: 8px;">
+                <div
+                    style="font-size: 13px; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; background: #EDF2F7; padding: 10px; border-radius: 8px;">
                     <span>Connection Status:</span>
                     <span id="bt-status-text" style="font-weight: bold; color: #718096;">🔴 Disconnected</span>
                 </div>
                 <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-                    <button type="button" class="btn" style="flex: 1; padding: 10px; font-size: 13px; background: var(--primary);" onclick="connectBluetooth()">🔌 Connect Printer</button>
-                    <button type="button" id="bt-test-btn" class="btn" style="display: none; padding: 10px; font-size: 13px; background: #e2e8f0; color: #1a202c;" onclick="printTestReceipt()">📄 Print Test Slip</button>
+                    <button type="button" class="btn"
+                        style="flex: 1; padding: 10px; font-size: 13px; background: var(--primary);"
+                        onclick="connectBluetooth()">🔌 Connect Printer</button>
+                    <button type="button" id="bt-test-btn" class="btn"
+                        style="display: none; padding: 10px; font-size: 13px; background: #e2e8f0; color: #1a202c;"
+                        onclick="printTestReceipt()">📄 Print Test Slip</button>
                 </div>
             </div>
             <div class="modal-footer">
@@ -147,15 +168,20 @@
             </div>
             <div class="modal-body">
                 <div class="receipt-modal-preview-box">
-                    <div class="receipt-preview-card" id="receipt-container-preview" style="box-shadow: none; border: none; margin-bottom: 0;"></div>
+                    <div class="receipt-preview-card" id="receipt-container-preview"
+                        style="box-shadow: none; border: none; margin-bottom: 0;"></div>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
-                    <button id="modal-bt-print-btn" class="btn" style="background-color: #2B6CB0; color: white;" onclick="printActiveBillBluetooth()">🔵 Print via Bluetooth</button>
-                    <button class="btn btn-secondary" style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748;" onclick="printActiveBillBrowser()">🖨️ Print via Browser Dialog</button>
+                    <button id="modal-bt-print-btn" class="btn" style="background-color: #2B6CB0; color: white;"
+                        onclick="printActiveBillBluetooth()">🔵 Print via Bluetooth</button>
+                    <button class="btn btn-secondary"
+                        style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748;"
+                        onclick="printActiveBillBrowser()">🖨️ Print via Browser Dialog</button>
                 </div>
             </div>
             <div class="modal-footer" style="background-color: #E6FFFA;">
-                <button class="btn btn-small" style="background-color: #319795; width: 100%;" onclick="closeReceiptModal()">Done & New Sale</button>
+                <button class="btn btn-small" style="background-color: #319795; width: 100%;"
+                    onclick="closeReceiptModal()">Done & New Sale</button>
             </div>
         </div>
     </div>
@@ -309,19 +335,19 @@
             }
         }
 
-                async function loadBillHistory() {
+        async function loadBillHistory() {
             const container = document.getElementById('bill-history-container');
             try {
                 const response = await fetch(`/api/bills/history?shopkeeper_id=${ACTIVE_CASHIER_ID}`);
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     container.innerHTML = '';
                     if (data.bills.length === 0) {
                         container.innerHTML = '<div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">No recent bills</div>';
                         return;
                     }
-                    
+
                     data.bills.forEach(bill => {
                         const card = document.createElement('div');
                         card.className = 'history-card';
@@ -331,14 +357,14 @@
                             card.style.position = 'relative';
                             card.style.overflow = 'hidden';
                         }
-                        
-                        const badgeHtml = bill.is_cancelled 
-                            ? '<span style="background-color: #FFF5F5; color: #E53E3E; border: 1px solid #FEB2B2; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">CANCELLED</span>' 
+
+                        const badgeHtml = bill.is_cancelled
+                            ? '<span style="background-color: #FFF5F5; color: #E53E3E; border: 1px solid #FEB2B2; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">CANCELLED</span>'
                             : '';
-                            
+
                         const priceStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #A0AEC0;' : '';
                         const titleStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #718096;' : '';
-                        
+
                         const actionButtonsHtml = bill.is_cancelled ? `
                             <button class="btn btn-small" style="background-color: #718096; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="loadBillForReceipt(${bill.id})">
                                 🖨️ Print Void Receipt
@@ -384,11 +410,11 @@
         async function revertBillFromHistory(billId, displayNo) {
             const label = displayNo ? `#${displayNo}` : `#${billId}`;
             if (!confirm(`Are you sure you want to revert Bill ${label}? The stock will be restored and you can edit the items in the cart.`)) return;
-            
+
             try {
                 const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     // Load items into active cart. Map structure to factory cart item format
                     cart = data.items.map(i => ({
@@ -417,11 +443,11 @@
         async function cancelBillFromHistory(billId, displayNo) {
             const label = displayNo ? `#${displayNo}` : `#${billId}`;
             if (!confirm(`Are you sure you want to CANCEL Bill ${label}? The stock will be restored, and the bill will be marked as cancelled.`)) return;
-            
+
             try {
                 const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     alert(`Bill ${label} has been cancelled and stock restored.`);
                     loadBillHistory();
@@ -433,7 +459,7 @@
                 console.error(err);
             }
         }
-async function loadBillForReceipt(billId) {
+        async function loadBillForReceipt(billId) {
             try {
                 const res = await fetch(`/api/bills/${billId}`);
                 const data = await res.json();
@@ -442,7 +468,7 @@ async function loadBillForReceipt(billId) {
                     renderReceiptHTML(data.bill);
                     document.getElementById('receipt-preview-modal').classList.add('active');
                 }
-            } catch(e) {
+            } catch (e) {
                 alert('Error loading receipt data.');
             }
         }
@@ -462,10 +488,11 @@ async function loadBillForReceipt(billId) {
 
             container.innerHTML = `
             <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
-                <h2 style="margin: 0; font-size: 16px;">PONNANGAI ENTERPRISES</h2>
+                <h2 style="margin: 0; font-size: 16px;">PONNANGAI</h2>
+                <h2 style="margin: 0; font-size: 16px;">ENTERPRISES</h2>
                 <p style="margin: 2px 0; font-size: 11px;">Factory Outlet Sales</p>
                 <p style="margin: 2px 0; font-size: 11px;">Date: ${bill.timestamp}</p>
-                <p style="margin: 2px 0; font-size: 11px;">Bill No: #${bill.bill_number}</p>
+                <p style="margin: 2px 0; font-size: 11px;">Bill No: #${bill.bill_number} | Mode: ${bill.payment_mode}</p>
             </div>
             <div style="border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 8px; font-weight: bold; display: flex; font-size: 11px;">
                 <div style="flex: 2;">Item</div>
@@ -693,19 +720,47 @@ async function loadBillForReceipt(billId) {
             itemRow(itemName, qty, total) {
                 const qtyStr = String(qty);
                 const totalStr = String(total);
-                const itemColWidth = this.charLimit - 12; 
+                const itemColWidth = this.charLimit - 12;
                 const qtyColWidth = 4;
                 const totalColWidth = 8;
 
-                let left = itemName;
-                if (left.length > itemColWidth) {
-                    left = left.substring(0, itemColWidth - 1);
-                }
-                const leftPadded = left.padEnd(itemColWidth, ' ');
-                const centerPadded = qtyStr.padStart(qtyColWidth, ' ');
-                const rightPadded = totalStr.padStart(totalColWidth, ' ');
+                let words = itemName.split(' ');
+                let lines = [];
+                let currentLine = '';
 
-                this.line(leftPadded + centerPadded + rightPadded);
+                for (let word of words) {
+                    if (word.length > itemColWidth) {
+                        if (currentLine.length > 0) {
+                            lines.push(currentLine);
+                            currentLine = '';
+                        }
+                        while (word.length > itemColWidth) {
+                            lines.push(word.substring(0, itemColWidth));
+                            word = word.substring(itemColWidth);
+                        }
+                        currentLine = word;
+                    } else if (currentLine.length + word.length + (currentLine.length > 0 ? 1 : 0) <= itemColWidth) {
+                        currentLine += (currentLine.length > 0 ? ' ' : '') + word;
+                    } else {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    }
+                }
+                if (currentLine.length > 0) {
+                    lines.push(currentLine);
+                }
+                if (lines.length === 0) lines.push(" ");
+
+                for (let i = 0; i < lines.length; i++) {
+                    const leftPadded = lines[i].padEnd(itemColWidth, ' ');
+                    if (i === 0) {
+                        const centerPadded = qtyStr.padStart(qtyColWidth, ' ');
+                        const rightPadded = totalStr.padStart(totalColWidth, ' ');
+                        this.line(leftPadded + centerPadded + rightPadded);
+                    } else {
+                        this.line(leftPadded);
+                    }
+                }
                 return this;
             }
 
@@ -766,12 +821,13 @@ async function loadBillForReceipt(billId) {
                 const encoder = new EscPosEncoder(32); // Use 32 char limit as standard
 
                 encoder.init();
-                encoder.header("PONNANGAI ENTERPRISES");
+                encoder.header("PONNANGAI");
+                encoder.header("ENTERPRISES");
                 encoder.align('center').line("Factory Outlet Sales");
                 encoder.align('left');
-                
+
                 encoder.row(`Bill: #${bill.bill_number}`, bill.timestamp);
-                encoder.line(`Cashier: ${bill.cashier_name}`);
+                encoder.line(`Cashier: ${bill.cashier_name} | Mode: ${bill.payment_mode}`);
                 encoder.divider();
 
                 encoder.itemRow("Item", "Qty", "Amount");
@@ -784,19 +840,19 @@ async function loadBillForReceipt(billId) {
                 }
 
                 encoder.divider();
-                
+
                 encoder.row("Subtotal:", `${bill.total_amount.toFixed(2)}`);
                 if (bill.discount > 0) {
                     encoder.row("Discount:", `${bill.discount.toFixed(2)}`);
                 }
                 encoder.bold(true).row("Total Paid:", `Rs.${bill.final_amount.toFixed(2)}`).bold(false);
-                
+
                 encoder.feed(1).align('center').line("Thank You! Visit Again");
                 encoder.feed(5);
                 encoder.addRaw([0x1D, 0x56, 0x42, 0x00]); // Paper Cut
 
                 await sendPrintData(encoder.getBytes());
-            } catch(err) {
+            } catch (err) {
                 console.error("Failed to compile receipt", err);
             }
         }
