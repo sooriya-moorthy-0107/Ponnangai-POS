@@ -102,31 +102,23 @@
                                         <td>{{ "%.2f"|format(product.price) }}</td>
                                         {% endif %}
                                         <td>
-                                            {% if sk.role == 'Factory' %}
-                                            <span style="color: #718096; font-style: italic;">N/A (Shift-Based)</span>
-                                            {% else %}
                                             <span style="{% if stk < 10 %}color: var(--destructive); font-weight: bold;{% endif %}">
                                                 {{ stk }}
                                             </span>
-                                            {% endif %}
                                         </td>
                                         {% if user.role in ['Admin', 'Manager', 'Owner'] %}
                                         <td>
-                                            {% if sk.role == 'Factory' %}
-                                            <span style="color: #718096; font-style: italic;">Factory session balance</span>
-                                            {% else %}
                                             <div style="display: flex; gap: 4px; max-width: 150px;">
                                                 <input type="number" id="stock-{{ sk.id }}-{{ product.id }}" value="{{ stk }}"
                                                     style="margin-bottom: 0; padding: 6px;">
                                                 <button class="btn btn-small"
                                                     onclick="updateStock({{ sk.id }}, {{ product.id }})">Save</button>
                                             </div>
-                                            {% endif %}
                                         </td>
                                         <td>
                                             <div style="display: flex; gap: 8px; align-items: center;">
                                                 <input type="file" accept="image/*" style="font-size: 11px; max-width: 140px; padding: 2px;" onchange="uploadDirectPhoto(this, {{ product.id }})">
-                                                <button class="btn btn-destructive btn-small" onclick="deleteProduct({{ product.id }}, '{{ product.name | replace("'", "\\'") }}')">Delete</button>
+                                                <button class="btn btn-destructive btn-small" onclick='deleteProduct({{ product.id }}, {{ product.name | tojson }})'>Delete</button>
                                             </div>
                                         </td>
                                         {% endif %}
@@ -158,13 +150,13 @@
                                     <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Product Name</label>
                                     <input type="text" id="new-product-name-{{ sk.id }}" placeholder="e.g. Floor Cleaner 1L" style="margin-bottom: 0;">
                                 </div>
-                                <div style="flex: 1; min-width: 100px; {% if sk.role == 'Factory' %}display: none;{% endif %}">
+                                <div style="flex: 1; min-width: 100px;">
                                     <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Price (₹)</label>
-                                    <input type="number" id="new-product-price-{{ sk.id }}" placeholder="0.00" step="0.01" value="{% if sk.role == 'Factory' %}0{% endif %}" style="margin-bottom: 0;">
+                                    <input type="number" id="new-product-price-{{ sk.id }}" placeholder="0.00" step="0.01" style="margin-bottom: 0;">
                                 </div>
                                 <div style="flex: 1; min-width: 100px;">
                                     <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Initial Stock</label>
-                                    <input type="number" id="new-product-stock-{{ sk.id }}" placeholder="0" {% if sk.role == 'Factory' %}value="0" disabled title="Stock managed via morning opening balance"{% endif %} style="margin-bottom: 0;">
+                                    <input type="number" id="new-product-stock-{{ sk.id }}" placeholder="0" style="margin-bottom: 0;">
                                 </div>
                                 <div style="flex: 1; min-width: 110px;">
                                     <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Product Type</label>
@@ -338,11 +330,11 @@
                             {% if user.role == 'Admin' and u.id != user.id %}
                              <div style="display: flex; gap: 4px;">
                                  <button class="btn btn-secondary btn-small"
-                                     onclick="resetPassword({{ u.id }}, '{{ u.username | replace("'", "\\'") }}')">Pwd</button>
+                                     onclick='resetPassword({{ u.id }}, {{ u.username | tojson }})'>Pwd</button>
                                  <button class="btn btn-secondary btn-small"
-                                     onclick="showEditUser({{ u.id }}, '{{ u.username | replace("'", "\\'") }}', '{{ u.role | replace("'", "\\'") }}')">Edit</button>
+                                     onclick='showEditUser({{ u.id }}, {{ u.username | tojson }}, {{ u.role | tojson }})'>Edit</button>
                                  <button class="btn btn-destructive btn-small"
-                                     onclick="deleteUser({{ u.id }}, '{{ u.username | replace("'", "\\'") }}')">Del</button>
+                                     onclick='deleteUser({{ u.id }}, {{ u.username | tojson }})'>Del</button>
                              </div>
                             {% endif %}
                         </li>
@@ -371,105 +363,67 @@
             </div>
         </div>
         
-        <!-- Factory Shifts & Stock Reconciliation Reports -->
+        </div>
+        <!-- Daily Sales Reports -->
         <div class="card" style="margin-top: var(--spacing);">
             <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin-bottom: 16px;">
-                Factory Shift Reconciliation Reports
+                📊 Daily Sales & Packaging Reports
             </h2>
             
-            {% if factory_sessions %}
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-                {% for fs in factory_sessions %}
-                <div class="card" style="margin-bottom: 0; background-color: {% if fs.status == 'open' %}#EBF8FF{% else %}#F7FAFC{% endif %}; border: 1px solid {% if fs.status == 'open' %}#90CDF4{% else %}#E2E8F0{% endif %};">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing);">
-                        <div>
-                            <span style="background-color: {% if fs.status == 'open' %}#3182CE{% else %}#4A5568{% endif %}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase;">
-                                {{ fs.status }}
-                            </span>
-                            <strong style="margin-left: 8px; font-size: 16px;">{{ fs.cashier.username }}</strong>
-                            <span style="color: #718096; font-size: 14px; margin-left: 12px;">
-                                Started: {{ fs.start_time.strftime('%Y-%m-%d %I:%M %p') }}
-                            </span>
-                            {% if fs.end_time %}
-                            <span style="color: #718096; font-size: 14px; margin-left: 12px;">
-                                Closed: {{ fs.end_time.strftime('%Y-%m-%d %I:%M %p') }}
-                            </span>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <button class="btn btn-secondary btn-small" onclick="toggleSessionDetails({{ fs.id }})">
-                                Show/Hide Balance Sheet
-                            </button>
-                        </div>
+            <div style="display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="btn-report-today" class="btn" style="padding: 4px 12px; background: var(--primary); color: white;" onclick="setReportMode('today')">Today</button>
+                        <button id="btn-report-range" class="btn btn-secondary" style="padding: 4px 12px;" onclick="setReportMode('range')">Date Range</button>
                     </div>
-                    
-                    <!-- Expandable details -->
-                    <div id="session-details-{{ fs.id }}" style="display: none; margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px; overflow-x: auto;">
-                        <table class="admin-table" style="background: white; border-radius: 8px; width: 100%;">
-                            <thead>
-                                <tr style="background-color: #EDF2F7;">
-                                    <th>Product Name</th>
-                                    <th>Type</th>
-                                    <th style="text-align: right;">Opening Bal</th>
-                                    <th style="text-align: right;">Quantity Sold</th>
-                                    <th style="text-align: right;">Expected Stock</th>
-                                    <th style="text-align: right;">Actual Physical Stock</th>
-                                    <th style="text-align: right;">Discrepancy</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for bal in fs.balances %}
-                                <tr>
-                                    <td><strong>{{ bal.product.name }}</strong></td>
-                                    <td>
-                                        <span style="text-transform: capitalize; font-size: 12px; font-weight: bold; padding: 2px 6px; border-radius: 4px; background-color: {% if bal.product.product_type == 'liquid' %}#EBF8FF; color: #2B6CB0;{% else %}#EDF2F7; color: #4A5568;{% endif %};">
-                                            {{ bal.product.product_type }}
-                                        </span>
-                                    </td>
-                                    <td style="text-align: right;">{{ "%.2f"|format(bal.opening_balance) }} {{ bal.product.unit }}</td>
-                                    <td style="text-align: right; color: var(--primary); font-weight: 600;">
-                                        -{{ "%.2f"|format(bal.quantity_sold) }} {{ bal.product.unit }}
-                                    </td>
-                                    <td style="text-align: right;">{{ "%.2f"|format(bal.closing_balance) }} {{ bal.product.unit }}</td>
-                                    <td style="text-align: right; font-weight: bold;">
-                                        {% if fs.status == 'open' %}
-                                        <span style="color: #A0AEC0; font-style: italic;">Shift active</span>
-                                        {% else %}
-                                        {{ "%.2f"|format(bal.actual_balance) }} {{ bal.product.unit }}
-                                        {% endif %}
-                                    </td>
-                                    <td style="text-align: right; font-weight: bold;">
-                                        {% if fs.status == 'open' %}
-                                        -
-                                        {% else %}
-                                            {% if bal.discrepancy < 0 %}
-                                            <span style="color: var(--destructive); background-color: #FED2D2; padding: 2px 6px; border-radius: 4px;">
-                                                {{ "%.2f"|format(bal.discrepancy) }}
-                                            </span>
-                                            {% elif bal.discrepancy > 0 %}
-                                            <span style="color: #2F855A; background-color: #C6F6D5; padding: 2px 6px; border-radius: 4px;">
-                                                +{{ "%.2f"|format(bal.discrepancy) }}
-                                            </span>
-                                            {% else %}
-                                            <span style="color: #4A5568; background-color: #EDF2F7; padding: 2px 6px; border-radius: 4px;">0.00</span>
-                                            {% endif %}
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div id="report-date-today-container">
+                        <input type="date" id="report-date-today" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; background: #EDF2F7;" readonly>
+                    </div>
+                    <div id="report-date-range-container" style="display: none; align-items: center; gap: 8px;">
+                        <input type="date" id="report-start-date" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                        <span style="color: #718096; font-size: 12px; font-weight: bold;">TO</span>
+                        <input type="date" id="report-end-date" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
                     </div>
                 </div>
-                {% endfor %}
+                <div>
+                    <label style="font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 4px; display: block;">Select Shop</label>
+                    <select id="report-shop" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; min-width: 200px;">
+                        <option value="">-- Select a Shop --</option>
+                        {% for sk in shopkeepers %}
+                        <option value="{{ sk.id }}">{{ sk.username }}</option>
+                        {% endfor %}
+                        {% for sk in archived_shopkeepers %}
+                        <option value="{{ sk.id }}">{{ sk.username }} (Archived)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button class="btn" onclick="fetchDailyReport()">Generate Report</button>
             </div>
-            {% else %}
-            <div style="text-align: center; color: #718096; padding: 24px;">
-                No factory shift reconciliation reports logged yet.
+
+            <div id="report-results" style="display: none;">
+                <div id="report-top-revenue" style="margin-bottom: 16px; font-size: 16px; font-weight: bold; color: var(--primary); padding: 12px; background: #EBF8FF; border: 1px solid #90CDF4; border-radius: 8px;">
+                    <!-- Populated by JS -->
+                </div>
+                <table class="admin-table" id="report-table">
+                    <thead>
+                        <tr style="background-color: #EDF2F7;">
+                            <!-- Handled by JS -->
+                        </tr>
+                    </thead>
+                    <tbody id="report-table-body">
+                    </tbody>
+                </table>
+                <div id="report-bottle-counts" style="margin-top: 16px; font-size: 14px; color: #4A5568;"></div>
+                <div style="margin-top: 16px; text-align: right;">
+                    <button class="btn" style="background-color: #38A169; border-color: #38A169;" onclick="exportDailyReport()">
+                        📥 Export to Excel (CSV)
+                    </button>
+                </div>
             </div>
-            {% endif %}
+            <div id="report-empty" style="display: none; text-align: center; color: #718096; padding: 24px;">
+                No sales found for the selected shop and date.
+            </div>
         </div>
-    </div>
 
     <!-- Shop Analytics Modal -->
     <div id="analytics-modal"
@@ -519,6 +473,240 @@
             }
         }
 
+
+
+        function getTodayDate() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            let mm = today.getMonth() + 1; // Months start at 0!
+            let dd = today.getDate();
+            if (dd < 10) dd = '0' + dd;
+            if (mm < 10) mm = '0' + mm;
+            return yyyy + '-' + mm + '-' + dd;
+        }
+        
+        let reportMode = 'today';
+        
+        function setReportMode(mode) {
+            reportMode = mode;
+            if (mode === 'today') {
+                document.getElementById('btn-report-today').style.background = 'var(--primary)';
+                document.getElementById('btn-report-today').style.color = 'white';
+                document.getElementById('btn-report-today').className = 'btn';
+                document.getElementById('btn-report-range').className = 'btn btn-secondary';
+                document.getElementById('btn-report-range').style.background = '';
+                document.getElementById('btn-report-range').style.color = '';
+                
+                document.getElementById('report-date-today-container').style.display = 'block';
+                document.getElementById('report-date-range-container').style.display = 'none';
+            } else {
+                document.getElementById('btn-report-range').style.background = 'var(--primary)';
+                document.getElementById('btn-report-range').style.color = 'white';
+                document.getElementById('btn-report-range').className = 'btn';
+                document.getElementById('btn-report-today').className = 'btn btn-secondary';
+                document.getElementById('btn-report-today').style.background = '';
+                document.getElementById('btn-report-today').style.color = '';
+                
+                document.getElementById('report-date-today-container').style.display = 'none';
+                document.getElementById('report-date-range-container').style.display = 'flex';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const todayStr = getTodayDate();
+            const dateInput = document.getElementById('report-date-today');
+            if(dateInput) dateInput.value = todayStr;
+            const startDate = document.getElementById('report-start-date');
+            if(startDate) startDate.value = todayStr;
+            const endDate = document.getElementById('report-end-date');
+            if(endDate) endDate.value = todayStr;
+        });
+
+        function getReportDates() {
+            if (reportMode === 'today') {
+                const d = document.getElementById('report-date-today').value;
+                return { start: d, end: d };
+            } else {
+                return { 
+                    start: document.getElementById('report-start-date').value,
+                    end: document.getElementById('report-end-date').value
+                };
+            }
+        }
+
+        async function fetchDailyReport() {
+            const shopId = document.getElementById('report-shop').value;
+            const dates = getReportDates();
+            
+            if (!shopId || !dates.start || !dates.end) {
+                alert("Please select a shop and ensure dates are valid.");
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/reports/daily?shopkeeper_id=${shopId}&start_date=${dates.start}&end_date=${dates.end}`);
+                const data = await res.json();
+                
+                if (res.ok) {
+                    const tbody = document.getElementById('report-table-body');
+                    const thead = document.querySelector('#report-table thead tr');
+                    tbody.innerHTML = '';
+                    
+                    if (data.shop_role === 'Factory') {
+                        thead.innerHTML = `
+                            <th>Product Name</th>
+                            <th>Bottle Type</th>
+                            <th>Packaging Type</th>
+                            <th style="text-align: right;">Total Quantity Sold</th>
+                            <th style="text-align: right;">Total Revenue (Rs)</th>
+                        `;
+                    } else {
+                        thead.innerHTML = `
+                            <th>Product Name</th>
+                            <th style="text-align: right;">Total Qty Sold</th>
+                            <th style="text-align: right;">Total Revenue</th>
+                        `;
+                    }
+                    
+                    if (data.data.length === 0) {
+                        document.getElementById('report-results').style.display = 'none';
+                        document.getElementById('report-empty').style.display = 'block';
+                    } else {
+                        document.getElementById('report-empty').style.display = 'none';
+                        document.getElementById('report-results').style.display = 'block';
+                        
+                        let totalRev = 0;
+                        
+                        if (data.shop_role === 'Factory') {
+                            data.data.forEach(row => {
+                                totalRev += row.total_revenue;
+                                const tr = document.createElement('tr');
+                                tr.innerHTML = `
+                                    <td><strong>${row.product}</strong></td>
+                                    <td>${row.bottle_type !== 'N/A' ? row.bottle_type : '<span style="color:#A0AEC0;">-</span>'}</td>
+                                    <td>
+                                        <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; ${row.packaging === 'bottle' ? 'background: #EBF8FF; color: #2B6CB0;' : 'background: #EDF2F7; color: #4A5568;'}">
+                                            ${row.packaging}
+                                        </span>
+                                    </td>
+                                    <td style="text-align: right; font-weight: 600;">${row.total_quantity.toFixed(2)}</td>
+                                    <td style="text-align: right; color: var(--primary); font-weight: bold;">₹${row.total_revenue.toFixed(2)}</td>
+                                `;
+                                tbody.appendChild(tr);
+                            });
+                            
+                            const sumRow = document.createElement('tr');
+                            sumRow.style.backgroundColor = '#EBF8FF';
+                            sumRow.innerHTML = `
+                                <td colspan="4" style="text-align: right; font-weight: bold; color: #2B6CB0;">Total Revenue:</td>
+                                <td style="text-align: right; font-weight: bold; color: var(--primary);">₹${totalRev.toFixed(2)}</td>
+                            `;
+                            tbody.appendChild(sumRow);
+                            
+                            if (data.revenue_breakdown) {
+                                document.getElementById('report-top-revenue').innerHTML = `
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span>Total Revenue: ₹${data.revenue_breakdown.Total.toFixed(2)}</span>
+                                        <div style="font-size: 13px; font-weight: normal; color: #4A5568;">
+                                            <span style="margin-left: 12px;">Cash: ₹${data.revenue_breakdown.Cash.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">UPI: ₹${data.revenue_breakdown.UPI.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">Card: ₹${data.revenue_breakdown.Card.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                const breakDownHtml = `
+                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">₹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">₹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">₹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
+                                `;
+                                tbody.insertAdjacentHTML('beforeend', breakDownHtml);
+                            }
+
+                            
+                            const bottleCountsDiv = document.getElementById('report-bottle-counts');
+                            if(bottleCountsDiv) {
+                                let bcHtml = '<strong>Bottle Counts:</strong> ';
+                                let hasBottles = false;
+                                for (const [type, count] of Object.entries(data.bottle_counts)) {
+                                    if(count > 0) {
+                                        bcHtml += `<span style="margin-left: 8px; padding: 2px 8px; background: #CBD5E0; border-radius: 12px; font-size: 12px;">${type} = ${count}</span>`;
+                                        hasBottles = true;
+                                    }
+                                }
+                                bottleCountsDiv.innerHTML = hasBottles ? bcHtml : '';
+                            }
+                        } else {
+                            const shopAgg = {};
+                            data.data.forEach(row => {
+                                if (!shopAgg[row.product]) {
+                                    shopAgg[row.product] = { qty: 0, rev: 0 };
+                                }
+                                shopAgg[row.product].qty += row.total_quantity;
+                                shopAgg[row.product].rev += row.total_revenue;
+                                totalRev += row.total_revenue;
+                            });
+                            
+                            for (const [prod, val] of Object.entries(shopAgg)) {
+                                const tr = document.createElement('tr');
+                                tr.innerHTML = `
+                                    <td><strong>${prod}</strong></td>
+                                    <td style="text-align: right; font-weight: 600;">${val.qty.toFixed(2)}</td>
+                                    <td style="text-align: right; color: var(--primary); font-weight: bold;">₹${val.rev.toFixed(2)}</td>
+                                `;
+                                tbody.appendChild(tr);
+                            }
+                            
+                            const sumRow = document.createElement('tr');
+                            sumRow.style.backgroundColor = '#EBF8FF';
+                            sumRow.innerHTML = `
+                                <td colspan="2" style="text-align: right; font-weight: bold; color: #2B6CB0;">Total Revenue:</td>
+                                <td style="text-align: right; font-weight: bold; color: var(--primary);">₹${totalRev.toFixed(2)}</td>
+                            `;
+                            tbody.appendChild(sumRow);
+                            
+                            if (data.revenue_breakdown) {
+                                document.getElementById('report-top-revenue').innerHTML = `
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span>Total Revenue: ₹${data.revenue_breakdown.Total.toFixed(2)}</span>
+                                        <div style="font-size: 13px; font-weight: normal; color: #4A5568;">
+                                            <span style="margin-left: 12px;">Cash: ₹${data.revenue_breakdown.Cash.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">UPI: ₹${data.revenue_breakdown.UPI.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">Card: ₹${data.revenue_breakdown.Card.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                const breakDownHtml = `
+                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">₹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">₹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">₹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
+                                `;
+                                tbody.insertAdjacentHTML('beforeend', breakDownHtml);
+                            }
+
+                            
+                            const bottleCountsDiv = document.getElementById('report-bottle-counts');
+                            if(bottleCountsDiv) bottleCountsDiv.innerHTML = '';
+                        }
+                    }
+                } else {
+                    alert(data.detail || "Error generating report");
+                }
+            } catch (err) {
+                alert("Network error fetching report.");
+            }
+        }
+        
+        function exportDailyReport() {
+            const shopId = document.getElementById('report-shop').value;
+            const dates = getReportDates();
+            if (!shopId || !dates.start || !dates.end) {
+                alert("Please select a shop and valid dates.");
+                return;
+            }
+            window.location.href = `/api/reports/daily/export?shopkeeper_id=${shopId}&start_date=${dates.start}&end_date=${dates.end}`;
+        }
 
         async function resetSystem() {
             if (confirm("Are you absolutely sure? This will permanently delete ALL products, shop inventories, bills, and sales history. This CANNOT be undone.")) {

@@ -27,8 +27,7 @@
                 onclick="openPrinterModal()">
                 🔌 <span id="header-printer-status">Disconnected</span>
             </button>
-            <a href="/factory/shift" class="btn btn-destructive btn-small" style="text-decoration: none;">End Day &
-                Close Shift</a>
+
             <a href="/logout" class="btn btn-secondary btn-small"
                 style="text-decoration: none; border: 1px solid #CBD5E0; color: #2D3748; background: #EDF2F7;">Logout</a>
         </div>
@@ -50,7 +49,7 @@
             <div class="product-grid">
                 {% for p in liquid_products %}
                 <div class="product-card"
-                    onclick="addLiquid({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }})"
+                    onclick='addLiquid({{ p.id }}, {{ p.name | tojson }}, {{ p.price }})'
                     style="cursor: pointer;">
                     {% if p.image_filename %}
                     <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
@@ -67,7 +66,7 @@
 
                 {% for p in solid_products %}
                 <div class="product-card"
-                    onclick="addSolid({{ p.id }}, '{{ p.name | replace("'", "\'") }}', {{ p.price }}, '{{ p.unit }}')"
+                    onclick='addSolid({{ p.id }}, {{ p.name | tojson }}, {{ p.price }}, {{ p.unit | tojson }})'
                     style="cursor: pointer;">
                     {% if p.image_filename %}
                     <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
@@ -210,7 +209,7 @@
             if (existing) {
                 existing.qty += 1;
             } else {
-                cart.push({ id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid' });
+                cart.push({ id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: 'loose', bottle_type: 'Type 1', bottle_count: 1 });
             }
             renderCart();
         }
@@ -243,6 +242,28 @@
             renderCart(); // re-render to update line total display
         }
 
+
+        function updatePackaging(id, newPkg) {
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            item.packaging_type = newPkg;
+            renderCart();
+        }
+
+        function updateBottleCount(id, count) {
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            item.bottle_count = parseInt(count) || 0;
+            renderCart();
+        }
+
+        function updateBottleType(id, newBtlType) {
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            item.bottle_type = newBtlType;
+            renderCart();
+        }
+
         function renderCart() {
             const container = document.getElementById('cart-items');
             if (cart.length === 0) {
@@ -260,12 +281,28 @@
                         ${item.name}
                     </div>
                     <div style="display:flex; align-items:center; justify-content:space-between; gap: 4px;">
-                        <div style="display:flex; align-items:center; gap:2px;">
-                            <span style="font-size:11px; color:#718096; display:none;">Qty:</span>
-                            <input type="number" step="${step}" min="0.01" value="${item.qty}" 
-                                   style="width:45px; padding:4px; text-align:center; border:1px solid #CBD5E0; border-radius:4px; height:26px; font-weight:600; font-size:13px; outline:none;"
-                                   onchange="updateQty(${item.id}, this.value)">
-                            <span style="font-size:11px; color:#A0AEC0;">${item.unit}</span>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; align-items:center; gap:2px;">
+                                <span style="font-size:11px; color:#718096; display:none;">Qty:</span>
+                                <input type="number" step="${step}" min="0.01" value="${item.qty}" 
+                                       style="width:45px; padding:4px; text-align:center; border:1px solid #CBD5E0; border-radius:4px; height:26px; font-weight:600; font-size:13px; outline:none;"
+                                       onchange="updateQty(${item.id}, this.value)">
+                                <span style="font-size:11px; color:#A0AEC0;">${item.unit}</span>
+                            </div>
+                            ${item.type === 'liquid' ? `
+                            <div style="display:flex; gap: 4px;">
+                                <select style="padding: 2px; font-size: 11px; border: 1px solid #CBD5E0; border-radius: 4px;" onchange="updatePackaging(${item.id}, this.value)">
+                                    <option value="loose" ${item.packaging_type === 'loose' ? 'selected' : ''}>Loose</option>
+                                    <option value="bottle" ${item.packaging_type === 'bottle' ? 'selected' : ''}>Bottle</option>
+                                </select>
+                                ${item.packaging_type === 'bottle' ? `
+                                <select style="padding: 2px; font-size: 11px; border: 1px solid #CBD5E0; border-radius: 4px;" onchange="updateBottleType(${item.id}, this.value)">
+                                    <option value="Type 1" ${item.bottle_type === 'Type 1' ? 'selected' : ''}>Type 1</option>
+                                    <option value="Type 2" ${item.bottle_type === 'Type 2' ? 'selected' : ''}>Type 2</option>
+                                    <option value="Type 3" ${item.bottle_type === 'Type 3' ? 'selected' : ''}>Type 3</option>
+                                </select>` : ''}
+                            </div>
+                            ` : ''}
                         </div>
                         <div style="display:flex; align-items:center; gap:2px;">
                             <span style="font-size:11px; color:#718096;">Rate:</span>
@@ -309,7 +346,7 @@
             const paymentMode = document.getElementById('payment-mode').value;
             const payload = {
                 shopkeeper_id: ACTIVE_CASHIER_ID,
-                items: cart.map(i => ({ id: i.id, qty: i.qty, price: i.price })),
+                items: cart.map(i => ({ id: i.id, qty: i.qty, price: i.price, packaging_type: i.packaging_type, bottle_type: i.bottle_type, bottle_count: i.bottle_count || 0 })),
                 discount: discount,
                 payment_mode: paymentMode
             };
@@ -859,6 +896,31 @@
 
         function printActiveBillBrowser() {
             window.print();
+        }
+
+        function getTodayString() {
+            const d = new Date();
+            let month = '' + (d.getMonth() + 1), day = '' + d.getDate(), year = d.getFullYear();
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+            return [year, month, day].join('-');
+        }
+
+        function downloadPosReport(type) {
+            const today = getTodayString();
+            let start = today;
+            let end = today;
+            
+            if (type === 'range') {
+                const s = prompt("Enter Start Date (YYYY-MM-DD):", today);
+                if (!s) return;
+                const e = prompt("Enter End Date (YYYY-MM-DD):", today);
+                if (!e) return;
+                start = s;
+                end = e;
+            }
+            
+            window.location.href = `/api/reports/daily/export?shopkeeper_id=${ACTIVE_CASHIER_ID}&start_date=${start}&end_date=${end}`;
         }
 
         window.addEventListener('load', () => {

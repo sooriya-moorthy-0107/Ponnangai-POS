@@ -79,7 +79,7 @@
                 {% for product in products %}
                 {% if product.stock > 0 %}
                 <div class="product-card"
-                    onclick="addToCart({{ product.id }}, '{{ product.name | replace("'", "\\'") }}', {{ product.price }}, {{ product.stock }})"
+                    onclick='addToCart({{ product.id }}, {{ product.name | tojson }}, {{ product.price }}, {{ product.stock }}, {{ product.product_type | tojson }}, {{ product.unit | tojson }})'
                     style="cursor: pointer;">
                     {% if product.image_filename %}
                     <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image">

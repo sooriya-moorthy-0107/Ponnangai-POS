@@ -101,40 +101,63 @@ class BillItem(Base):
     product_id = Column(Integer, ForeignKey("products.id"))
     quantity = Column(Float, nullable=False) # Changed from Integer to Float for loose quantity sales
     price_at_sale = Column(Float, nullable=False)
+    packaging_type = Column(String, default="loose") # loose, bottle
+    bottle_type = Column(String, nullable=True) # Type 1, Type 2, Type 3
+    bottle_count = Column(Integer, default=0)
 
     bill = relationship("Bill", back_populates="items")
     product = relationship("Product")
 
-class FactorySession(Base):
-    __tablename__ = "factory_sessions"
-    id = Column(Integer, primary_key=True, index=True)
-    cashier_id = Column(Integer, ForeignKey("users.id"))
-    start_time = Column(DateTime, default=datetime.now)
-    end_time = Column(DateTime, nullable=True)
-    status = Column(String, default="open") # "open", "closed"
 
-    cashier = relationship("User")
-    balances = relationship("FactorySessionBalance", back_populates="session", cascade="all, delete-orphan")
-
-class FactorySessionBalance(Base):
-    __tablename__ = "factory_session_balances"
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("factory_sessions.id"))
-    product_id = Column(Integer, ForeignKey("products.id"))
-    opening_balance = Column(Float, default=0.0)
-    quantity_sold = Column(Float, default=0.0)
-    closing_balance = Column(Float, default=0.0) # opening_balance - quantity_sold
-    actual_balance = Column(Float, default=0.0)   # physical count at shift end
-    discrepancy = Column(Float, default=0.0)      # actual_balance - closing_balance
-
-    session = relationship("FactorySession", back_populates="balances")
-    product = relationship("Product")
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
 # Schema upgrade (adding shopkeeper_id and is_deleted columns dynamically if missing)
 db_init = SessionLocal()
+
+try:
+    db_init.execute(text("DROP TABLE IF EXISTS factory_session_balances CASCADE"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+    
+try:
+    db_init.execute(text("DROP TABLE IF EXISTS factory_sessions CASCADE"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
+try:
+    db_init.execute(text("DROP TABLE IF EXISTS factory_session_balances"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+    
+try:
+    db_init.execute(text("DROP TABLE IF EXISTS factory_sessions"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
+try:
+    if DATABASE_URL.startswith("sqlite:///"):
+        db_init.execute(text("ALTER TABLE bill_items ADD COLUMN packaging_type TEXT DEFAULT 'loose'"))
+    else:
+        db_init.execute(text("ALTER TABLE bill_items ADD COLUMN packaging_type VARCHAR DEFAULT 'loose'"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+    
+try:
+    if DATABASE_URL.startswith("sqlite:///"):
+        db_init.execute(text("ALTER TABLE bill_items ADD COLUMN bottle_type TEXT"))
+    else:
+        db_init.execute(text("ALTER TABLE bill_items ADD COLUMN bottle_type VARCHAR"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+
 try:
     if DATABASE_URL.startswith("sqlite:///"):
         db_init.execute(text("ALTER TABLE products ADD COLUMN shopkeeper_id INTEGER"))
@@ -351,40 +374,20 @@ async def factory_pos_page(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
         
     target_cashier_id = user.id
-    # Admin/Manager/Owner can view the active session of any Factory cashier, defaults to the first active Factory user
+    # Admin/Manager/Owner can view the POS of any Factory cashier, defaults to the first active Factory user
     if user.role in ["Admin", "Manager", "Owner"]:
         first_factory = db.query(User).filter(User.role == "Factory", User.is_deleted == False).first()
         target_cashier_id = first_factory.id if first_factory else user.id
 
-    # Check for active open session
-    session = db.query(FactorySession).filter(
-        FactorySession.cashier_id == target_cashier_id,
-        FactorySession.status == "open"
-    ).first()
-    
-    if not session:
-        if user.role == "Factory":
-            return RedirectResponse(url="/factory/shift", status_code=status.HTTP_302_FOUND)
-        else:
-            raise HTTPException(status_code=400, detail="No active Factory session is open. Ask the cashier to start the day.")
-            
     # Fetch products active for this factory cashier
     products = db.query(Product).filter(
         Product.shopkeeper_id == target_cashier_id,
         Product.is_deleted == False
     ).all()
     
-    # Map balances in session
-    session_bals = db.query(FactorySessionBalance).filter(FactorySessionBalance.session_id == session.id).all()
-    bal_map = {b.product_id: b for b in session_bals}
-    
     liquid_products = []
     solid_products = []
     for p in products:
-        p_bal = bal_map.get(p.id)
-        p.opening_balance = p_bal.opening_balance if p_bal else 0.0
-        p.quantity_sold = p_bal.quantity_sold if p_bal else 0.0
-        p.closing_balance = p_bal.closing_balance if p_bal else 0.0
         if p.product_type == "liquid":
             liquid_products.append(p)
         else:
@@ -396,7 +399,6 @@ async def factory_pos_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(request=request, name="factory_pos.html", context={
         "request": request,
         "user": user,
-        "session": session,
         "liquid_products": liquid_products,
         "solid_products": solid_products,
         "target_shopkeeper_id": target_cashier_id,
@@ -404,156 +406,7 @@ async def factory_pos_page(request: Request, db: Session = Depends(get_db)):
         "cashier_name": cashier_name
     })
 
-@app.get("/factory/shift", response_class=HTMLResponse)
-async def factory_shift_page(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
-    if not user or user.role != "Factory":
-        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-        
-    session = db.query(FactorySession).filter(
-        FactorySession.cashier_id == user.id,
-        FactorySession.status == "open"
-    ).first()
-    
-    if session:
-        # OPEN SESSION -> Show End Shift UI
-        bills = db.query(Bill).filter(
-            Bill.cashier_id == user.id,
-            Bill.timestamp >= session.start_time,
-            Bill.is_cancelled == False
-        ).all()
-        
-        total_sales = len(bills)
-        total_revenue = sum(b.final_amount for b in bills)
-        
-        balances = db.query(FactorySessionBalance).filter(FactorySessionBalance.session_id == session.id).all()
-        
-        for bal in balances:
-            bal.closing_balance = bal.opening_balance - bal.quantity_sold
-            
-        db.commit()
-        
-        return templates.TemplateResponse(request=request, name="factory_shift.html", context={
-            "request": request,
-            "user": user,
-            "session_status": "open",
-            "session": session,
-            "total_sales": total_sales,
-            "total_revenue": total_revenue,
-            "balances": balances
-        })
-    else:
-        # NO OPEN SESSION -> Show Start Shift UI
-        products = db.query(Product).filter(
-            Product.shopkeeper_id == user.id,
-            Product.is_deleted == False
-        ).all()
-        
-        last_session = db.query(FactorySession).filter(
-            FactorySession.cashier_id == user.id,
-            FactorySession.status == "closed"
-        ).order_by(FactorySession.end_time.desc()).first()
-        
-        last_balances = {}
-        if last_session:
-            for bal in last_session.balances:
-                last_balances[bal.product_id] = bal.actual_balance
-                
-        liquid_products = [p for p in products if p.product_type == "liquid"]
-        solid_products = [p for p in products if p.product_type != "liquid"]
-                
-        return templates.TemplateResponse(request=request, name="factory_shift.html", context={
-            "request": request,
-            "user": user,
-            "session_status": "none",
-            "liquid_products": liquid_products,
-            "solid_products": solid_products,
-            "last_balances": last_balances
-        })
 
-@app.post("/factory/start")
-async def do_factory_start(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
-    if not user or user.role != "Factory":
-        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-        
-    form_data = await request.form()
-    
-    # Create new session
-    session = FactorySession(cashier_id=user.id, status="open", start_time=datetime.utcnow())
-    db.add(session)
-    db.commit()
-    db.refresh(session)
-    
-    # Save opening balances
-    products = db.query(Product).filter(
-        Product.shopkeeper_id == user.id,
-        Product.is_deleted == False
-    ).all()
-    
-    for p in products:
-        opening_val = 0.0
-        val_str = form_data.get(f"opening_{p.id}")
-        if val_str:
-            try:
-                opening_val = float(val_str)
-            except ValueError:
-                pass
-        
-        session_bal = FactorySessionBalance(
-            session_id=session.id,
-            product_id=p.id,
-            opening_balance=opening_val,
-            quantity_sold=0.0,
-            closing_balance=opening_val,
-            actual_balance=0.0,
-            discrepancy=0.0
-        )
-        db.add(session_bal)
-        
-    db.commit()
-    return RedirectResponse(url="/factory", status_code=status.HTTP_302_FOUND)
-
-
-@app.post("/factory/end")
-async def do_factory_end(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
-    if not user or user.role != "Factory":
-        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-        
-    session = db.query(FactorySession).filter(
-        FactorySession.cashier_id == user.id,
-        FactorySession.status == "open"
-    ).first()
-    if not session:
-        return RedirectResponse(url="/factory", status_code=status.HTTP_302_FOUND)
-        
-    form_data = await request.form()
-    balances = db.query(FactorySessionBalance).filter(FactorySessionBalance.session_id == session.id).all()
-    
-    for bal in balances:
-        actual_val = 0.0
-        val_str = form_data.get(f"actual_{bal.product_id}")
-        if val_str:
-            try:
-                actual_val = float(val_str)
-            except ValueError:
-                pass
-                
-        bal.actual_balance = actual_val
-        bal.closing_balance = bal.opening_balance - bal.quantity_sold
-        bal.discrepancy = bal.actual_balance - bal.closing_balance
-        
-    session.status = "closed"
-    session.end_time = datetime.utcnow()
-    db.commit()
-    
-    # Logout the cashier and show beautiful closed shift message
-    request.session.clear()
-    return templates.TemplateResponse(request=request, name="login.html", context={
-        "request": request,
-        "success": "Shift successfully completed and closed. Good job!"
-    })
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page(request: Request, db: Session = Depends(get_db)):
@@ -600,9 +453,6 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
             "revenue": rev
         })
         
-    # Fetch historical factory sessions for reports
-    factory_sessions = db.query(FactorySession).order_by(FactorySession.start_time.desc()).all()
-    
     return templates.TemplateResponse(request=request, name="admin.html", context={
         "request": request,
         "user": user,
@@ -614,8 +464,7 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
         "total_revenue": total_revenue,
         "total_sales": total_sales,
         "low_stock_alerts": low_stock_alerts,
-        "shop_performance": shop_performance,
-        "factory_sessions": factory_sessions
+        "shop_performance": shop_performance
     })
 
 @app.get("/receipt/{bill_id}", response_class=HTMLResponse)
@@ -731,39 +580,25 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
     total_amount = 0.0
     bill_items = []
     
-    is_factory = (sk_user.role == "Factory")
-    factory_session = None
-    if is_factory:
-        factory_session = db.query(FactorySession).filter(
-            FactorySession.cashier_id == target_shopkeeper_id,
-            FactorySession.status == "open"
+    # Pass 1: Validate available stock for all items
+    for item in data.get("items", []):
+        product = db.query(Product).filter(Product.id == item["id"]).first()
+        if not product:
+            continue
+            
+        shop_inv = db.query(ShopInventory).filter(
+            ShopInventory.shopkeeper_id == target_shopkeeper_id,
+            ShopInventory.product_id == product.id
         ).first()
-        if not factory_session:
+        
+        current_stock = shop_inv.stock if shop_inv else 0
+        if current_stock < item["qty"]:
             return JSONResponse(
                 status_code=400,
-                content={"detail": "No active open shift/session found. Please start the day before making sales."}
+                content={"detail": f"Insufficient stock for '{product.name}'. Only {current_stock} left, but {item['qty']} were requested."}
             )
             
-    # Pass 1: Validate available stock for all items (ONLY for non-factory shops)
-    if not is_factory:
-        for item in data.get("items", []):
-            product = db.query(Product).filter(Product.id == item["id"]).first()
-            if not product:
-                continue
-                
-            shop_inv = db.query(ShopInventory).filter(
-                ShopInventory.shopkeeper_id == target_shopkeeper_id,
-                ShopInventory.product_id == product.id
-            ).first()
-            
-            current_stock = shop_inv.stock if shop_inv else 0
-            if current_stock < item["qty"]:
-                return JSONResponse(
-                    status_code=400,
-                    content={"detail": f"Insufficient stock for '{product.name}'. Only {current_stock} left, but {item['qty']} were requested."}
-                )
-            
-    # Pass 2: Deduct stock or record factory balance and compile bill items
+    # Pass 2: Deduct stock and compile bill items
     for item in data.get("items", []):
         product = db.query(Product).filter(Product.id == item["id"]).first()
         if not product:
@@ -772,33 +607,13 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
         qty_float = float(item["qty"])
         custom_price = float(item.get("price", product.price))
         
-        if is_factory:
-            # Factory role does not use ShopInventory, record in FactorySessionBalance instead
-            session_bal = db.query(FactorySessionBalance).filter(
-                FactorySessionBalance.session_id == factory_session.id,
-                FactorySessionBalance.product_id == product.id
-            ).first()
-            if not session_bal:
-                session_bal = FactorySessionBalance(
-                    session_id=factory_session.id,
-                    product_id=product.id,
-                    opening_balance=0.0,
-                    quantity_sold=qty_float,
-                    closing_balance=-qty_float
-                )
-                db.add(session_bal)
-            else:
-                session_bal.quantity_sold += qty_float
-                session_bal.closing_balance = session_bal.opening_balance - session_bal.quantity_sold
-                session_bal.discrepancy = session_bal.actual_balance - session_bal.closing_balance
-        else:
-            # Standard Shopkeeper: deduct from traditional inventory
-            shop_inv = db.query(ShopInventory).filter(
-                ShopInventory.shopkeeper_id == target_shopkeeper_id, 
-                ShopInventory.product_id == product.id
-            ).first()
-            if shop_inv:
-                shop_inv.stock -= int(item["qty"])
+        # Standard Shopkeeper: deduct from traditional inventory
+        shop_inv = db.query(ShopInventory).filter(
+            ShopInventory.shopkeeper_id == target_shopkeeper_id, 
+            ShopInventory.product_id == product.id
+        ).first()
+        if shop_inv:
+            shop_inv.stock -= int(item["qty"])
             
         line_total = custom_price * qty_float
         total_amount += line_total
@@ -806,7 +621,10 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
         b_item = BillItem(
             product_id=product.id,
             quantity=qty_float,
-            price_at_sale=custom_price
+            price_at_sale=custom_price,
+            packaging_type=item.get("packaging_type", "bottle"), # default bottle for shops
+            bottle_type=item.get("bottle_type", None),
+            bottle_count=int(item.get("bottle_count", 0))
         )
         bill_items.append(b_item)
         
@@ -838,6 +656,199 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
     
     return {"status": "success", "bill_id": new_bill.id}
 
+
+from fastapi.responses import StreamingResponse
+import io
+import csv
+
+@app.get("/api/reports/daily")
+async def get_daily_report(request: Request, shopkeeper_id: int, start_date: str, end_date: str, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Manager", "Owner"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+
+    try:
+        t_start = datetime.strptime(start_date, '%Y-%m-%d').date()
+        t_end = datetime.strptime(end_date, '%Y-%m-%d').date()
+    except ValueError:
+        return JSONResponse(status_code=400, content={"detail": "Invalid date format. Use YYYY-MM-DD"})
+
+    # Fetch bills for this shopkeeper in the date range (inclusive)
+    bills = db.query(Bill).filter(
+        Bill.cashier_id == shopkeeper_id,
+        Bill.is_cancelled == False,
+        func.date(Bill.timestamp) >= t_start,
+        func.date(Bill.timestamp) <= t_end
+    ).all()
+
+    shop = db.query(User).filter(User.id == shopkeeper_id).first()
+    shop_role = shop.role if shop else "Shopkeeper"
+
+    bottle_counts = {}
+    report_data = {}
+    for bill in bills:
+        for item in bill.items:
+            if item.packaging_type == "bottle" and item.bottle_type:
+                if item.bottle_type not in bottle_counts:
+                    bottle_counts[item.bottle_type] = 0
+                bottle_counts[item.bottle_type] += int(item.quantity)
+            product_name = item.product.name if item.product else "Unknown Product"
+            pkg_type = item.packaging_type or "loose"
+            btl_type = item.bottle_type or "N/A"
+            
+            key = (product_name, pkg_type, btl_type)
+            if key not in report_data:
+                report_data[key] = {
+                    "product": product_name,
+                    "packaging": pkg_type,
+                    "bottle_type": btl_type if pkg_type == "bottle" else "N/A",
+                    "total_quantity": 0.0,
+                    "total_revenue": 0.0,
+                    "bottle_count": 0
+                }
+            
+            report_data[key]["total_quantity"] += item.quantity
+            report_data[key]["total_revenue"] += (item.quantity * item.price_at_sale)
+            if pkg_type == "bottle":
+                report_data[key]["bottle_count"] += (item.bottle_count or 0)
+
+    revenue_breakdown = {
+        "Cash": 0.0,
+        "UPI": 0.0,
+        "Card": 0.0,
+        "Total": 0.0
+    }
+    for bill in bills:
+        mode = bill.payment_mode or "Cash"
+        if mode not in revenue_breakdown:
+            revenue_breakdown[mode] = 0.0
+        revenue_breakdown[mode] += bill.final_amount
+        revenue_breakdown["Total"] += bill.final_amount
+
+    results = list(report_data.values())
+    # Sort for better presentation
+    results.sort(key=lambda x: (x["packaging"], x["product"]))
+    
+    return {"status": "success", "data": results, "shop_role": shop_role, "bottle_counts": bottle_counts, "revenue_breakdown": revenue_breakdown}
+
+@app.get("/api/reports/daily/export")
+async def export_daily_report(request: Request, shopkeeper_id: int, start_date: str, end_date: str, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Manager", "Owner"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+
+    try:
+        t_start = datetime.strptime(start_date, '%Y-%m-%d').date()
+        t_end = datetime.strptime(end_date, '%Y-%m-%d').date()
+    except ValueError:
+        return JSONResponse(status_code=400, content={"detail": "Invalid date format. Use YYYY-MM-DD"})
+
+    shop = db.query(User).filter(User.id == shopkeeper_id).first()
+    shop_name = shop.username if shop else "Unknown"
+
+    bills = db.query(Bill).filter(
+        Bill.cashier_id == shopkeeper_id,
+        Bill.is_cancelled == False,
+        func.date(Bill.timestamp) >= t_start,
+        func.date(Bill.timestamp) <= t_end
+    ).all()
+
+    report_data = {}
+    total_sales = 0.0
+    bottle_counts = {}
+    for bill in bills:
+        for item in bill.items:
+            if item.packaging_type == "bottle" and item.bottle_type:
+                if item.bottle_type not in bottle_counts:
+                    bottle_counts[item.bottle_type] = 0
+                bottle_counts[item.bottle_type] += int(item.quantity)
+            product_name = item.product.name if item.product else "Unknown Product"
+            pkg_type = item.packaging_type or "loose"
+            btl_type = item.bottle_type or "N/A"
+            
+            key = (product_name, pkg_type, btl_type)
+            if key not in report_data:
+                report_data[key] = {
+                    "product": product_name,
+                    "packaging": pkg_type,
+                    "bottle_type": btl_type if pkg_type == "bottle" else "N/A",
+                    "total_quantity": 0.0,
+                    "total_revenue": 0.0,
+                    "bottle_count": 0
+                }
+            
+            report_data[key]["total_quantity"] += item.quantity
+            report_data[key]["total_revenue"] += (item.quantity * item.price_at_sale)
+            if pkg_type == "bottle":
+                report_data[key]["bottle_count"] += (item.bottle_count or 0)
+            total_sales += (item.quantity * item.price_at_sale)
+
+    revenue_breakdown = {
+        "Cash": 0.0,
+        "UPI": 0.0,
+        "Card": 0.0,
+        "Total": 0.0
+    }
+    for bill in bills:
+        mode = bill.payment_mode or "Cash"
+        if mode not in revenue_breakdown:
+            revenue_breakdown[mode] = 0.0
+        revenue_breakdown[mode] += bill.final_amount
+        revenue_breakdown["Total"] += bill.final_amount
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Daily Sales Report"])
+    writer.writerow(["Shop:", shop_name])
+    writer.writerow(["Date Range:", f"{t_start.strftime('%Y-%m-%d')} to {t_end.strftime('%Y-%m-%d')}"])
+    writer.writerow([])
+    
+    results = list(report_data.values())
+    results.sort(key=lambda x: (x["packaging"], x["product"]))
+    
+    if shop and shop.role == "Factory":
+        writer.writerow(["Product Name", "Bottle Type", "Packaging Type", "Total Quantity Sold", "Bottle Count", "Total Revenue (Rs)"])
+        for r in results:
+            writer.writerow([r["product"], r["bottle_type"], r["packaging"], f"{r['total_quantity']:.2f}", str(r.get("bottle_count", 0)), f"{r['total_revenue']:.2f}"])
+        writer.writerow([])
+        writer.writerow(["Total Revenue Summary", f"Rs {total_sales:.2f}"])
+        writer.writerow([])
+        writer.writerow(["Revenue Breakdown"])
+        writer.writerow(["Cash", f"Rs {revenue_breakdown.get('Cash', 0.0):.2f}"])
+        writer.writerow(["UPI", f"Rs {revenue_breakdown.get('UPI', 0.0):.2f}"])
+        writer.writerow(["Card", f"Rs {revenue_breakdown.get('Card', 0.0):.2f}"])
+        writer.writerow(["Total Revenue (Bills)", f"Rs {revenue_breakdown.get('Total', 0.0):.2f}"])
+        writer.writerow([])
+        writer.writerow(["Bottle Counts"])
+        for b_type, count in bottle_counts.items():
+            if count > 0:
+                writer.writerow([b_type, count])
+    else:
+        writer.writerow(["Product Name", "Total Quantity Sold", "Total Revenue (Rs)"])
+        shop_agg = {}
+        for r in results:
+            if r["product"] not in shop_agg:
+                shop_agg[r["product"]] = {"qty": 0.0, "rev": 0.0}
+            shop_agg[r["product"]]["qty"] += r["total_quantity"]
+            shop_agg[r["product"]]["rev"] += r["total_revenue"]
+        for prod, val in shop_agg.items():
+            writer.writerow([prod, f"{val['qty']:.2f}", f"{val['rev']:.2f}"])
+        writer.writerow([])
+        writer.writerow(["Total Revenue Summary", f"Rs {total_sales:.2f}"])
+        writer.writerow([])
+        writer.writerow(["Revenue Breakdown"])
+        writer.writerow(["Cash", f"Rs {revenue_breakdown.get('Cash', 0.0):.2f}"])
+        writer.writerow(["UPI", f"Rs {revenue_breakdown.get('UPI', 0.0):.2f}"])
+        writer.writerow(["Card", f"Rs {revenue_breakdown.get('Card', 0.0):.2f}"])
+        writer.writerow(["Total Revenue (Bills)", f"Rs {revenue_breakdown.get('Total', 0.0):.2f}"])
+        
+    output.seek(0)
+    
+    headers = {
+        'Content-Disposition': f'attachment; filename="Sales_Report_{shop_name}_{t_start.strftime("%Y-%m-%d")}_to_{t_end.strftime("%Y-%m-%d")}.csv"'
+    }
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers=headers)
+
 @app.post("/api/bills/{bill_id}/revert")
 async def revert_bill(request: Request, bill_id: int, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -848,40 +859,18 @@ async def revert_bill(request: Request, bill_id: int, db: Session = Depends(get_
     if not bill:
         return JSONResponse(status_code=404, content={"detail": "Bill not found"})
         
-    bill_cashier = db.query(User).filter(User.id == bill.cashier_id).first()
-    is_factory = (bill_cashier.role == "Factory") if bill_cashier else False
-    
-    # We find active factory session if is_factory
-    factory_session = None
-    if is_factory:
-        factory_session = db.query(FactorySession).filter(
-            FactorySession.cashier_id == bill.cashier_id,
-            FactorySession.status == "open"
-        ).first()
-        
     items_data = []
     # Revert stock and prepare cart data
     for item in bill.items:
         max_stock = 9999.0 # Default fallback for loose sales in UI
-        if is_factory:
-            if factory_session:
-                session_bal = db.query(FactorySessionBalance).filter(
-                    FactorySessionBalance.session_id == factory_session.id,
-                    FactorySessionBalance.product_id == item.product_id
-                ).first()
-                if session_bal:
-                    session_bal.quantity_sold -= item.quantity
-                    session_bal.closing_balance = session_bal.opening_balance - session_bal.quantity_sold
-                    session_bal.discrepancy = session_bal.actual_balance - session_bal.closing_balance
-        else:
-            # Restore stock in shop inventory
-            shop_inv = db.query(ShopInventory).filter(
-                ShopInventory.shopkeeper_id == bill.cashier_id,
-                ShopInventory.product_id == item.product_id
-            ).first()
-            if shop_inv:
-                shop_inv.stock += int(item.quantity)
-                max_stock = float(shop_inv.stock)
+        # Restore stock in shop inventory
+        shop_inv = db.query(ShopInventory).filter(
+            ShopInventory.shopkeeper_id == bill.cashier_id,
+            ShopInventory.product_id == item.product_id
+        ).first()
+        if shop_inv:
+            shop_inv.stock += int(item.quantity)
+            max_stock = float(shop_inv.stock)
             
         items_data.append({
             "id": item.product.id,
@@ -1157,23 +1146,19 @@ async def reset_system(request: Request, db: Session = Depends(get_db)):
         db.query(Bill).delete()
         db.query(ShopInventory).delete()
         db.query(Product).delete()
-        db.query(FactorySessionBalance).delete()
-        db.query(FactorySession).delete()
         db.query(User).filter(User.is_deleted == True).delete()
         try:
-            db.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('bill_items', 'bills', 'shop_inventories', 'products', 'factory_session_balances', 'factory_sessions')"))
+            db.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('bill_items', 'bills', 'shop_inventories', 'products')"))
         except Exception:
             pass
     elif dialect in ['postgresql', 'postgres']:
         db.query(User).filter(User.is_deleted == True).delete()
-        db.execute(text("TRUNCATE TABLE bill_items, bills, shop_inventories, products, factory_session_balances, factory_sessions RESTART IDENTITY CASCADE"))
+        db.execute(text("TRUNCATE TABLE bill_items, bills, shop_inventories, products RESTART IDENTITY CASCADE"))
     else:
         db.query(BillItem).delete()
         db.query(Bill).delete()
         db.query(ShopInventory).delete()
         db.query(Product).delete()
-        db.query(FactorySessionBalance).delete()
-        db.query(FactorySession).delete()
         db.query(User).filter(User.is_deleted == True).delete()
     
     # Also clean up any uploaded product image files starting with "product_" to free disk space
