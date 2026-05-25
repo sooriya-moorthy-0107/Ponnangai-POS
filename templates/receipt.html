@@ -494,15 +494,43 @@
                     const qtyColWidth = 4;
                     const totalColWidth = 8;
 
-                    let left = itemName;
-                    if (left.length > itemColWidth) {
-                        left = left.substring(0, itemColWidth - 1);
-                    }
-                    const leftPadded = left.padEnd(itemColWidth, ' ');
-                    const centerPadded = qtyStr.padStart(qtyColWidth, ' ');
-                    const rightPadded = totalStr.padStart(totalColWidth, ' ');
+                    let words = itemName.split(' ');
+                    let lines = [];
+                    let currentLine = '';
 
-                    this.line(leftPadded + centerPadded + rightPadded);
+                    for (let word of words) {
+                        if (word.length > itemColWidth) {
+                            if (currentLine.length > 0) {
+                                lines.push(currentLine);
+                                currentLine = '';
+                            }
+                            while (word.length > itemColWidth) {
+                                lines.push(word.substring(0, itemColWidth));
+                                word = word.substring(itemColWidth);
+                            }
+                            currentLine = word;
+                        } else if (currentLine.length + word.length + (currentLine.length > 0 ? 1 : 0) <= itemColWidth) {
+                            currentLine += (currentLine.length > 0 ? ' ' : '') + word;
+                        } else {
+                            lines.push(currentLine);
+                            currentLine = word;
+                        }
+                    }
+                    if (currentLine.length > 0) {
+                        lines.push(currentLine);
+                    }
+                    if (lines.length === 0) lines.push(" ");
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const leftPadded = lines[i].padEnd(itemColWidth, ' ');
+                        if (i === 0) {
+                            const centerPadded = qtyStr.padStart(qtyColWidth, ' ');
+                            const rightPadded = totalStr.padStart(totalColWidth, ' ');
+                            this.line(leftPadded + centerPadded + rightPadded);
+                        } else {
+                            this.line(leftPadded);
+                        }
+                    }
                     return this;
                 }
 

@@ -127,7 +127,7 @@ input:focus, select:focus {
         min-width: 200px;
     }
     .product-grid {
-        flex: 2;
+        flex: 2.6;
     }
     .cart-section {
         flex: 1;

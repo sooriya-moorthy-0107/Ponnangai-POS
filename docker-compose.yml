@@ -21,6 +21,7 @@ services:
       - "1745:8000"
     environment:
       - DATABASE_URL=postgresql://pos_user:pos_password@db:5432/ponnangai_pos
+      - TZ=Asia/Kolkata
     depends_on:
       - db
     volumes:
