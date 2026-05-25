@@ -1,7 +1,7 @@
 // Cart Logic
 let cart = [];
 
-function addToCart(productId, productName, productPrice, maxStock) {
+function addToCart(productId, productName, productPrice, maxStock, productType = 'solid', unit = 'Pcs') {
     const existingItem = cart.find(item => item.id === productId);
     if (existingItem) {
         if (existingItem.qty >= existingItem.maxStock) {
@@ -14,8 +14,40 @@ function addToCart(productId, productName, productPrice, maxStock) {
             alert("This product is out of stock.");
             return;
         }
-        cart.push({ id: productId, name: productName, price: productPrice, qty: 1, maxStock: maxStock });
+        
+        let newItem = { 
+            id: productId, 
+            name: productName, 
+            price: productPrice, 
+            qty: 1, 
+            maxStock: maxStock,
+            type: productType,
+            unit: unit
+        };
+        
+        cart.push(newItem);
     }
+    renderCart();
+}
+
+function updatePackaging(id, newPkg) {
+    const item = cart.find(i => i.id === id);
+    if (!item) return;
+    item.packaging_type = newPkg;
+    renderCart();
+}
+
+function updateBottleCount(id, count) {
+    const item = cart.find(i => i.id === id);
+    if (!item) return;
+    item.bottle_count = parseInt(count) || 0;
+    renderCart();
+}
+
+function updateBottleType(id, newBtlType) {
+    const item = cart.find(i => i.id === id);
+    if (!item) return;
+    item.bottle_type = newBtlType;
     renderCart();
 }
 
@@ -48,20 +80,33 @@ function renderCart() {
 
         const cartItemEl = document.createElement('div');
         cartItemEl.className = 'cart-item';
+        
+        const step = item.type === 'liquid' ? 'any' : '1';
+        
+        let packagingHtml = '';
+        
         cartItemEl.innerHTML = `
-            <div class="cart-item-info">
-                <div class="cart-item-title">${item.name}</div>
-                <div class="cart-item-price">₹${item.price.toFixed(2)}</div>
-            </div>
-            <div class="cart-item-controls">
-                <button class="btn btn-secondary btn-small" onclick="updateQty(${item.id}, -1)">-</button>
-                <span class="cart-qty">${item.qty}</span>
-                <button class="btn btn-secondary btn-small" onclick="updateQty(${item.id}, 1)">+</button>
-            </div>
-            <div style="font-weight: 600; min-width: 60px; text-align: right;">
-                ₹${itemTotal.toFixed(2)}
+            <div style="display: flex; flex-direction: column; flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div class="cart-item-info" style="flex: 1;">
+                        <div class="cart-item-title">${item.name}</div>
+                        <div class="cart-item-price">₹${item.price.toFixed(2)}</div>
+                    </div>
+                    <div class="cart-item-controls">
+                        <button class="btn btn-secondary btn-small" onclick="updateQty(${item.id}, -1)">-</button>
+                        <input type="number" step="${step}" min="0.01" max="${item.maxStock}" value="${item.qty}" 
+                            style="width: 45px; text-align: center; border: 1px solid #CBD5E0; border-radius: 4px; padding: 2px; height: 26px; outline: none; margin-bottom: 0;"
+                            onchange="if(this.value > 0) { updateQty(${item.id}, this.value - ${item.qty}); } else { updateQty(${item.id}, -${item.qty}); }">
+                        <button class="btn btn-secondary btn-small" onclick="updateQty(${item.id}, 1)">+</button>
+                    </div>
+                    <div style="font-weight: 600; min-width: 60px; text-align: right; margin-left: 8px;">
+                        ₹${itemTotal.toFixed(2)}
+                    </div>
+                </div>
+                ${packagingHtml}
             </div>
         `;
+        cartItemEl.style.alignItems = 'flex-start';
         cartItemsContainer.appendChild(cartItemEl);
     });
 
