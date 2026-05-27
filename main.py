@@ -1155,8 +1155,8 @@ async def reset_system(request: Request, db: Session = Depends(get_db)):
         except Exception:
             pass
     elif dialect in ['postgresql', 'postgres']:
-        db.query(User).filter(User.is_deleted == True).delete()
         db.execute(text("TRUNCATE TABLE bill_items, bills, shop_inventories, products RESTART IDENTITY CASCADE"))
+        db.query(User).filter(User.is_deleted == True).delete()
     else:
         db.query(BillItem).delete()
         db.query(Bill).delete()
