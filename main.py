@@ -592,7 +592,7 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
         ).first()
         
         current_stock = shop_inv.stock if shop_inv else 0
-        if current_stock < item["qty"]:
+        if sk_user.role != "Factory" and current_stock < item["qty"]:
             return JSONResponse(
                 status_code=400,
                 content={"detail": f"Insufficient stock for '{product.name}'. Only {current_stock} left, but {item['qty']} were requested."}
@@ -612,7 +612,7 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
             ShopInventory.shopkeeper_id == target_shopkeeper_id, 
             ShopInventory.product_id == product.id
         ).first()
-        if shop_inv:
+        if shop_inv and sk_user.role != "Factory":
             shop_inv.stock -= int(item["qty"])
             
         line_total = custom_price * qty_float
@@ -859,6 +859,9 @@ async def revert_bill(request: Request, bill_id: int, db: Session = Depends(get_
     if not bill:
         return JSONResponse(status_code=404, content={"detail": "Bill not found"})
         
+    cashier = db.query(User).filter(User.id == bill.cashier_id).first()
+    is_factory = cashier and cashier.role == "Factory"
+        
     items_data = []
     # Revert stock and prepare cart data
     for item in bill.items:
@@ -868,7 +871,7 @@ async def revert_bill(request: Request, bill_id: int, db: Session = Depends(get_
             ShopInventory.shopkeeper_id == bill.cashier_id,
             ShopInventory.product_id == item.product_id
         ).first()
-        if shop_inv:
+        if shop_inv and not is_factory:
             shop_inv.stock += int(item.quantity)
             max_stock = float(shop_inv.stock)
             
