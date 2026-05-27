@@ -276,48 +276,44 @@
             cart.forEach(item => {
                 const step = item.type === 'liquid' ? 'any' : '1';
                 html += `
-                <div style="padding:12px 0; border-bottom:1px solid #E2E8F0; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="font-weight:600; font-size:14px; color:#2D3748; word-break: break-word;">
+                <div style="padding:16px 0; border-bottom:1px solid #E2E8F0; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="font-weight:700; font-size:18px; color:#2D3748; word-break: break-word;">
                         ${item.name}
                     </div>
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap: 4px;">
-                        <div style="display:flex; flex-direction:column; gap:4px;">
-                            <div style="display:flex; align-items:center; gap:2px;">
-                                <span style="font-size:11px; color:#718096; display:none;">Qty:</span>
-                                <input type="number" step="${step}" min="0.01" value="${item.qty}" 
-                                       style="width:45px; padding:4px; text-align:center; border:1px solid #CBD5E0; border-radius:4px; height:26px; font-weight:600; font-size:13px; outline:none;"
-                                       onchange="updateQty(${item.id}, this.value)">
-                                <span style="font-size:11px; color:#A0AEC0;">${item.unit}</span>
-                            </div>
-                            ${item.type === 'liquid' ? `
-                            <div style="display:flex; gap: 4px;">
-                                <select style="padding: 2px; font-size: 11px; border: 1px solid #CBD5E0; border-radius: 4px;" onchange="updatePackaging(${item.id}, this.value)">
-                                    <option value="loose" ${item.packaging_type === 'loose' ? 'selected' : ''}>Loose</option>
-                                    <option value="bottle" ${item.packaging_type === 'bottle' ? 'selected' : ''}>Bottle</option>
-                                </select>
-                                ${item.packaging_type === 'bottle' ? `
-                                <select style="padding: 2px; font-size: 11px; border: 1px solid #CBD5E0; border-radius: 4px;" onchange="updateBottleType(${item.id}, this.value)">
-                                    <option value="Type 1" ${item.bottle_type === 'Type 1' ? 'selected' : ''}>Type 1</option>
-                                    <option value="Type 2" ${item.bottle_type === 'Type 2' ? 'selected' : ''}>Type 2</option>
-                                    <option value="Type 3" ${item.bottle_type === 'Type 3' ? 'selected' : ''}>Type 3</option>
-                                </select>` : ''}
-                            </div>
-                            ` : ''}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap: 8px;">
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            <input type="number" step="${step}" min="0.01" value="${item.qty}" 
+                                   style="width:70px; padding:6px; text-align:center; border:1px solid #CBD5E0; border-radius:4px; height:36px; font-weight:700; font-size:16px; outline:none;"
+                                   onchange="updateQty(${item.id}, this.value)">
+                            <span style="font-size:14px; font-weight:600; color:#A0AEC0;">${item.unit}</span>
                         </div>
-                        <div style="display:flex; align-items:center; gap:2px;">
-                            <span style="font-size:11px; color:#718096;">Rate:</span>
+                        <div style="display:flex; align-items:center; gap:4px;">
                             <input type="number" step="any" min="0" value="${item.price}"
-                                   style="width:55px; padding:4px; font-size:13px; text-align:right; border:1px solid #CBD5E0; border-radius:4px; height:26px; outline:none;"
+                                   style="width:85px; padding:6px; font-size:16px; font-weight:600; text-align:right; border:1px solid #CBD5E0; border-radius:4px; height:36px; outline:none;"
                                    onfocus="if(this.value==='0') this.value='';"
                                    onchange="updateRate(${item.id}, this.value)">
                         </div>
-                        <div style="font-size:13px; font-weight:bold; color:var(--primary); text-align: right; min-width: 50px;">
+                        <div style="font-size:18px; font-weight:bold; color:var(--primary); text-align: right; min-width: 70px;">
                             ₹${(item.price * item.qty).toFixed(2)}
                         </div>
                         <div>
-                            <button class="btn-remove" style="background:#E53E3E; color:white; border:none; border-radius:4px; cursor:pointer; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px;" onclick="removeFromCart(${item.id})">X</button>
+                            <button class="btn-remove" style="background:#E53E3E; color:white; border:none; border-radius:4px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:18px;" onclick="removeFromCart(${item.id})">X</button>
                         </div>
                     </div>
+                    ${item.type === 'liquid' ? `
+                    <div style="display:flex; gap: 8px; align-items: center; margin-top: 4px;">
+                        <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updatePackaging(${item.id}, this.value)">
+                            <option value="loose" ${item.packaging_type === 'loose' ? 'selected' : ''}>Loose</option>
+                            <option value="bottle" ${item.packaging_type === 'bottle' ? 'selected' : ''}>Bottle</option>
+                        </select>
+                        ${item.packaging_type === 'bottle' ? `
+                        <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updateBottleType(${item.id}, this.value)">
+                            <option value="Type 1" ${item.bottle_type === 'Type 1' ? 'selected' : ''}>Type 1</option>
+                            <option value="Type 2" ${item.bottle_type === 'Type 2' ? 'selected' : ''}>Type 2</option>
+                            <option value="Type 3" ${item.bottle_type === 'Type 3' ? 'selected' : ''}>Type 3</option>
+                        </select>` : ''}
+                    </div>
+                    ` : ''}
                 </div>
                 `;
             });
