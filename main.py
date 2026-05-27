@@ -17,15 +17,8 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://pos_user:pos_password@loc
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Configure database engine based on dialect
-if DATABASE_URL.startswith("sqlite:///"):
-    db_path = DATABASE_URL.replace("sqlite:///", "")
-    db_dir = os.path.dirname(db_path)
-    if db_dir:
-        os.makedirs(db_dir, exist_ok=True)
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-else:
-    engine = create_engine(DATABASE_URL)
+# Configure database engine
+engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -141,28 +134,19 @@ except Exception:
     db_init.rollback()
 
 try:
-    if DATABASE_URL.startswith("sqlite:///"):
-        db_init.execute(text("ALTER TABLE bill_items ADD COLUMN packaging_type TEXT DEFAULT 'loose'"))
-    else:
-        db_init.execute(text("ALTER TABLE bill_items ADD COLUMN packaging_type VARCHAR DEFAULT 'loose'"))
+    db_init.execute(text("ALTER TABLE bill_items ADD COLUMN packaging_type VARCHAR DEFAULT 'loose'"))
     db_init.commit()
 except Exception:
     db_init.rollback()
     
 try:
-    if DATABASE_URL.startswith("sqlite:///"):
-        db_init.execute(text("ALTER TABLE bill_items ADD COLUMN bottle_type TEXT"))
-    else:
-        db_init.execute(text("ALTER TABLE bill_items ADD COLUMN bottle_type VARCHAR"))
+    db_init.execute(text("ALTER TABLE bill_items ADD COLUMN bottle_type VARCHAR"))
     db_init.commit()
 except Exception:
     db_init.rollback()
 
 try:
-    if DATABASE_URL.startswith("sqlite:///"):
-        db_init.execute(text("ALTER TABLE products ADD COLUMN shopkeeper_id INTEGER"))
-    else:
-        db_init.execute(text("ALTER TABLE products ADD COLUMN shopkeeper_id INTEGER REFERENCES users(id)"))
+    db_init.execute(text("ALTER TABLE products ADD COLUMN shopkeeper_id INTEGER REFERENCES users(id)"))
     db_init.commit()
 except Exception:
     db_init.rollback()
@@ -238,10 +222,7 @@ except Exception:
 
 # Migration: Convert bill_items.quantity to float
 try:
-    if DATABASE_URL.startswith("sqlite:///"):
-        pass
-    else:
-        db_init.execute(text("ALTER TABLE bill_items ALTER COLUMN quantity TYPE DOUBLE PRECISION"))
+    db_init.execute(text("ALTER TABLE bill_items ALTER COLUMN quantity TYPE DOUBLE PRECISION"))
     db_init.commit()
 except Exception:
     db_init.rollback()
@@ -1144,26 +1125,8 @@ async def reset_system(request: Request, db: Session = Depends(get_db)):
         return JSONResponse(status_code=403, content={"detail": "Unauthorized. Only Admin can reset the system."})
         
     # Delete all operational data (preserving users) and reset auto-increment IDs
-    dialect = engine.dialect.name
-    if dialect == 'sqlite':
-        db.query(BillItem).delete()
-        db.query(Bill).delete()
-        db.query(ShopInventory).delete()
-        db.query(Product).delete()
-        db.query(User).filter(User.is_deleted == True).delete()
-        try:
-            db.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('bill_items', 'bills', 'shop_inventories', 'products')"))
-        except Exception:
-            pass
-    elif dialect in ['postgresql', 'postgres']:
-        db.execute(text("TRUNCATE TABLE bill_items, bills, shop_inventories, products RESTART IDENTITY CASCADE"))
-        db.query(User).filter(User.is_deleted == True).delete()
-    else:
-        db.query(BillItem).delete()
-        db.query(Bill).delete()
-        db.query(ShopInventory).delete()
-        db.query(Product).delete()
-        db.query(User).filter(User.is_deleted == True).delete()
+    db.execute(text("TRUNCATE TABLE bill_items, bills, shop_inventories, products RESTART IDENTITY CASCADE"))
+    db.query(User).filter(User.is_deleted == True).delete()
     
     # Also clean up any uploaded product image files starting with "product_" to free disk space
     try:

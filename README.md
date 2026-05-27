@@ -16,7 +16,7 @@ A mobile-first, multi-tenant Point of Sale (POS) and retail billing system built
 ## 🛠️ Technology Stack
 
 *   **Backend:** Python 3, FastAPI
-*   **Database:** SQLite, SQLAlchemy ORM
+*   **Database:** PostgreSQL, SQLAlchemy ORM
 *   **Frontend:** Vanilla HTML, CSS, JavaScript
 *   **Templating:** Jinja2
 
