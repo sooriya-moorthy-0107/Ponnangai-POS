@@ -575,7 +575,7 @@ async function connectToDevice(device) {
             service = await server.getPrimaryService(uuid);
             if (service) break;
         } catch (e) {
-            console.log(`Service ${uuid} check skipped.`);
+            // console.log(`Service ${uuid} check skipped.`);
         }
     }
 
