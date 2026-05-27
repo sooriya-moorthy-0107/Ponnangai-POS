@@ -439,7 +439,8 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
     low_stock_alerts = db.query(ShopInventory).join(Product).join(User, ShopInventory.shopkeeper_id == User.id).filter(
         ShopInventory.stock < 10,
         Product.is_deleted == False,
-        User.is_deleted == False
+        User.is_deleted == False,
+        User.role != "Factory"
     ).all()
     
     # Shop performance for active shopkeepers
