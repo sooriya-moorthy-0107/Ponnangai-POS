@@ -232,18 +232,18 @@ async function fetchBillHistory() {
                 
                 const actionButtonsHtml = bill.is_cancelled ? `
                     <button class="btn btn-small" style="background-color: #718096; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="handlePrintFlow(${bill.id})">
-                        🖨️ Print Void Receipt
+                         Print Void Receipt
                     </button>
                 ` : `
                     <button class="btn btn-small" style="background-color: var(--primary); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="handlePrintFlow(${bill.id})">
-                        🖨️ Print Receipt
+                         Print Receipt
                     </button>
                     <div style="display: flex; gap: 6px; width: 100%;">
                         <button class="btn btn-secondary btn-small" style="flex: 1;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
-                            ↩️ Edit
+                            ↩ Edit
                         </button>
                         <button class="btn btn-destructive btn-small" style="flex: 1;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
-                            ❌ Cancel
+                             Cancel
                         </button>
                     </div>
                 `;
@@ -550,7 +550,7 @@ async function connectToDevice(device) {
     const updateUi = (color, text) => {
         if (statusText) statusText.innerHTML = `<span style="color: ${color}; font-weight: bold;">${text}</span>`;
         if (headerStatus) {
-            headerStatus.textContent = text.replace(/🟡 |🟢 |🔴 /g, '');
+            headerStatus.textContent = text.replace(/🟡 |🟢 | /g, '');
             headerStatus.parentElement.style.backgroundColor = color === '#48BB78' ? '#C6F6D5' : '#EDF2F7';
             headerStatus.parentElement.style.color = color === '#48BB78' ? '#22543D' : '#2D3748';
         }
@@ -623,7 +623,7 @@ async function connectBluetooth() {
         await connectToDevice(device);
     } catch (err) {
         console.error(err);
-        if (statusText) statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Connect Failed</span>`;
+        if (statusText) statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;"> Connect Failed</span>`;
         writeCharacteristic = null;
         bluetoothDevice = null;
     }
@@ -644,7 +644,7 @@ async function autoConnectBluetooth() {
 function onDisconnected() {
     const statusText = document.getElementById('bt-status-text');
     const headerStatus = document.getElementById('header-printer-status');
-    if (statusText) statusText.innerHTML = '<span style="color: #718096; font-weight: bold;">🔴 Disconnected</span>';
+    if (statusText) statusText.innerHTML = '<span style="color: #718096; font-weight: bold;"> Disconnected</span>';
     if (headerStatus) {
         headerStatus.textContent = 'Disconnected';
         headerStatus.parentElement.style.backgroundColor = '#EDF2F7';
@@ -676,7 +676,7 @@ async function sendPrintData(bytes) {
         }
     } catch (err) {
         console.error("Direct printing failed", err);
-        if (statusText) statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Print Failed</span>`;
+        if (statusText) statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;"> Print Failed</span>`;
     }
 }
 
@@ -882,7 +882,7 @@ function generateReceiptHtml(billData) {
 
     const cancelledHeaderHtml = billData.is_cancelled ? `
         <div style="background-color: #FFF5F5; color: #E53E3E; border: 2px dashed #E53E3E; padding: 8px 4px; border-radius: 4px; font-weight: 800; font-size: 11px; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px;">
-            ⚠️ VOID / CANCELLED RECEIPT ⚠️
+             VOID / CANCELLED RECEIPT 
         </div>
     ` : '';
 
@@ -1064,3 +1064,155 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 });
+
+// ==========================================================================
+// Cash Tracker Logic
+// ==========================================================================
+
+function switchTab(tabId) {
+    if (tabId === 'pos') {
+        document.getElementById('pos-view').style.display = ''; // falls back to .shop-layout flex
+        document.getElementById('cash-view').style.display = 'none';
+        
+        document.getElementById('tab-pos').style.backgroundColor = 'var(--primary)';
+        document.getElementById('tab-pos').style.color = 'white';
+        document.getElementById('tab-cash').style.backgroundColor = '#EDF2F7';
+        document.getElementById('tab-cash').style.color = '#2D3748';
+    } else {
+        document.getElementById('pos-view').style.display = 'none';
+        document.getElementById('cash-view').style.display = 'grid'; // using grid layout
+        
+        document.getElementById('tab-pos').style.backgroundColor = '#EDF2F7';
+        document.getElementById('tab-pos').style.color = '#2D3748';
+        document.getElementById('tab-cash').style.backgroundColor = 'var(--primary)';
+        document.getElementById('tab-cash').style.color = 'white';
+        
+        fetchCashData();
+    }
+}
+
+async function fetchCashData() {
+    const shopkeeperId = typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : '';
+    try {
+        const response = await fetch(`/api/cash-transactions?shopkeeper_id=${shopkeeperId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('cash-balance').textContent = `₹${data.balance.toFixed(2)}`;
+            document.getElementById('cash-sales').textContent = `₹${data.cash_sales.toFixed(2)}`;
+            document.getElementById('cash-in').textContent = `+₹${data.total_in.toFixed(2)}`;
+            document.getElementById('cash-out').textContent = `-₹${data.total_out.toFixed(2)}`;
+            
+            const container = document.getElementById('cash-history-container');
+            container.innerHTML = '';
+            
+            if (data.transactions.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">No cash transactions today</div>';
+                return;
+            }
+            
+            data.transactions.forEach(t => {
+                const isOut = t.type === 'OUT';
+                const color = isOut ? '#E53E3E' : '#319795';
+                const sign = isOut ? '-' : '+';
+                
+                const txTime = new Date(t.timestamp);
+                const now = new Date();
+                const diffSecs = (now - txTime) / 1000;
+                const canRevert = diffSecs < 180;
+                
+                const timeStr = txTime.toLocaleString(undefined, {
+                    year: 'numeric', month: '2-digit', day: '2-digit', 
+                    hour: '2-digit', minute: '2-digit'
+                });
+                
+                const card = document.createElement('div');
+                card.style.padding = '12px';
+                card.style.borderBottom = '1px solid #E2E8F0';
+                card.style.display = 'flex';
+                card.style.justifyContent = 'space-between';
+                card.style.alignItems = 'center';
+                
+                let revertBtnHtml = '';
+                if (canRevert) {
+                    revertBtnHtml = `<button onclick="revertCashTransaction(${t.id})" style="margin-left: 12px; background: none; border: none; color: #E53E3E; cursor: pointer; font-size: 12px; text-decoration: underline;">Revert</button>`;
+                }
+                
+                card.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600; font-size: 14px;">${t.type === 'IN' ? 'Money IN' : 'Money OUT'}</div>
+                        <div style="font-size: 12px; color: #718096;">${t.description || 'No description'}</div>
+                        <div style="font-size: 10px; color: #A0AEC0; margin-top: 4px;">${timeStr}</div>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <div style="font-weight: bold; font-size: 16px; color: ${color};">
+                            ${sign}₹${t.amount.toFixed(2)}
+                        </div>
+                        ${revertBtnHtml}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+    } catch (err) {
+        console.error("Error fetching cash data", err);
+    }
+}
+
+async function submitCashTransaction() {
+    const amount = parseFloat(document.getElementById('cash-amount').value);
+    const type = document.getElementById('cash-type').value;
+    const desc = document.getElementById('cash-desc').value;
+    const shopkeeperId = typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : '';
+    
+    if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid amount greater than 0");
+        return;
+    }
+    
+    const payload = {
+        amount: amount,
+        type: type,
+        description: desc,
+        shopkeeper_id: shopkeeperId
+    };
+    
+    try {
+        const response = await fetch('/api/cash-transactions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('cash-amount').value = '';
+            document.getElementById('cash-desc').value = '';
+            fetchCashData();
+        } else {
+            alert("Failed to record cash transaction: " + (data.detail || 'Unknown error'));
+        }
+    } catch (err) {
+        console.error("Error submitting cash transaction", err);
+        alert("Network error while submitting cash transaction.");
+    }
+}
+
+async function revertCashTransaction(txId) {
+    if (!confirm("Are you sure you want to revert this transaction?")) return;
+    try {
+        const response = await fetch(`/api/cash-transactions/${txId}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            fetchCashData();
+        } else {
+            alert("Failed to revert: " + (data.detail || 'Unknown error'));
+        }
+    } catch(err) {
+        console.error("Error reverting", err);
+        alert("Network error while reverting.");
+    }
+}

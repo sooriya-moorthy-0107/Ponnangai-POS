@@ -101,6 +101,17 @@ class BillItem(Base):
     bill = relationship("Bill", back_populates="items")
     product = relationship("Product")
 
+class CashTransaction(Base):
+    __tablename__ = "cash_transactions"
+    id = Column(Integer, primary_key=True, index=True)
+    shopkeeper_id = Column(Integer, ForeignKey("users.id"))
+    amount = Column(Float, nullable=False)
+    transaction_type = Column(String, nullable=False) # "IN" or "OUT"
+    description = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=datetime.now)
+
+    shopkeeper = relationship("User")
+
 
 
 # Create tables
@@ -226,6 +237,24 @@ try:
     db_init.commit()
 except Exception:
     db_init.rollback()
+
+# Migration: Create cash_transactions if not exists
+try:
+    db_init.execute(text("""
+        CREATE TABLE IF NOT EXISTS cash_transactions (
+            id SERIAL PRIMARY KEY,
+            shopkeeper_id INTEGER REFERENCES users(id),
+            amount DOUBLE PRECISION NOT NULL,
+            transaction_type VARCHAR NOT NULL,
+            description VARCHAR,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """))
+    db_init.commit()
+except Exception as e:
+    print(f"Cash transaction table init error: {e}")
+    db_init.rollback()
+
 finally:
     db_init.close()
 
@@ -415,6 +444,7 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
     # Dashboard metrics
     total_revenue = db.query(func.sum(Bill.final_amount)).filter(Bill.is_cancelled == False).scalar() or 0.0
     total_sales = db.query(Bill).filter(Bill.is_cancelled == False).count()
+    total_expenses = db.query(func.sum(CashTransaction.amount)).filter(CashTransaction.transaction_type == 'OUT').scalar() or 0.0
     
     # Low stock alerts across active shops and active products (ignores soft-deleted stocks)
     low_stock_alerts = db.query(ShopInventory).join(Product).join(User, ShopInventory.shopkeeper_id == User.id).filter(
@@ -445,6 +475,7 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
         "shop_inventory": shop_inventory,
         "total_revenue": total_revenue,
         "total_sales": total_sales,
+        "total_expenses": total_expenses,
         "low_stock_alerts": low_stock_alerts,
         "shop_performance": shop_performance
     })
@@ -638,6 +669,109 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
     
     return {"status": "success", "bill_id": new_bill.id}
 
+@app.get("/api/cash-transactions")
+async def get_cash_transactions(request: Request, shopkeeper_id: int = None, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner", "Factory"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        
+    target_shopkeeper_id = shopkeeper_id or user.id
+    if user.role in ["Shopkeeper", "Factory"]:
+        target_shopkeeper_id = user.id
+        
+    today = datetime.now().date()
+    
+    # Get today's transactions
+    transactions = db.query(CashTransaction).filter(
+        CashTransaction.shopkeeper_id == target_shopkeeper_id,
+        func.date(CashTransaction.timestamp) == today
+    ).order_by(CashTransaction.timestamp.desc()).all()
+    
+    # Get today's cash sales
+    cash_sales = db.query(func.sum(Bill.final_amount)).filter(
+        Bill.cashier_id == target_shopkeeper_id,
+        Bill.payment_mode == "Cash",
+        Bill.is_cancelled == False,
+        func.date(Bill.timestamp) == today
+    ).scalar() or 0.0
+    
+    total_in = sum([t.amount for t in transactions if t.transaction_type == "IN"])
+    total_out = sum([t.amount for t in transactions if t.transaction_type == "OUT"])
+    
+    current_cash_balance = cash_sales + total_in - total_out
+    
+    result = []
+    for t in transactions:
+        result.append({
+            "id": t.id,
+            "amount": t.amount,
+            "type": t.transaction_type,
+            "description": t.description,
+            "timestamp": t.timestamp.isoformat() if t.timestamp else ""
+        })
+        
+    return {
+        "status": "success", 
+        "transactions": result, 
+        "balance": current_cash_balance,
+        "cash_sales": cash_sales,
+        "total_in": total_in,
+        "total_out": total_out
+    }
+
+@app.post("/api/cash-transactions")
+async def add_cash_transaction(request: Request, data: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner", "Factory"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        
+    target_shopkeeper_id = data.get("shopkeeper_id") or user.id
+    if user.role in ["Shopkeeper", "Factory"]:
+        target_shopkeeper_id = user.id
+        
+    amount = float(data.get("amount", 0))
+    transaction_type = data.get("type", "IN")
+    description = data.get("description", "")
+    
+    if amount <= 0:
+        return JSONResponse(status_code=400, content={"detail": "Amount must be greater than 0"})
+        
+    new_tx = CashTransaction(
+        shopkeeper_id=target_shopkeeper_id,
+        amount=amount,
+        transaction_type=transaction_type,
+        description=description
+    )
+    
+    db.add(new_tx)
+    db.commit()
+    db.refresh(new_tx)
+    
+    return {"status": "success", "transaction_id": new_tx.id}
+
+@app.delete("/api/cash-transactions/{transaction_id}")
+async def delete_cash_transaction(request: Request, transaction_id: int, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner", "Factory"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        
+    tx = db.query(CashTransaction).filter(CashTransaction.id == transaction_id).first()
+    if not tx:
+        return JSONResponse(status_code=404, content={"detail": "Transaction not found"})
+        
+    if user.role in ["Shopkeeper", "Factory"] and tx.shopkeeper_id != user.id:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        
+    # Check 3 minute window
+    if tx.timestamp:
+        time_diff = datetime.now() - tx.timestamp
+        if time_diff.total_seconds() > 180:
+            return JSONResponse(status_code=400, content={"detail": "Cannot revert transaction after 3 minutes."})
+    
+    db.delete(tx)
+    db.commit()
+    return {"status": "success", "detail": "Transaction reverted."}
+
 
 from fastapi.responses import StreamingResponse
 import io
@@ -711,13 +845,40 @@ async def get_daily_report(request: Request, shopkeeper_id: int, start_date: str
     # Sort for better presentation
     results.sort(key=lambda x: (x["packaging"], x["product"]))
     
-    return {"status": "success", "data": results, "shop_role": shop_role, "bottle_counts": bottle_counts, "revenue_breakdown": revenue_breakdown}
+    total_cash_in = 0.0
+    total_cash_out = 0.0
+    all_cash_tx = db.query(CashTransaction).filter(CashTransaction.shopkeeper_id == shopkeeper_id).all()
+    for tx in all_cash_tx:
+        if tx.timestamp:
+            tx_date = tx.timestamp.date()
+            if t_start <= tx_date <= t_end:
+                if tx.transaction_type == 'IN':
+                    total_cash_in += tx.amount
+                elif tx.transaction_type == 'OUT':
+                    total_cash_out += tx.amount
+            
+    return {
+        "status": "success", 
+        "data": results, 
+        "shop_role": shop_role, 
+        "bottle_counts": bottle_counts, 
+        "revenue_breakdown": revenue_breakdown,
+        "total_cash_in": total_cash_in,
+        "total_cash_out": total_cash_out
+    }
 
 @app.get("/api/reports/daily/export")
 async def export_daily_report(request: Request, shopkeeper_id: int, start_date: str, end_date: str, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
-    if not user or user.role not in ["Admin", "Manager", "Owner"]:
+    if not user:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        
+    if user.role not in ["Admin", "Manager", "Owner"]:
+        if user.role in ["Shopkeeper", "Factory"]:
+            if user.id != shopkeeper_id:
+                return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        else:
+            return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
 
     try:
         t_start = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -788,6 +949,18 @@ async def export_daily_report(request: Request, shopkeeper_id: int, start_date: 
     results = list(report_data.values())
     results.sort(key=lambda x: (x["packaging"], x["product"]))
     
+    total_cash_in = 0.0
+    total_cash_out = 0.0
+    all_cash_tx = db.query(CashTransaction).filter(CashTransaction.shopkeeper_id == shopkeeper_id).all()
+    for tx in all_cash_tx:
+        if tx.timestamp:
+            tx_date = tx.timestamp.date()
+            if t_start <= tx_date <= t_end:
+                if tx.transaction_type == 'IN':
+                    total_cash_in += tx.amount
+                elif tx.transaction_type == 'OUT':
+                    total_cash_out += tx.amount
+    
     if shop and shop.role == "Factory":
         writer.writerow(["Product Name", "Bottle Type", "Packaging Type", "Total Quantity Sold", "Bottle Count", "Total Revenue (Rs)"])
         for r in results:
@@ -800,6 +973,8 @@ async def export_daily_report(request: Request, shopkeeper_id: int, start_date: 
         writer.writerow(["UPI", f"Rs {revenue_breakdown.get('UPI', 0.0):.2f}"])
         writer.writerow(["Card", f"Rs {revenue_breakdown.get('Card', 0.0):.2f}"])
         writer.writerow(["Total Revenue (Bills)", f"Rs {revenue_breakdown.get('Total', 0.0):.2f}"])
+        writer.writerow(["Money IN", f"+Rs {total_cash_in:.2f}"])
+        writer.writerow(["Money OUT (Expenses)", f"-Rs {total_cash_out:.2f}"])
         writer.writerow([])
         writer.writerow(["Bottle Counts"])
         for b_type, count in bottle_counts.items():
@@ -823,6 +998,8 @@ async def export_daily_report(request: Request, shopkeeper_id: int, start_date: 
         writer.writerow(["UPI", f"Rs {revenue_breakdown.get('UPI', 0.0):.2f}"])
         writer.writerow(["Card", f"Rs {revenue_breakdown.get('Card', 0.0):.2f}"])
         writer.writerow(["Total Revenue (Bills)", f"Rs {revenue_breakdown.get('Total', 0.0):.2f}"])
+        writer.writerow(["Money IN", f"+Rs {total_cash_in:.2f}"])
+        writer.writerow(["Money OUT (Expenses)", f"-Rs {total_cash_out:.2f}"])
         
     output.seek(0)
     

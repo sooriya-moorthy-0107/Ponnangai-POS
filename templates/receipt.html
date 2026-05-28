@@ -15,7 +15,7 @@
         <div class="print-controls-panel no-print">
             <h2
                 style="font-size: 18px; color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-                🖨️ Thermal Printer Setup
+                 Thermal Printer Setup
             </h2>
             <p style="font-size: 12px; color: #718096; margin-bottom: 16px;">
                 Optimize receipt layout specifically for your Niyama thermal printer.
@@ -82,24 +82,24 @@
                 <div
                     style="font-size: 12px; color: #4A5568; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
                     <span>Status:</span>
-                    <span id="bt-status-text" style="font-weight: bold; color: #718096;">🔴 Disconnected</span>
+                    <span id="bt-status-text" style="font-weight: bold; color: #718096;"> Disconnected</span>
                 </div>
                 <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                     <button type="button" class="btn btn-secondary"
                         style="flex: 1; padding: 10px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;"
                         onclick="connectBluetooth()">
-                        🔌 Connect Printer
+                         Connect Printer
                     </button>
                     <button type="button" id="bt-test-btn" class="btn btn-secondary"
                         style="display: none; padding: 10px 12px; font-size: 13px; font-weight: 600; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;"
                         onclick="printTestReceipt()">
-                        📄 Test Slip
+                         Test Slip
                     </button>
                 </div>
                 <button type="button" id="bt-print-btn" class="btn"
                     style="display: none; width: 100%; margin-bottom: 10px; background-color: #2B6CB0; color: white;"
                     onclick="printViaBluetooth()">
-                    🔵 Print via Bluetooth
+                     Print via Bluetooth
                 </button>
             </div>
 
@@ -108,11 +108,11 @@
                 style="border-top: 1px solid #E2E8F0; padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
                 <button class="btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;"
                     onclick="window.print()">
-                    🖨️ Print via Browser Dialog
+                     Print via Browser Dialog
                 </button>
                 <a href="/shop" class="btn btn-secondary"
                     style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    ↩️ Back to POS Shop
+                    ↩ Back to POS Shop
                 </a>
             </div>
         </div>
@@ -124,7 +124,7 @@
                 {% if bill.is_cancelled %}
                 <div
                     style="background-color: #FFF5F5; color: #E53E3E; border: 2px dashed #E53E3E; padding: 8px 4px; border-radius: 4px; font-weight: 800; font-size: 11px; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px;">
-                    ⚠️ VOID / CANCELLED RECEIPT ⚠️
+                     VOID / CANCELLED RECEIPT 
                 </div>
                 {% endif %}
 
@@ -376,7 +376,7 @@
                     await connectToDevice(device);
                 } catch (err) {
                     console.error("Bluetooth connection failed", err);
-                    statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Connection Failed: ${err.message || err}</span>`;
+                    statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;"> Connection Failed: ${err.message || err}</span>`;
                     writeCharacteristic = null;
                     bluetoothDevice = null;
                 }
@@ -395,13 +395,13 @@
                     }
                 } catch (err) {
                     console.error("Auto-connect failed", err);
-                    statusText.innerHTML = '<span style="color: #718096; font-weight: bold;">🔴 Disconnected</span>';
+                    statusText.innerHTML = '<span style="color: #718096; font-weight: bold;"> Disconnected</span>';
                 }
             }
 
             function onDisconnected() {
                 const statusText = document.getElementById('bt-status-text');
-                statusText.innerHTML = '<span style="color: #718096; font-weight: bold;">🔴 Disconnected</span>';
+                statusText.innerHTML = '<span style="color: #718096; font-weight: bold;"> Disconnected</span>';
                 writeCharacteristic = null;
                 bluetoothDevice = null;
                 document.getElementById('bt-print-btn').style.display = 'none';
@@ -563,7 +563,7 @@
                     statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
                 } catch (err) {
                     console.error("Wireless printing failed", err);
-                    statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Print Failed: ${err.message || err}</span>`;
+                    statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;"> Print Failed: ${err.message || err}</span>`;
                 }
             }
 

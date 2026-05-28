@@ -35,6 +35,8 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
     border-bottom: 1px solid #E2E8F0;
     position: sticky;
     top: 0;
@@ -111,18 +113,73 @@ select:focus {
 }
 
 /* Shop Grid Layout */
+.pos-container {
+    display: flex;
+    gap: 16px;
+    flex-direction: column;
+}
+
+.pos-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #E2E8F0;
+    overflow-x: auto;
+}
+
+.pos-sidebar .btn {
+    padding: 16px 24px;
+    font-size: 16px;
+    border-radius: 8px;
+    min-width: 150px;
+    width: 100%;
+}
+
+
+
+.pos-content {
+    flex: 1;
+}
+
 .shop-layout {
     display: flex;
     flex-direction: column;
     gap: var(--spacing);
 }
 
-@media (min-width: 768px) {
+
+.cash-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
+
+@media (min-width: 1024px) {
     .shop-layout {
         flex-direction: row;
     }
 
+    .pos-container {
+        flex-direction: row;
+    }
+    .pos-sidebar {
+        flex-direction: column;
+        min-width: 180px;
+        padding-right: 16px;
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-right: 1px solid #E2E8F0;
+        border-bottom: none;
+    }
+
+    .cash-layout {
+        grid-template-columns: 1fr 2fr;
+    }
+
     .bill-history-section {
+        order: 1;
         flex: 0.8;
         position: sticky;
         top: 80px;
@@ -132,16 +189,18 @@ select:focus {
     }
 
     .product-grid {
+        order: 2;
         flex: 2.6;
     }
 
     .cart-section {
+        order: 3;
         flex: 1;
         position: sticky;
         top: 80px;
         height: calc(100vh - 100px);
         overflow-y: auto;
-        min-width: 345px;
+        min-width: 250px;
     }
 }
 
@@ -322,7 +381,7 @@ select:focus {
     padding: 0 16px;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
     .receipt-page-container {
         flex-direction: row;
         align-items: flex-start;
