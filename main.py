@@ -975,6 +975,8 @@ async def export_daily_report(request: Request, shopkeeper_id: int, start_date: 
         writer.writerow(["Total Revenue (Bills)", f"Rs {revenue_breakdown.get('Total', 0.0):.2f}"])
         writer.writerow(["Money IN", f"+Rs {total_cash_in:.2f}"])
         writer.writerow(["Money OUT (Expenses)", f"-Rs {total_cash_out:.2f}"])
+        net_cash = revenue_breakdown.get('Cash', 0.0) + total_cash_in - total_cash_out
+        writer.writerow(["Total After Expense (Cash in Drawer)", f"Rs {net_cash:.2f}"])
         writer.writerow([])
         writer.writerow(["Bottle Counts"])
         for b_type, count in bottle_counts.items():
@@ -1000,6 +1002,8 @@ async def export_daily_report(request: Request, shopkeeper_id: int, start_date: 
         writer.writerow(["Total Revenue (Bills)", f"Rs {revenue_breakdown.get('Total', 0.0):.2f}"])
         writer.writerow(["Money IN", f"+Rs {total_cash_in:.2f}"])
         writer.writerow(["Money OUT (Expenses)", f"-Rs {total_cash_out:.2f}"])
+        net_cash = revenue_breakdown.get('Cash', 0.0) + total_cash_in - total_cash_out
+        writer.writerow(["Total After Expense (Cash in Drawer)", f"Rs {net_cash:.2f}"])
         
     output.seek(0)
     
