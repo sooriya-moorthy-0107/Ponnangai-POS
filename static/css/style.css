@@ -24,7 +24,7 @@ body {
 
 .container {
     padding: var(--spacing);
-    max-width: 1200px;
+    max-width: 1450px;
     margin: 0 auto;
 }
 
@@ -75,11 +75,13 @@ header h1 {
 .btn-destructive {
     background-color: var(--destructive);
     color: white;
+    text-decoration: none;
+    border: 1px solid #CBD5E0;
 }
 
 .btn-small {
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: 13px 18px;
+    font-size: 14px;
     width: auto;
 }
 
@@ -200,7 +202,7 @@ select:focus {
         top: 80px;
         height: calc(100vh - 100px);
         overflow-y: auto;
-        min-width: 250px;
+        min-width: 350px;
     }
 }
 
@@ -211,11 +213,11 @@ select:focus {
 
 .history-card {
     background-color: var(--card-bg);
-    border: 1px solid #E2E8F0;
+    border: 4px solid #E2E8F0;
     border-radius: var(--border-radius);
-    padding: 12px;
-    margin-bottom: 8px;
-    font-size: 14px;
+    padding: 10px;
+    margin-bottom: 20px;
+    font-size: 16px;
 }
 
 .history-card-header {
@@ -234,8 +236,8 @@ select:focus {
 
 .product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px;
 }
 
 .product-card {
