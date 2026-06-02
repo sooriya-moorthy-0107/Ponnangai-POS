@@ -6,12 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ user.role }} Dashboard - Ponnangai POS</title>
     <link rel="icon" type="image/png" href="/static/images/logo.png">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
 </head>
 
 <body>
     <header>
-        <h1>{{ user.role }} Dashboard</h1>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="/static/images/logo.png" alt="Ponnangai POS" style="height: 40px; object-fit: contain;">
+            <h1 style="margin: 0;">{{ user.role }} Dashboard</h1>
+        </div>
         <div style="display: flex; gap: 8px; align-items: center;">
             <span style="font-size: 14px; font-weight: 600;">{{ user.username }} ({{ user.role }})</span>
             <a href="/shop" class="btn btn-secondary btn-small" style="text-decoration: none;">POS View</a>
@@ -40,10 +43,200 @@
             </div>
         </div>
 
-        <div style="display: flex; gap: var(--spacing); flex-wrap: wrap;">
 
+        <!-- Grid Layout for Row 2 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing); margin-top: var(--spacing);">
+                <div class="card">
+                    <h2
+                        style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                        Shop Performance</h2>
+                    <ul style="list-style: none; padding: 0;">
+                        {% for sp in shop_performance %}
+                        <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;"
+                            onclick="viewShopAnalytics({{ sp.shopkeeper.id }})"
+                            onmouseover="this.style.backgroundColor='#F7FAFC'"
+                            onmouseout="this.style.backgroundColor='transparent'">
+                            <span><strong>{{ sp.shopkeeper.username }}</strong></span>
+                            <span style="text-align: right;">{{ sp.sales }} Bills<br><span
+                                    style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue)
+                                    }}</span></span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% if archived_shopkeepers %}
+                    <div style="margin-top: 16px; border-top: 1px dashed #CBD5E0; padding-top: 12px;">
+                        <h3 style="font-size: 13px; margin-bottom: 8px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Archived Shops (History)</h3>
+                        <ul style="list-style: none; padding: 0;">
+                            {% for sk in archived_shopkeepers %}
+                            <li style="padding: 6px 0; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 13px;"
+                                onclick="viewShopAnalytics({{ sk.id }})"
+                                onmouseover="this.style.backgroundColor='#EDF2F7'"
+                                onmouseout="this.style.backgroundColor='transparent'">
+                                <span style="color: #718096; max-width: 70%; word-break: break-word;"><strong>{{ sk.username }}</strong></span>
+                                <span class="btn btn-secondary btn-small" style="padding: 2px 6px; font-size: 11px;">Analyze</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h2
+                            style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
+                            Staff Logins</h2>
+                        {% if user.role in ['Admin', 'Manager', 'Owner'] %}
+                        <button class="btn btn-small"
+                            onclick="hideAddUserForm(); document.getElementById('add-user-form').style.display='flex'">+
+                            Add User</button>
+                        {% endif %}
+                    </div>
+
+                    {% if user.role in ['Admin', 'Manager', 'Owner'] %}
+                    <div id="add-user-form"
+                        style="display: none; flex-direction: column; gap: 8px; margin-bottom: 16px; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
+                        <div>
+                            <label
+                                style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Username</label>
+                            <input type="text" id="new-username" style="margin-bottom: 0;">
+                        </div>
+                        <div>
+                            <label
+                                style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Password</label>
+                            <input type="text" id="new-password" style="margin-bottom: 0;">
+                        </div>
+                        <div>
+                            <label
+                                style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Role</label>
+                            <select id="new-role" style="margin-bottom: 0; padding: 8px; width: 100%;">
+                                {% if user.role == 'Admin' %}
+                                <option value="Admin">Admin</option>
+                                <option value="Owner">Owner</option>
+                                <option value="Manager">Manager</option>
+                                {% endif %}
+                                <option value="Shopkeeper" selected>Shopkeeper</option>
+                                <option value="Factory">Factory Cashier</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <button class="btn" id="save-user-btn" style="flex: 1;" onclick="addUser()">Save</button>
+                            <button class="btn btn-secondary" style="flex: 1;"
+                                onclick="hideAddUserForm()">Cancel</button>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <ul style="list-style: none; padding: 0;">
+                        {% for u in users %}
+                        <li
+                            style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+                            <span><strong>{{ u.username }}</strong> ({{ u.role }})</span>
+                            {% if user.role == 'Admin' and u.id != user.id %}
+                             <div style="display: flex; gap: 4px;">
+                                 <button class="btn btn-secondary btn-small"
+                                     onclick='resetPassword({{ u.id }}, {{ u.username | tojson }})'>Pwd</button>
+                                 <button class="btn btn-secondary btn-small"
+                                     onclick='showEditUser({{ u.id }}, {{ u.username | tojson }}, {{ u.role | tojson }})'>Edit</button>
+                                 <button class="btn btn-destructive btn-small"
+                                     onclick='deleteUser({{ u.id }}, {{ u.username | tojson }})'>Del</button>
+                             </div>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="card" style="max-height: 300px; overflow-y: auto;">
+                    <h2
+                        style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                        Low Stock Breakdown</h2>
+                    <ul style="list-style: none; padding: 0;">
+                        {% for alert in low_stock_alerts %}
+                        <li
+                            style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+                            <span><strong>{{ alert.product.name }}</strong><br><span
+                                    style="font-size: 12px; color: #718096;">Shop: {{ alert.shopkeeper.username
+                                    }}</span></span>
+                            <span style="color: var(--destructive); font-weight: bold; text-align: right;">{{
+                                alert.stock }} left</span>
+                        </li>
+                        {% else %}
+                        <li style="padding: 8px 0; color: #718096; text-align: center;">All stock levels are healthy!
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+
+        </div>
+        <!-- Daily Sales Reports -->
+        <div class="card" style="margin-top: var(--spacing);">
+            <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin-bottom: 16px;">
+                📊 Daily Sales & Packaging Reports
+            </h2>
+            
+            <div style="display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="btn-report-today" class="btn" style="padding: 4px 12px; background: var(--primary); color: white;" onclick="setReportMode('today')">Today</button>
+                        <button id="btn-report-range" class="btn btn-secondary" style="padding: 4px 12px;" onclick="setReportMode('range')">Date Range</button>
+                    </div>
+                    <div id="report-date-today-container">
+                        <input type="date" id="report-date-today" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; background: #EDF2F7;" readonly>
+                    </div>
+                    <div id="report-date-range-container" style="display: none; align-items: center; gap: 8px;">
+                        <input type="date" id="report-start-date" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                        <span style="color: #718096; font-size: 12px; font-weight: bold;">TO</span>
+                        <input type="date" id="report-end-date" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 4px; display: block;">Select Shop</label>
+                    <select id="report-shop" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; min-width: 200px;">
+                        <option value="">-- Select a Shop --</option>
+                        {% for sk in shopkeepers %}
+                        <option value="{{ sk.id }}">{{ sk.username }}</option>
+                        {% endfor %}
+                        {% for sk in archived_shopkeepers %}
+                        <option value="{{ sk.id }}">{{ sk.username }} (Archived)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button class="btn" onclick="fetchDailyReport()">Generate Report</button>
+            </div>
+
+            <div id="report-results" style="display: none;">
+                <div id="report-top-revenue" style="margin-bottom: 16px; font-size: 16px; font-weight: bold; color: var(--primary); padding: 12px; background: #EBF8FF; border: 1px solid #90CDF4; border-radius: 8px;">
+                    <!-- Populated by JS -->
+                </div>
+                <table class="admin-table" id="report-table">
+                    <thead>
+                        <tr style="background-color: #EDF2F7;">
+                            <!-- Handled by JS -->
+                        </tr>
+                    </thead>
+                    <tbody id="report-table-body">
+                    </tbody>
+                </table>
+                <div id="report-bottle-counts" style="margin-top: 16px; font-size: 14px; color: #4A5568;"></div>
+                <div style="margin-top: 16px; text-align: right;">
+                    <button class="btn" style="background-color: #38A169; border-color: #38A169;" onclick="exportDailyReport()">
+                        📥 Export to Excel (CSV)
+                    </button>
+                </div>
+            </div>
+            <div id="report-empty" style="display: none; text-align: center; color: #718096; padding: 24px;">
+                No sales found for the selected shop and date.
+            </div>
+        </div>
+
+
+        <!-- Shop Inventories Row -->
+        <div style="margin-top: var(--spacing);">
             <!-- Inventory Management (Admin/Manager) -->
-            <div class="card" style="flex: 3; min-width: 300px; display: flex; flex-direction: column;">
+            <div class="card" style="display: flex; flex-direction: column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
                     <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
                         🏪 Shop Inventories & Catalog
@@ -226,132 +419,11 @@
                 </div>
             </div>
 
-            <!-- User Management & Support -->
-            <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: var(--spacing);">
 
-                <div class="card">
-                    <h2
-                        style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
-                        Shop Performance</h2>
-                    <ul style="list-style: none; padding: 0;">
-                        {% for sp in shop_performance %}
-                        <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;"
-                            onclick="viewShopAnalytics({{ sp.shopkeeper.id }})"
-                            onmouseover="this.style.backgroundColor='#F7FAFC'"
-                            onmouseout="this.style.backgroundColor='transparent'">
-                            <span><strong>{{ sp.shopkeeper.username }}</strong></span>
-                            <span style="text-align: right;">{{ sp.sales }} Bills<br><span
-                                    style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue)
-                                    }}</span></span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% if archived_shopkeepers %}
-                    <div style="margin-top: 16px; border-top: 1px dashed #CBD5E0; padding-top: 12px;">
-                        <h3 style="font-size: 13px; margin-bottom: 8px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Archived Shops (History)</h3>
-                        <ul style="list-style: none; padding: 0;">
-                            {% for sk in archived_shopkeepers %}
-                            <li style="padding: 6px 0; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 13px;"
-                                onclick="viewShopAnalytics({{ sk.id }})"
-                                onmouseover="this.style.backgroundColor='#EDF2F7'"
-                                onmouseout="this.style.backgroundColor='transparent'">
-                                <span style="color: #718096; max-width: 70%; word-break: break-word;"><strong>{{ sk.username }}</strong></span>
-                                <span class="btn btn-secondary btn-small" style="padding: 2px 6px; font-size: 11px;">Analyze</span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-                </div>
+        </div>
 
-                <div class="card" style="max-height: 300px; overflow-y: auto;">
-                    <h2
-                        style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
-                        Low Stock Breakdown</h2>
-                    <ul style="list-style: none; padding: 0;">
-                        {% for alert in low_stock_alerts %}
-                        <li
-                            style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
-                            <span><strong>{{ alert.product.name }}</strong><br><span
-                                    style="font-size: 12px; color: #718096;">Shop: {{ alert.shopkeeper.username
-                                    }}</span></span>
-                            <span style="color: var(--destructive); font-weight: bold; text-align: right;">{{
-                                alert.stock }} left</span>
-                        </li>
-                        {% else %}
-                        <li style="padding: 8px 0; color: #718096; text-align: center;">All stock levels are healthy!
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-
-                <div class="card">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h2
-                            style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
-                            Staff Logins</h2>
-                        {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                        <button class="btn btn-small"
-                            onclick="hideAddUserForm(); document.getElementById('add-user-form').style.display='flex'">+
-                            Add User</button>
-                        {% endif %}
-                    </div>
-
-                    {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                    <div id="add-user-form"
-                        style="display: none; flex-direction: column; gap: 8px; margin-bottom: 16px; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
-                        <div>
-                            <label
-                                style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Username</label>
-                            <input type="text" id="new-username" style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label
-                                style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Password</label>
-                            <input type="text" id="new-password" style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label
-                                style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Role</label>
-                            <select id="new-role" style="margin-bottom: 0; padding: 8px; width: 100%;">
-                                {% if user.role == 'Admin' %}
-                                <option value="Admin">Admin</option>
-                                <option value="Owner">Owner</option>
-                                <option value="Manager">Manager</option>
-                                {% endif %}
-                                <option value="Shopkeeper" selected>Shopkeeper</option>
-                                <option value="Factory">Factory Cashier</option>
-                            </select>
-                        </div>
-                        <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <button class="btn" id="save-user-btn" style="flex: 1;" onclick="addUser()">Save</button>
-                            <button class="btn btn-secondary" style="flex: 1;"
-                                onclick="hideAddUserForm()">Cancel</button>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <ul style="list-style: none; padding: 0;">
-                        {% for u in users %}
-                        <li
-                            style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
-                            <span><strong>{{ u.username }}</strong> ({{ u.role }})</span>
-                            {% if user.role == 'Admin' and u.id != user.id %}
-                             <div style="display: flex; gap: 4px;">
-                                 <button class="btn btn-secondary btn-small"
-                                     onclick='resetPassword({{ u.id }}, {{ u.username | tojson }})'>Pwd</button>
-                                 <button class="btn btn-secondary btn-small"
-                                     onclick='showEditUser({{ u.id }}, {{ u.username | tojson }}, {{ u.role | tojson }})'>Edit</button>
-                                 <button class="btn btn-destructive btn-small"
-                                     onclick='deleteUser({{ u.id }}, {{ u.username | tojson }})'>Del</button>
-                             </div>
-                            {% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-
+        <!-- Danger / Help Row -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing); margin-top: var(--spacing);">
                 <div class="card" style="background-color: #FFF5F5; border-color: #FEB2B2;">
                     <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">Need Help?</h2>
                     <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">If you encounter a bug or the
@@ -370,70 +442,10 @@
                 </div>
                 {% endif %}
 
-            </div>
+
         </div>
         
-        </div>
-        <!-- Daily Sales Reports -->
-        <div class="card" style="margin-top: var(--spacing);">
-            <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin-bottom: 16px;">
-                📊 Daily Sales & Packaging Reports
-            </h2>
-            
-            <div style="display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-end; flex-wrap: wrap;">
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button id="btn-report-today" class="btn" style="padding: 4px 12px; background: var(--primary); color: white;" onclick="setReportMode('today')">Today</button>
-                        <button id="btn-report-range" class="btn btn-secondary" style="padding: 4px 12px;" onclick="setReportMode('range')">Date Range</button>
-                    </div>
-                    <div id="report-date-today-container">
-                        <input type="date" id="report-date-today" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; background: #EDF2F7;" readonly>
-                    </div>
-                    <div id="report-date-range-container" style="display: none; align-items: center; gap: 8px;">
-                        <input type="date" id="report-start-date" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
-                        <span style="color: #718096; font-size: 12px; font-weight: bold;">TO</span>
-                        <input type="date" id="report-end-date" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
-                    </div>
-                </div>
-                <div>
-                    <label style="font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 4px; display: block;">Select Shop</label>
-                    <select id="report-shop" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; min-width: 200px;">
-                        <option value="">-- Select a Shop --</option>
-                        {% for sk in shopkeepers %}
-                        <option value="{{ sk.id }}">{{ sk.username }}</option>
-                        {% endfor %}
-                        {% for sk in archived_shopkeepers %}
-                        <option value="{{ sk.id }}">{{ sk.username }} (Archived)</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <button class="btn" onclick="fetchDailyReport()">Generate Report</button>
-            </div>
-
-            <div id="report-results" style="display: none;">
-                <div id="report-top-revenue" style="margin-bottom: 16px; font-size: 16px; font-weight: bold; color: var(--primary); padding: 12px; background: #EBF8FF; border: 1px solid #90CDF4; border-radius: 8px;">
-                    <!-- Populated by JS -->
-                </div>
-                <table class="admin-table" id="report-table">
-                    <thead>
-                        <tr style="background-color: #EDF2F7;">
-                            <!-- Handled by JS -->
-                        </tr>
-                    </thead>
-                    <tbody id="report-table-body">
-                    </tbody>
-                </table>
-                <div id="report-bottle-counts" style="margin-top: 16px; font-size: 14px; color: #4A5568;"></div>
-                <div style="margin-top: 16px; text-align: right;">
-                    <button class="btn" style="background-color: #38A169; border-color: #38A169;" onclick="exportDailyReport()">
-                        📥 Export to Excel (CSV)
-                    </button>
-                </div>
-            </div>
-            <div id="report-empty" style="display: none; text-align: center; color: #718096; padding: 24px;">
-                No sales found for the selected shop and date.
-            </div>
-        </div>
+    </div> <!-- Close Container -->
 
     <!-- Shop Analytics Modal -->
     <div id="analytics-modal"

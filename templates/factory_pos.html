@@ -7,7 +7,7 @@
     <title>Factory POS - Ponnangai</title>
     <link rel="icon" type="image/png" href="/static/images/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=5">
     <style>
         .cart-qty-ctrl input::-webkit-outer-spin-button,
         .cart-qty-ctrl input::-webkit-inner-spin-button {
@@ -19,13 +19,16 @@
 
 <body>
     <header>
-        <h1>Ponnangai Factory POS</h1>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="/static/images/logo.png" alt="Ponnangai POS" style="height: 40px; object-fit: contain;">
+            <h1 style="margin: 0;">Ponnangai POS - Factory Cashier</h1>
+        </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <span style="font-size: 14px; font-weight: 600;">👨‍💼 Cashier: {{ user.username }}</span>
+            <span style="font-size: 14px; font-weight: 600;">‍ Cashier: {{ user.username }}</span>
             <button id="printer-status-btn" class="btn btn-secondary btn-small"
                 style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; gap: 6px; font-weight: bold; width: auto;"
                 onclick="openPrinterModal()">
-                🔌 <span id="header-printer-status">Disconnected</span>
+                 <span id="header-printer-status">Disconnected</span>
             </button>
 
             <a href="/logout" class="btn btn-secondary btn-small"
@@ -34,16 +37,16 @@
     </header>
 
     <div class="container">
-        <div class="shop-layout">
-            <!-- Bill History Sidebar -->
-            <div class="bill-history-section card">
-                <h2
-                    style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
-                    Recent Bills</h2>
-                <div id="bill-history-container">
-                    <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...</div>
-                </div>
+        <div class="pos-container">
+            <!-- Vertical Sidebar Tabs -->
+            <div class="pos-sidebar">
+                <button class="btn btn-small" id="tab-pos" onclick="switchTab('pos')" style="background-color: var(--primary); color: white; width: 100%; justify-content: flex-start; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">POS System</button>
+                <button class="btn btn-secondary btn-small" id="tab-cash" onclick="switchTab('cash')" style="background-color: #EDF2F7; color: #2D3748; width: 100%; justify-content: flex-start; border: 1px solid #CBD5E0;">Cash / Expense</button>
             </div>
+
+            <!-- Content Area -->
+            <div class="pos-content">
+                <div class="shop-layout" id="pos-view">
 
             <!-- Product Grid -->
             <div class="product-grid">
@@ -128,29 +131,86 @@
                     Confirm & Print Bill
                 </button>
             </div>
+            <!-- Bill History Sidebar -->
+            <div class="bill-history-section card">
+                <h2
+                    style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                    Recent Bills</h2>
+                <div id="bill-history-container">
+                    <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...</div>
+                </div>
+            </div>
         </div>
-    </div>
 
+        <!-- Cash Tracker Section -->
+        <div id="cash-view" class="cash-layout" style="display: none;">
+            <!-- Left: Add Transaction Form -->
+            <div class="card">
+                <h2 style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px;">Add Cash Transaction</h2>
+                
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;">Amount (₹)</label>
+                    <input type="number" id="cash-amount" min="1" step="0.5" placeholder="Enter amount" style="width: 100%; padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;">Transaction Type</label>
+                    <select id="cash-type" style="width: 100%; padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                        <option value="IN">Money IN (Added Change/Cash)</option>
+                        <option value="OUT">Money OUT (Expense/Withdrawn)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;">Description / Reason</label>
+                    <input type="text" id="cash-desc" placeholder="e.g. Bought tea, Added 10rs change" style="width: 100%; padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                </div>
+                
+                <button class="btn" style="width: 100%; padding: 12px;" onclick="submitCashTransaction()">Save Transaction</button>
+            </div>
+            
+            <!-- Right: Balance & History -->
+            <div class="card" style="display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #EBF8FF; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #90CDF4;">
+                    <div>
+                        <div style="font-size: 12px; color: #4A5568; font-weight: bold; text-transform: uppercase;">Expected Cash in Drawer</div>
+                        <div style="font-size: 28px; font-weight: 800; color: #2B6CB0;" id="cash-balance">₹0.00</div>
+                    </div>
+                    <div style="text-align: right; font-size: 13px; color: #4A5568;">
+                        <div style="margin-bottom: 4px;">Cash Sales Today: <span id="cash-sales" style="font-weight: bold; color: #38A169;">₹0.00</span></div>
+                        <div style="margin-bottom: 4px;">Money IN: <span id="cash-in" style="font-weight: bold; color: #319795;">+₹0.00</span></div>
+                        <div>Money OUT: <span id="cash-out" style="font-weight: bold; color: #E53E3E;">-₹0.00</span></div>
+                    </div>
+                </div>
+                
+                <h2 style="font-size: 16px; margin-bottom: 12px; border-bottom: 2px solid var(--primary); padding-bottom: 8px;">Today's Transactions</h2>
+                <div id="cash-history-container" style="overflow-y: auto; flex: 1; max-height: 300px; padding-right: 8px;">
+                    <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...</div>
+                </div>
+            </div>
+        </div>
+        </div>
+        </div>
     <!-- Modals (Printer, Receipt, etc.) hidden for brevity, but retaining logic -->
     <div id="printer-settings-modal" class="modal-overlay">
         <div class="modal-container" style="max-width: 450px;">
             <div class="modal-header">
-                <h3>🖨️ Niyama Thermal Printer</h3>
+                <h3> Niyama Thermal Printer</h3>
                 <button class="modal-close-btn" onclick="closePrinterModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div
                     style="font-size: 13px; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; background: #EDF2F7; padding: 10px; border-radius: 8px;">
                     <span>Connection Status:</span>
-                    <span id="bt-status-text" style="font-weight: bold; color: #718096;">🔴 Disconnected</span>
+                    <span id="bt-status-text" style="font-weight: bold; color: #718096;"> Disconnected</span>
                 </div>
                 <div style="display: flex; gap: 8px; margin-bottom: 16px;">
                     <button type="button" class="btn"
                         style="flex: 1; padding: 10px; font-size: 13px; background: var(--primary);"
-                        onclick="connectBluetooth()">🔌 Connect Printer</button>
+                        onclick="connectBluetooth()"> Connect Printer</button>
                     <button type="button" id="bt-test-btn" class="btn"
                         style="display: none; padding: 10px; font-size: 13px; background: #e2e8f0; color: #1a202c;"
-                        onclick="printTestReceipt()">📄 Print Test Slip</button>
+                        onclick="printTestReceipt()"> Print Test Slip</button>
                 </div>
             </div>
             <div class="modal-footer">
@@ -162,7 +222,7 @@
     <div id="receipt-preview-modal" class="modal-overlay">
         <div class="modal-container" style="max-width: 400px;">
             <div class="modal-header" style="background-color: #E6FFFA;">
-                <h3 style="color: #319795;">🎉 Bill Created!</h3>
+                <h3 style="color: #319795;"> Bill Created!</h3>
                 <button class="modal-close-btn" onclick="closeReceiptModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -172,10 +232,10 @@
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
                     <button id="modal-bt-print-btn" class="btn" style="background-color: #2B6CB0; color: white;"
-                        onclick="printActiveBillBluetooth()">🔵 Print via Bluetooth</button>
+                        onclick="printActiveBillBluetooth()"> Print via Bluetooth</button>
                     <button class="btn btn-secondary"
                         style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748;"
-                        onclick="printActiveBillBrowser()">🖨️ Print via Browser Dialog</button>
+                        onclick="printActiveBillBrowser()"> Print via Browser Dialog</button>
                 </div>
             </div>
             <div class="modal-footer" style="background-color: #E6FFFA;">
@@ -189,10 +249,158 @@
 
     <script>
         const ACTIVE_CASHIER_ID = {{ target_cashier_id }};
+        const ACTIVE_SHOPKEEPER_ID = ACTIVE_CASHIER_ID;
         let cart = [];
         let bluetoothDevice = null;
         let printCharacteristic = null;
         let activeBillData = null;
+
+        // Cash Tracker Logic for Factory
+        function switchTab(tabId) {
+            if (tabId === 'pos') {
+                document.getElementById('pos-view').style.display = '';
+                document.getElementById('cash-view').style.display = 'none';
+                
+                document.getElementById('tab-pos').style.backgroundColor = 'var(--primary)';
+                document.getElementById('tab-pos').style.color = 'white';
+                document.getElementById('tab-cash').style.backgroundColor = '#EDF2F7';
+                document.getElementById('tab-cash').style.color = '#2D3748';
+            } else {
+                document.getElementById('pos-view').style.display = 'none';
+                document.getElementById('cash-view').style.display = 'grid';
+                
+                document.getElementById('tab-pos').style.backgroundColor = '#EDF2F7';
+                document.getElementById('tab-pos').style.color = '#2D3748';
+                document.getElementById('tab-cash').style.backgroundColor = 'var(--primary)';
+                document.getElementById('tab-cash').style.color = 'white';
+                
+                fetchCashData();
+            }
+        }
+
+        async function fetchCashData() {
+            try {
+                const response = await fetch(`/api/cash-transactions?shopkeeper_id=${ACTIVE_SHOPKEEPER_ID}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('cash-balance').textContent = `₹${data.balance.toFixed(2)}`;
+                    document.getElementById('cash-sales').textContent = `₹${data.cash_sales.toFixed(2)}`;
+                    document.getElementById('cash-in').textContent = `+₹${data.total_in.toFixed(2)}`;
+                    document.getElementById('cash-out').textContent = `-₹${data.total_out.toFixed(2)}`;
+                    
+                    const container = document.getElementById('cash-history-container');
+                    container.innerHTML = '';
+                    
+                    if (data.transactions.length === 0) {
+                        container.innerHTML = '<div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">No cash transactions today</div>';
+                        return;
+                    }
+                    
+                    data.transactions.forEach(t => {
+                        const isOut = t.type === 'OUT';
+                        const color = isOut ? '#E53E3E' : '#319795';
+                        const sign = isOut ? '-' : '+';
+                        
+                        const txTime = new Date(t.timestamp);
+                        const now = new Date();
+                        const diffSecs = (now - txTime) / 1000;
+                        const canRevert = diffSecs < 180;
+                        
+                        const timeStr = txTime.toLocaleString(undefined, {
+                            year: 'numeric', month: '2-digit', day: '2-digit', 
+                            hour: '2-digit', minute: '2-digit'
+                        });
+                        
+                        const card = document.createElement('div');
+                        card.style.padding = '12px';
+                        card.style.borderBottom = '1px solid #E2E8F0';
+                        card.style.display = 'flex';
+                        card.style.justifyContent = 'space-between';
+                        card.style.alignItems = 'center';
+                        
+                        let revertBtnHtml = '';
+                        if (canRevert) {
+                            revertBtnHtml = `<button onclick="revertCashTransaction(${t.id})" style="margin-left: 12px; background: none; border: none; color: #E53E3E; cursor: pointer; font-size: 12px; text-decoration: underline;">Revert</button>`;
+                        }
+                        
+                        card.innerHTML = `
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px;">${t.type === 'IN' ? 'Money IN' : 'Money OUT'}</div>
+                                <div style="font-size: 12px; color: #718096;">${t.description || 'No description'}</div>
+                                <div style="font-size: 10px; color: #A0AEC0; margin-top: 4px;">${timeStr}</div>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <div style="font-weight: bold; font-size: 16px; color: ${color};">
+                                    ${sign}₹${t.amount.toFixed(2)}
+                                </div>
+                                ${revertBtnHtml}
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
+            } catch (err) {
+                console.error("Error fetching cash data", err);
+            }
+        }
+
+        async function submitCashTransaction() {
+            const amount = parseFloat(document.getElementById('cash-amount').value);
+            const type = document.getElementById('cash-type').value;
+            const desc = document.getElementById('cash-desc').value;
+            
+            if (isNaN(amount) || amount <= 0) {
+                alert("Please enter a valid amount greater than 0");
+                return;
+            }
+            
+            const payload = {
+                amount: amount,
+                type: type,
+                description: desc,
+                shopkeeper_id: ACTIVE_SHOPKEEPER_ID
+            };
+            
+            try {
+                const response = await fetch('/api/cash-transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('cash-amount').value = '';
+                    document.getElementById('cash-desc').value = '';
+                    fetchCashData();
+                } else {
+                    alert("Failed to record cash transaction: " + (data.detail || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error("Error submitting cash transaction", err);
+                alert("Network error while submitting cash transaction.");
+            }
+        }
+        
+        async function revertCashTransaction(txId) {
+            if (!confirm("Are you sure you want to revert this transaction?")) return;
+            try {
+                const response = await fetch(`/api/cash-transactions/${txId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    fetchCashData();
+                } else {
+                    alert("Failed to revert: " + (data.detail || 'Unknown error'));
+                }
+            } catch(err) {
+                console.error("Error reverting", err);
+                alert("Network error while reverting.");
+            }
+        }
 
         function addSolid(id, name, price, unit) {
             const existing = cart.find(i => i.id === id);
@@ -400,18 +608,18 @@
 
                         const actionButtonsHtml = bill.is_cancelled ? `
                             <button class="btn btn-small" style="background-color: #718096; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="loadBillForReceipt(${bill.id})">
-                                🖨️ Print Void Receipt
+                                 Print Void Receipt
                             </button>
                         ` : `
                             <button class="btn btn-small" style="background-color: var(--primary); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="loadBillForReceipt(${bill.id})">
-                                🖨️ Print Receipt
+                                 Print Receipt
                             </button>
                             <div style="display: flex; gap: 6px; width: 100%;">
                                 <button class="btn btn-secondary btn-small" style="flex: 1;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
-                                    ↩️ Edit
+                                    ↩ Edit
                                 </button>
                                 <button class="btn btn-destructive btn-small" style="flex: 1;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
-                                    ❌ Cancel
+                                     Cancel
                                 </button>
                             </div>
                         `;
@@ -640,7 +848,7 @@
                 await connectToDevice(device);
             } catch (err) {
                 console.error("Bluetooth connection failed", err);
-                statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Connection Failed</span>`;
+                statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;"> Connection Failed</span>`;
                 document.getElementById('header-printer-status').innerText = 'Disconnected';
                 printCharacteristic = null;
                 bluetoothDevice = null;
@@ -660,13 +868,13 @@
                 }
             } catch (err) {
                 console.error("Auto-connect failed", err);
-                statusText.innerHTML = '<span style="color: #718096; font-weight: bold;">🔴 Disconnected</span>';
+                statusText.innerHTML = '<span style="color: #718096; font-weight: bold;"> Disconnected</span>';
             }
         }
 
         function onDisconnected() {
             const statusText = document.getElementById('bt-status-text');
-            statusText.innerHTML = '<span style="color: #718096; font-weight: bold;">🔴 Disconnected</span>';
+            statusText.innerHTML = '<span style="color: #718096; font-weight: bold;"> Disconnected</span>';
             document.getElementById('header-printer-status').innerText = 'Disconnected';
             printCharacteristic = null;
             bluetoothDevice = null;
@@ -825,7 +1033,7 @@
                 statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
             } catch (err) {
                 console.error("Wireless printing failed", err);
-                statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;">🔴 Print Failed: ${err.message || err}</span>`;
+                statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;"> Print Failed: ${err.message || err}</span>`;
             }
         }
 
