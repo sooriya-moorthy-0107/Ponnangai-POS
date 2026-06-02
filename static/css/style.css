@@ -123,20 +123,37 @@ select:focus {
 
 .pos-sidebar {
     display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding-bottom: 24px;
-    margin-bottom: 24px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
     border-bottom: 1px solid #E2E8F0;
-    overflow-x: auto;
 }
 
 .pos-sidebar .btn {
-    padding: 16px 24px;
-    font-size: 16px;
+    padding: 12px 16px;
+    font-size: 14px;
     border-radius: 8px;
-    min-width: 150px;
-    width: 100%;
+    min-width: 0;
+    flex: 1 1 calc(50% - 8px);
+    flex-shrink: 0;
+}
+
+.pos-sidebar .bill-history-section {
+    flex: 1 1 100%;
+    max-height: 200px;
+    display: flex;
+    flex-direction: column;
+    margin-top: 4px;
+    margin-bottom: 0;
+    overflow: hidden;
+}
+
+.pos-sidebar #bill-history-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 
@@ -166,37 +183,48 @@ select:focus {
     .pos-container {
         flex-direction: row;
     }
+
     .pos-sidebar {
         flex-direction: column;
-        min-width: 180px;
+        flex-wrap: nowrap;
+        min-width: 220px;
         padding-right: 16px;
         margin-bottom: 0;
         padding-bottom: 0;
         border-right: 1px solid #E2E8F0;
         border-bottom: none;
+        position: sticky;
+        top: 80px;
+        height: calc(100vh - 100px);
+    }
+
+    .pos-sidebar .btn {
+        padding: 16px 24px;
+        font-size: 16px;
+        width: 100%;
+        flex: none;
+    }
+
+    .pos-sidebar .bill-history-section {
+        flex: 1;
+        max-height: none;
+    }
+
+    .pos-sidebar #bill-history-container {
+        padding-right: 8px;
     }
 
     .cash-layout {
         grid-template-columns: 1fr 2fr;
     }
 
-    .bill-history-section {
-        order: 1;
-        flex: 0.8;
-        position: sticky;
-        top: 80px;
-        height: calc(100vh - 100px);
-        overflow-y: auto;
-        min-width: 200px;
-    }
-
     .product-grid {
-        order: 2;
+        order: 1;
         flex: 2.6;
     }
 
     .cart-section {
-        order: 3;
+        order: 2;
         flex: 1;
         position: sticky;
         top: 80px;
@@ -206,10 +234,7 @@ select:focus {
     }
 }
 
-.bill-history-section {
-    order: -1;
-    /* Ensure it comes first on mobile too */
-}
+
 
 .history-card {
     background-color: var(--card-bg);
@@ -236,7 +261,7 @@ select:focus {
 
 .product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 16px;
 }
 
@@ -244,7 +269,7 @@ select:focus {
     background-color: var(--card-bg);
     border: 1px solid #E2E8F0;
     border-radius: var(--border-radius);
-    padding: 12px;
+    padding: 5px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -263,9 +288,9 @@ select:focus {
 }
 
 .product-name {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
     word-break: break-word;
 }
 

@@ -45,156 +45,168 @@
 
 
         <!-- Grid Layout for Row 2 -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing); margin-top: var(--spacing);">
-                <div class="card">
-                    <h2
-                        style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
-                        Shop Performance</h2>
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing); margin-top: var(--spacing);">
+            <div class="card">
+                <h2
+                    style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                    Shop Performance</h2>
+                <ul style="list-style: none; padding: 0;">
+                    {% for sp in shop_performance %}
+                    <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;"
+                        onclick="viewShopAnalytics({{ sp.shopkeeper.id }})"
+                        onmouseover="this.style.backgroundColor='#F7FAFC'"
+                        onmouseout="this.style.backgroundColor='transparent'">
+                        <span><strong>{{ sp.shopkeeper.username }}</strong></span>
+                        <span style="text-align: right;">{{ sp.sales }} Bills<br><span
+                                style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue)
+                                }}</span></span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% if archived_shopkeepers %}
+                <div style="margin-top: 16px; border-top: 1px dashed #CBD5E0; padding-top: 12px;">
+                    <h3
+                        style="font-size: 13px; margin-bottom: 8px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Archived Shops (History)</h3>
                     <ul style="list-style: none; padding: 0;">
-                        {% for sp in shop_performance %}
-                        <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;"
-                            onclick="viewShopAnalytics({{ sp.shopkeeper.id }})"
-                            onmouseover="this.style.backgroundColor='#F7FAFC'"
+                        {% for sk in archived_shopkeepers %}
+                        <li style="padding: 6px 0; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 13px;"
+                            onclick="viewShopAnalytics({{ sk.id }})" onmouseover="this.style.backgroundColor='#EDF2F7'"
                             onmouseout="this.style.backgroundColor='transparent'">
-                            <span><strong>{{ sp.shopkeeper.username }}</strong></span>
-                            <span style="text-align: right;">{{ sp.sales }} Bills<br><span
-                                    style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue)
-                                    }}</span></span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% if archived_shopkeepers %}
-                    <div style="margin-top: 16px; border-top: 1px dashed #CBD5E0; padding-top: 12px;">
-                        <h3 style="font-size: 13px; margin-bottom: 8px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Archived Shops (History)</h3>
-                        <ul style="list-style: none; padding: 0;">
-                            {% for sk in archived_shopkeepers %}
-                            <li style="padding: 6px 0; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 13px;"
-                                onclick="viewShopAnalytics({{ sk.id }})"
-                                onmouseover="this.style.backgroundColor='#EDF2F7'"
-                                onmouseout="this.style.backgroundColor='transparent'">
-                                <span style="color: #718096; max-width: 70%; word-break: break-word;"><strong>{{ sk.username }}</strong></span>
-                                <span class="btn btn-secondary btn-small" style="padding: 2px 6px; font-size: 11px;">Analyze</span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="card">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h2
-                            style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
-                            Staff Logins</h2>
-                        {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                        <button class="btn btn-small"
-                            onclick="hideAddUserForm(); document.getElementById('add-user-form').style.display='flex'">+
-                            Add User</button>
-                        {% endif %}
-                    </div>
-
-                    {% if user.role in ['Admin', 'Manager', 'Owner'] %}
-                    <div id="add-user-form"
-                        style="display: none; flex-direction: column; gap: 8px; margin-bottom: 16px; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
-                        <div>
-                            <label
-                                style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Username</label>
-                            <input type="text" id="new-username" style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label
-                                style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Password</label>
-                            <input type="text" id="new-password" style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label
-                                style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Role</label>
-                            <select id="new-role" style="margin-bottom: 0; padding: 8px; width: 100%;">
-                                {% if user.role == 'Admin' %}
-                                <option value="Admin">Admin</option>
-                                <option value="Owner">Owner</option>
-                                <option value="Manager">Manager</option>
-                                {% endif %}
-                                <option value="Shopkeeper" selected>Shopkeeper</option>
-                                <option value="Factory">Factory Cashier</option>
-                            </select>
-                        </div>
-                        <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <button class="btn" id="save-user-btn" style="flex: 1;" onclick="addUser()">Save</button>
-                            <button class="btn btn-secondary" style="flex: 1;"
-                                onclick="hideAddUserForm()">Cancel</button>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <ul style="list-style: none; padding: 0;">
-                        {% for u in users %}
-                        <li
-                            style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
-                            <span><strong>{{ u.username }}</strong> ({{ u.role }})</span>
-                            {% if user.role == 'Admin' and u.id != user.id %}
-                             <div style="display: flex; gap: 4px;">
-                                 <button class="btn btn-secondary btn-small"
-                                     onclick='resetPassword({{ u.id }}, {{ u.username | tojson }})'>Pwd</button>
-                                 <button class="btn btn-secondary btn-small"
-                                     onclick='showEditUser({{ u.id }}, {{ u.username | tojson }}, {{ u.role | tojson }})'>Edit</button>
-                                 <button class="btn btn-destructive btn-small"
-                                     onclick='deleteUser({{ u.id }}, {{ u.username | tojson }})'>Del</button>
-                             </div>
-                            {% endif %}
+                            <span style="color: #718096; max-width: 70%; word-break: break-word;"><strong>{{ sk.username
+                                    }}</strong></span>
+                            <span class="btn btn-secondary btn-small"
+                                style="padding: 2px 6px; font-size: 11px;">Analyze</span>
                         </li>
                         {% endfor %}
                     </ul>
                 </div>
+                {% endif %}
+            </div>
 
-                <div class="card" style="max-height: 300px; overflow-y: auto;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h2
-                        style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
-                        Low Stock Breakdown</h2>
-                    <ul style="list-style: none; padding: 0;">
-                        {% for alert in low_stock_alerts %}
-                        <li
-                            style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
-                            <span><strong>{{ alert.product.name }}</strong><br><span
-                                    style="font-size: 12px; color: #718096;">Shop: {{ alert.shopkeeper.username
-                                    }}</span></span>
-                            <span style="color: var(--destructive); font-weight: bold; text-align: right;">{{
-                                alert.stock }} left</span>
-                        </li>
-                        {% else %}
-                        <li style="padding: 8px 0; color: #718096; text-align: center;">All stock levels are healthy!
-                        </li>
-                        {% endfor %}
-                    </ul>
+                        style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
+                        Staff Logins</h2>
+                    {% if user.role in ['Admin', 'Manager', 'Owner'] %}
+                    <button class="btn btn-small"
+                        onclick="hideAddUserForm(); document.getElementById('add-user-form').style.display='flex'">+
+                        Add User</button>
+                    {% endif %}
                 </div>
+
+                {% if user.role in ['Admin', 'Manager', 'Owner'] %}
+                <div id="add-user-form"
+                    style="display: none; flex-direction: column; gap: 8px; margin-bottom: 16px; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
+                    <div>
+                        <label
+                            style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Username</label>
+                        <input type="text" id="new-username" style="margin-bottom: 0;">
+                    </div>
+                    <div>
+                        <label
+                            style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Password</label>
+                        <input type="text" id="new-password" style="margin-bottom: 0;">
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Role</label>
+                        <select id="new-role" style="margin-bottom: 0; padding: 8px; width: 100%;">
+                            {% if user.role == 'Admin' %}
+                            <option value="Admin">Admin</option>
+                            <option value="Owner">Owner</option>
+                            <option value="Manager">Manager</option>
+                            {% endif %}
+                            <option value="Shopkeeper" selected>Shopkeeper</option>
+                            <option value="Factory">Factory Cashier</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button class="btn" id="save-user-btn" style="flex: 1;" onclick="addUser()">Save</button>
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="hideAddUserForm()">Cancel</button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <ul style="list-style: none; padding: 0;">
+                    {% for u in users %}
+                    <li
+                        style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+                        <span><strong>{{ u.username }}</strong> ({{ u.role }})</span>
+                        {% if user.role == 'Admin' and u.id != user.id %}
+                        <div style="display: flex; gap: 4px;">
+                            <button class="btn btn-secondary btn-small"
+                                onclick='resetPassword({{ u.id }}, {{ u.username | tojson }})'>Pwd</button>
+                            <button class="btn btn-secondary btn-small"
+                                onclick='showEditUser({{ u.id }}, {{ u.username | tojson }}, {{ u.role | tojson }})'>Edit</button>
+                            <button class="btn btn-destructive btn-small"
+                                onclick='deleteUser({{ u.id }}, {{ u.username | tojson }})'>Del</button>
+                        </div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="card" style="max-height: 300px; overflow-y: auto;">
+                <h2
+                    style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                    Low Stock Breakdown</h2>
+                <ul style="list-style: none; padding: 0;">
+                    {% for alert in low_stock_alerts %}
+                    <li
+                        style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+                        <span><strong>{{ alert.product.name }}</strong><br><span
+                                style="font-size: 12px; color: #718096;">Shop: {{ alert.shopkeeper.username
+                                }}</span></span>
+                        <span style="color: var(--destructive); font-weight: bold; text-align: right;">{{
+                            alert.stock }} left</span>
+                    </li>
+                    {% else %}
+                    <li style="padding: 8px 0; color: #718096; text-align: center;">All stock levels are healthy!
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
 
 
         </div>
         <!-- Daily Sales Reports -->
         <div class="card" style="margin-top: var(--spacing);">
-            <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin-bottom: 16px;">
-                📊 Daily Sales & Packaging Reports
+            <h2
+                style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin-bottom: 16px;">
+                Daily Sales & Packaging Reports
             </h2>
-            
+
             <div style="display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-end; flex-wrap: wrap;">
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button id="btn-report-today" class="btn" style="padding: 4px 12px; background: var(--primary); color: white;" onclick="setReportMode('today')">Today</button>
-                        <button id="btn-report-range" class="btn btn-secondary" style="padding: 4px 12px;" onclick="setReportMode('range')">Date Range</button>
+                        <button id="btn-report-today" class="btn"
+                            style="padding: 4px 12px; background: var(--primary); color: white;"
+                            onclick="setReportMode('today')">Today</button>
+                        <button id="btn-report-range" class="btn btn-secondary" style="padding: 4px 12px;"
+                            onclick="setReportMode('range')">Date Range</button>
                     </div>
                     <div id="report-date-today-container">
-                        <input type="date" id="report-date-today" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; background: #EDF2F7;" readonly>
+                        <input type="date" id="report-date-today"
+                            style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; background: #EDF2F7;"
+                            readonly>
                     </div>
                     <div id="report-date-range-container" style="display: none; align-items: center; gap: 8px;">
-                        <input type="date" id="report-start-date" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                        <input type="date" id="report-start-date"
+                            style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
                         <span style="color: #718096; font-size: 12px; font-weight: bold;">TO</span>
-                        <input type="date" id="report-end-date" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                        <input type="date" id="report-end-date"
+                            style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
                     </div>
                 </div>
                 <div>
-                    <label style="font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 4px; display: block;">Select Shop</label>
-                    <select id="report-shop" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; min-width: 200px;">
+                    <label
+                        style="font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 4px; display: block;">Select
+                        Shop</label>
+                    <select id="report-shop"
+                        style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; min-width: 200px;">
                         <option value="">-- Select a Shop --</option>
                         {% for sk in shopkeepers %}
                         <option value="{{ sk.id }}">{{ sk.username }}</option>
@@ -208,7 +220,8 @@
             </div>
 
             <div id="report-results" style="display: none;">
-                <div id="report-top-revenue" style="margin-bottom: 16px; font-size: 16px; font-weight: bold; color: var(--primary); padding: 12px; background: #EBF8FF; border: 1px solid #90CDF4; border-radius: 8px;">
+                <div id="report-top-revenue"
+                    style="margin-bottom: 16px; font-size: 16px; font-weight: bold; color: var(--primary); padding: 12px; background: #EBF8FF; border: 1px solid #90CDF4; border-radius: 8px;">
                     <!-- Populated by JS -->
                 </div>
                 <table class="admin-table" id="report-table">
@@ -222,7 +235,8 @@
                 </table>
                 <div id="report-bottle-counts" style="margin-top: 16px; font-size: 14px; color: #4A5568;"></div>
                 <div style="margin-top: 16px; text-align: right;">
-                    <button class="btn" style="background-color: #38A169; border-color: #38A169;" onclick="exportDailyReport()">
+                    <button class="btn" style="background-color: #38A169; border-color: #38A169;"
+                        onclick="exportDailyReport()">
                         📥 Export to Excel (CSV)
                     </button>
                 </div>
@@ -237,8 +251,10 @@
         <div style="margin-top: var(--spacing);">
             <!-- Inventory Management (Admin/Manager) -->
             <div class="card" style="display: flex; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
-                    <h2 style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                    <h2
+                        style="font-size: 18px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; margin: 0;">
                         🏪 Shop Inventories & Catalog
                     </h2>
                 </div>
@@ -287,16 +303,20 @@
                                         <td>{{ ns.sno }}</td>
                                         <td>
                                             {% if product.image_filename %}
-                                            <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #E2E8F0;">
+                                            <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}"
+                                                style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #E2E8F0;">
                                             {% else %}
-                                            <div style="width: 40px; height: 40px; background-color: #EDF2F7; border-radius: 4px; border: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #A0AEC0;">None</div>
+                                            <div
+                                                style="width: 40px; height: 40px; background-color: #EDF2F7; border-radius: 4px; border: 1px solid #E2E8F0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #A0AEC0;">
+                                                None</div>
                                             {% endif %}
                                         </td>
                                         <td>{{ product.name }}</td>
                                         {% if sk.role != 'Factory' %}
                                         <td>{{ "%.2f"|format(product.price) }}</td>
                                         <td>
-                                            <span style="{% if stk < 10 %}color: var(--destructive); font-weight: bold;{% endif %}">
+                                            <span
+                                                style="{% if stk < 10 %}color: var(--destructive); font-weight: bold;{% endif %}">
                                                 {{ stk }}
                                             </span>
                                         </td>
@@ -305,8 +325,8 @@
                                         {% if sk.role != 'Factory' %}
                                         <td>
                                             <div style="display: flex; gap: 4px; max-width: 150px;">
-                                                <input type="number" id="stock-{{ sk.id }}-{{ product.id }}" value="{{ stk }}"
-                                                    style="margin-bottom: 0; padding: 6px;">
+                                                <input type="number" id="stock-{{ sk.id }}-{{ product.id }}"
+                                                    value="{{ stk }}" style="margin-bottom: 0; padding: 6px;">
                                                 <button class="btn btn-small"
                                                     onclick="updateStock({{ sk.id }}, {{ product.id }})">Save</button>
                                             </div>
@@ -314,8 +334,11 @@
                                         {% endif %}
                                         <td>
                                             <div style="display: flex; gap: 8px; align-items: center;">
-                                                <input type="file" accept="image/*" style="font-size: 11px; max-width: 140px; padding: 2px;" onchange="uploadDirectPhoto(this, {{ product.id }})">
-                                                <button class="btn btn-destructive btn-small" onclick='deleteProduct({{ product.id }}, {{ product.name | tojson }})'>Delete</button>
+                                                <input type="file" accept="image/*"
+                                                    style="font-size: 11px; max-width: 140px; padding: 2px;"
+                                                    onchange="uploadDirectPhoto(this, {{ product.id }})">
+                                                <button class="btn btn-destructive btn-small"
+                                                    onclick='deleteProduct({{ product.id }}, {{ product.name | tojson }})'>Delete</button>
                                             </div>
                                         </td>
                                         {% endif %}
@@ -325,20 +348,24 @@
                                     {% if not ns.has_items %}
                                     <tr>
                                         <td colspan="7" style="text-align: center; color: #718096; padding: 24px;">
-                                            No active products in this shop's inventory. This shop starts completely from zero! Add products using the buttons below.
+                                            No active products in this shop's inventory. This shop starts completely
+                                            from zero! Add products using the buttons below.
                                         </td>
                                     </tr>
                                     {% endif %}
-                                  </tbody>
+                                </tbody>
                             </table>
 
                             {% if user.role in ['Admin', 'Manager', 'Owner'] %}
                             <!-- Shopkeeper Action Controls -->
                             <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-                                <button class="btn btn-small" onclick="toggleAddProductForm({{ sk.id }})">➕ Add Product</button>
-                                <button class="btn btn-secondary btn-small" onclick="toggleBulkUploadForm({{ sk.id }})">Bulk Add/Edit Products (CSV)</button>
+                                <button class="btn btn-small" onclick="toggleAddProductForm({{ sk.id }})">➕ Add
+                                    Product</button>
+                                <button class="btn btn-secondary btn-small"
+                                    onclick="toggleBulkUploadForm({{ sk.id }})">Bulk Add/Edit Products (CSV)</button>
                                 {% if sk.role != 'Factory' %}
-                                <button class="btn btn-secondary btn-small" onclick="toggleBulkStockForm({{ sk.id }})">📈 Bulk Update Stock (CSV)</button>
+                                <button class="btn btn-secondary btn-small"
+                                    onclick="toggleBulkStockForm({{ sk.id }})">📈 Bulk Update Stock (CSV)</button>
                                 {% endif %}
                             </div>
 
@@ -346,70 +373,103 @@
                             <div id="add-product-form-{{ sk.id }}"
                                 style="display: none; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: flex-end; background: var(--surface); padding: 12px; border-radius: var(--radius); border: 1px solid #E2E8F0;">
                                 <div style="flex: 2; min-width: 150px;">
-                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Product Name</label>
-                                    <input type="text" id="new-product-name-{{ sk.id }}" placeholder="e.g. Floor Cleaner 1L" style="margin-bottom: 0;">
+                                    <label
+                                        style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Product
+                                        Name</label>
+                                    <input type="text" id="new-product-name-{{ sk.id }}"
+                                        placeholder="e.g. Floor Cleaner 1L" style="margin-bottom: 0;">
                                 </div>
                                 <div style="flex: 1; min-width: 100px;">
-                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Price (₹)</label>
-                                    <input type="number" id="new-product-price-{{ sk.id }}" placeholder="0.00" step="0.01" style="margin-bottom: 0;">
+                                    <label
+                                        style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Price
+                                        (₹)</label>
+                                    <input type="number" id="new-product-price-{{ sk.id }}" placeholder="0.00"
+                                        step="0.01" style="margin-bottom: 0;">
                                 </div>
                                 {% if sk.role != 'Factory' %}
                                 <div style="flex: 1; min-width: 100px;">
-                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Initial Stock</label>
-                                    <input type="number" id="new-product-stock-{{ sk.id }}" placeholder="0" style="margin-bottom: 0;">
+                                    <label
+                                        style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Initial
+                                        Stock</label>
+                                    <input type="number" id="new-product-stock-{{ sk.id }}" placeholder="0"
+                                        style="margin-bottom: 0;">
                                 </div>
                                 {% else %}
                                 <input type="hidden" id="new-product-stock-{{ sk.id }}" value="99999">
                                 {% endif %}
                                 <div style="flex: 1; min-width: 110px;">
-                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Product Type</label>
-                                    <select id="new-product-type-{{ sk.id }}" style="margin-bottom: 0; padding: 12px; border: 1px solid #E2E8F0; border-radius: var(--border-radius); font-size: 16px;">
+                                    <label
+                                        style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Product
+                                        Type</label>
+                                    <select id="new-product-type-{{ sk.id }}"
+                                        style="margin-bottom: 0; padding: 12px; border: 1px solid #E2E8F0; border-radius: var(--border-radius); font-size: 16px;">
                                         <option value="solid" selected>Solid</option>
-                                        <option value="liquid" {% if sk.role == 'Factory' %}selected{% endif %}>Liquid</option>
+                                        <option value="liquid" {% if sk.role=='Factory' %}selected{% endif %}>Liquid
+                                        </option>
                                     </select>
                                 </div>
                                 <div style="flex: 1; min-width: 90px;">
-                                    <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Unit</label>
-                                    <input type="text" id="new-product-unit-{{ sk.id }}" placeholder="e.g. Pcs" value="{% if sk.role == 'Factory' %}Liters{% else %}Pcs{% endif %}" style="margin-bottom: 0;">
+                                    <label
+                                        style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block;">Unit</label>
+                                    <input type="text" id="new-product-unit-{{ sk.id }}" placeholder="e.g. Pcs"
+                                        value="{% if sk.role == 'Factory' %}Liters{% else %}Pcs{% endif %}"
+                                        style="margin-bottom: 0;">
                                 </div>
                                 <button class="btn btn-small" onclick="addNewProductToShop({{ sk.id }})">Save</button>
-                                <button class="btn btn-secondary btn-small" onclick="toggleAddProductForm({{ sk.id }})">Cancel</button>
+                                <button class="btn btn-secondary btn-small"
+                                    onclick="toggleAddProductForm({{ sk.id }})">Cancel</button>
                             </div>
 
                             <!-- Inline Bulk CSV Upload Form -->
                             <div id="bulk-upload-form-{{ sk.id }}"
                                 style="display: none; gap: 8px; margin-top: 12px; flex-direction: column; background: #FFF5F5; padding: 12px; border-radius: var(--radius); border: 1px solid #FEB2B2;">
-                                <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #C53030;">Bulk Add/Edit Products (CSV)</h3>
+                                <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #C53030;">Bulk Add/Edit Products
+                                    (CSV)</h3>
                                 <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">
                                     Upload a CSV file to add or update products specifically for this shop.<br>
                                     <strong>Required Columns:</strong> <code>Product Name</code>, <code>Price</code><br>
-                                    <strong>Optional Columns:</strong> <code>Initial Stock</code>, <code>Image Name</code><br>
+                                    <strong>Optional Columns:</strong> <code>Initial Stock</code>,
+                                    <code>Image Name</code><br>
                                 </p>
-                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
-                                    <input type="file" id="product-csv-file-{{ sk.id }}" accept=".csv" style="font-size: 12px;">
-                                    <button class="btn btn-small" onclick="uploadBulkProductsToShop({{ sk.id }})" style="background-color: var(--destructive); border-color: var(--destructive);">Upload</button>
-                                    <button class="btn btn-secondary btn-small" onclick="toggleBulkUploadForm({{ sk.id }})">Cancel</button>
+                                <div
+                                    style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                                    <input type="file" id="product-csv-file-{{ sk.id }}" accept=".csv"
+                                        style="font-size: 12px;">
+                                    <button class="btn btn-small" onclick="uploadBulkProductsToShop({{ sk.id }})"
+                                        style="background-color: var(--destructive); border-color: var(--destructive);">Upload</button>
+                                    <button class="btn btn-secondary btn-small"
+                                        onclick="toggleBulkUploadForm({{ sk.id }})">Cancel</button>
                                 </div>
                                 <div>
-                                    <button class="btn btn-secondary btn-small" onclick="downloadProductTemplate()" style="background-color: white; color: #C53030; border: 1px solid #FEB2B2; padding: 4px 8px; font-size: 11px;">📥 Download Products CSV Template</button>
+                                    <button class="btn btn-secondary btn-small" onclick="downloadProductTemplate()"
+                                        style="background-color: white; color: #C53030; border: 1px solid #FEB2B2; padding: 4px 8px; font-size: 11px;">📥
+                                        Download Products CSV Template</button>
                                 </div>
                             </div>
 
                             <!-- Inline Bulk Stock Update Form -->
                             <div id="bulk-stock-form-{{ sk.id }}"
                                 style="display: none; gap: 8px; margin-top: 12px; flex-direction: column; background: #EBF8FF; padding: 12px; border-radius: var(--radius); border: 1px solid #90CDF4;">
-                                <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #2B6CB0;">Bulk Update Stock (CSV)</h3>
+                                <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #2B6CB0;">Bulk Update Stock (CSV)
+                                </h3>
                                 <p style="font-size: 12px; color: #4A5568; margin-bottom: 8px;">
                                     Upload a CSV file to update stock levels for existing products in this shop.<br>
                                     <strong>Required Columns:</strong> <code>Product Name</code>, <code>New Stock</code>
                                 </p>
-                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
-                                    <input type="file" id="stock-csv-file-{{ sk.id }}" accept=".csv" style="font-size: 12px;">
-                                    <button class="btn btn-small" onclick="uploadBulkStockToShop({{ sk.id }})" style="background-color: #3182CE; border-color: #3182CE;">Upload</button>
-                                    <button class="btn btn-secondary btn-small" onclick="toggleBulkStockForm({{ sk.id }})">Cancel</button>
+                                <div
+                                    style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                                    <input type="file" id="stock-csv-file-{{ sk.id }}" accept=".csv"
+                                        style="font-size: 12px;">
+                                    <button class="btn btn-small" onclick="uploadBulkStockToShop({{ sk.id }})"
+                                        style="background-color: #3182CE; border-color: #3182CE;">Upload</button>
+                                    <button class="btn btn-secondary btn-small"
+                                        onclick="toggleBulkStockForm({{ sk.id }})">Cancel</button>
                                 </div>
                                 <div>
-                                    <button class="btn btn-secondary btn-small" onclick="downloadStockTemplate({{ sk.id }})" style="background-color: white; color: #2B6CB0; border: 1px solid #90CDF4; padding: 4px 8px; font-size: 11px;">📥 Download Stock CSV Template</button>
+                                    <button class="btn btn-secondary btn-small"
+                                        onclick="downloadStockTemplate({{ sk.id }})"
+                                        style="background-color: white; color: #2B6CB0; border: 1px solid #90CDF4; padding: 4px 8px; font-size: 11px;">📥
+                                        Download Stock CSV Template</button>
                                 </div>
                             </div>
                             {% endif %}
@@ -423,28 +483,30 @@
         </div>
 
         <!-- Danger / Help Row -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing); margin-top: var(--spacing);">
-                <div class="card" style="background-color: #FFF5F5; border-color: #FEB2B2;">
-                    <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">Need Help?</h2>
-                    <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">If you encounter a bug or the
-                        system freezes, please take a screenshot.</p>
-                    <button class="btn btn-destructive"
-                        onclick="alert('Please take a screenshot of your issue and WhatsApp it to the Admin immediately.')">Report
-                        Bug</button>
-                </div>
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing); margin-top: var(--spacing);">
+            <div class="card" style="background-color: #FFF5F5; border-color: #FEB2B2;">
+                <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">Need Help?</h2>
+                <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">If you encounter a bug or the
+                    system freezes, please take a screenshot.</p>
+                <button class="btn btn-destructive"
+                    onclick="alert('Please take a screenshot of your issue and WhatsApp it to the Admin immediately.')">Report
+                    Bug</button>
+            </div>
 
-                {% if user.role == 'Admin' %}
-                <div class="card" style="background-color: #FFF5F5; border-color: #FEB2B2;">
-                    <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">System Reset (Danger)
-                    </h2>
-                    <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">Permanently delete ALL products, catalogs, inventories, bills, and sales history. Cannot be undone.</p>
-                    <button class="btn btn-destructive" onclick="resetSystem()">Reset Database</button>
-                </div>
-                {% endif %}
+            {% if user.role == 'Admin' %}
+            <div class="card" style="background-color: #FFF5F5; border-color: #FEB2B2;">
+                <h2 style="font-size: 18px; margin-bottom: 8px; color: var(--destructive);">System Reset (Danger)
+                </h2>
+                <p style="font-size: 14px; margin-bottom: 16px; color: #4A5568;">Permanently delete ALL products,
+                    catalogs, inventories, bills, and sales history. Cannot be undone.</p>
+                <button class="btn btn-destructive" onclick="resetSystem()">Reset Database</button>
+            </div>
+            {% endif %}
 
 
         </div>
-        
+
     </div> <!-- Close Container -->
 
     <!-- Shop Analytics Modal -->
@@ -506,9 +568,9 @@
             if (mm < 10) mm = '0' + mm;
             return yyyy + '-' + mm + '-' + dd;
         }
-        
+
         let reportMode = 'today';
-        
+
         function setReportMode(mode) {
             reportMode = mode;
             if (mode === 'today') {
@@ -518,7 +580,7 @@
                 document.getElementById('btn-report-range').className = 'btn btn-secondary';
                 document.getElementById('btn-report-range').style.background = '';
                 document.getElementById('btn-report-range').style.color = '';
-                
+
                 document.getElementById('report-date-today-container').style.display = 'block';
                 document.getElementById('report-date-range-container').style.display = 'none';
             } else {
@@ -528,7 +590,7 @@
                 document.getElementById('btn-report-today').className = 'btn btn-secondary';
                 document.getElementById('btn-report-today').style.background = '';
                 document.getElementById('btn-report-today').style.color = '';
-                
+
                 document.getElementById('report-date-today-container').style.display = 'none';
                 document.getElementById('report-date-range-container').style.display = 'flex';
             }
@@ -537,11 +599,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             const todayStr = getTodayDate();
             const dateInput = document.getElementById('report-date-today');
-            if(dateInput) dateInput.value = todayStr;
+            if (dateInput) dateInput.value = todayStr;
             const startDate = document.getElementById('report-start-date');
-            if(startDate) startDate.value = todayStr;
+            if (startDate) startDate.value = todayStr;
             const endDate = document.getElementById('report-end-date');
-            if(endDate) endDate.value = todayStr;
+            if (endDate) endDate.value = todayStr;
         });
 
         function getReportDates() {
@@ -549,7 +611,7 @@
                 const d = document.getElementById('report-date-today').value;
                 return { start: d, end: d };
             } else {
-                return { 
+                return {
                     start: document.getElementById('report-start-date').value,
                     end: document.getElementById('report-end-date').value
                 };
@@ -559,21 +621,21 @@
         async function fetchDailyReport() {
             const shopId = document.getElementById('report-shop').value;
             const dates = getReportDates();
-            
+
             if (!shopId || !dates.start || !dates.end) {
                 alert("Please select a shop and ensure dates are valid.");
                 return;
             }
-            
+
             try {
                 const res = await fetch(`/api/reports/daily?shopkeeper_id=${shopId}&start_date=${dates.start}&end_date=${dates.end}`);
                 const data = await res.json();
-                
+
                 if (res.ok) {
                     const tbody = document.getElementById('report-table-body');
                     const thead = document.querySelector('#report-table thead tr');
                     tbody.innerHTML = '';
-                    
+
                     if (data.shop_role === 'Factory') {
                         thead.innerHTML = `
                             <th>Product Name</th>
@@ -589,16 +651,16 @@
                             <th style="text-align: right;">Total Revenue</th>
                         `;
                     }
-                    
+
                     if (data.data.length === 0) {
                         document.getElementById('report-results').style.display = 'none';
                         document.getElementById('report-empty').style.display = 'block';
                     } else {
                         document.getElementById('report-empty').style.display = 'none';
                         document.getElementById('report-results').style.display = 'block';
-                        
+
                         let totalRev = 0;
-                        
+
                         if (data.shop_role === 'Factory') {
                             data.data.forEach(row => {
                                 totalRev += row.total_revenue;
@@ -616,7 +678,7 @@
                                 `;
                                 tbody.appendChild(tr);
                             });
-                            
+
                             const sumRow = document.createElement('tr');
                             sumRow.style.backgroundColor = '#EBF8FF';
                             sumRow.innerHTML = `
@@ -624,7 +686,7 @@
                                 <td style="text-align: right; font-weight: bold; color: var(--primary);">₹${totalRev.toFixed(2)}</td>
                             `;
                             tbody.appendChild(sumRow);
-                            
+
                             if (data.revenue_breakdown) {
                                 document.getElementById('report-top-revenue').innerHTML = `
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -636,22 +698,25 @@
                                         </div>
                                     </div>
                                 `;
-                                
+
+                                const netCash = data.revenue_breakdown.Cash + data.total_cash_in - data.total_cash_out;
                                 const breakDownHtml = `
                                     <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">₹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
                                     <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">₹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
                                     <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">₹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #FFF5F5;"><td colspan="4" style="text-align: right; color: #C53030;">Money OUT (Expenses):</td><td style="text-align: right; color: #C53030;">-₹${data.total_cash_out.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F0FFF4;"><td colspan="4" style="text-align: right; font-weight: bold; color: #2F855A;">Total After Expense (Cash in Drawer):</td><td style="text-align: right; font-weight: bold; color: #2F855A;">₹${netCash.toFixed(2)}</td></tr>
                                 `;
                                 tbody.insertAdjacentHTML('beforeend', breakDownHtml);
                             }
 
-                            
+
                             const bottleCountsDiv = document.getElementById('report-bottle-counts');
-                            if(bottleCountsDiv) {
+                            if (bottleCountsDiv) {
                                 let bcHtml = '<strong>Bottle Counts:</strong> ';
                                 let hasBottles = false;
                                 for (const [type, count] of Object.entries(data.bottle_counts)) {
-                                    if(count > 0) {
+                                    if (count > 0) {
                                         bcHtml += `<span style="margin-left: 8px; padding: 2px 8px; background: #CBD5E0; border-radius: 12px; font-size: 12px;">${type} = ${count}</span>`;
                                         hasBottles = true;
                                     }
@@ -668,7 +733,7 @@
                                 shopAgg[row.product].rev += row.total_revenue;
                                 totalRev += row.total_revenue;
                             });
-                            
+
                             for (const [prod, val] of Object.entries(shopAgg)) {
                                 const tr = document.createElement('tr');
                                 tr.innerHTML = `
@@ -678,7 +743,7 @@
                                 `;
                                 tbody.appendChild(tr);
                             }
-                            
+
                             const sumRow = document.createElement('tr');
                             sumRow.style.backgroundColor = '#EBF8FF';
                             sumRow.innerHTML = `
@@ -686,7 +751,7 @@
                                 <td style="text-align: right; font-weight: bold; color: var(--primary);">₹${totalRev.toFixed(2)}</td>
                             `;
                             tbody.appendChild(sumRow);
-                            
+
                             if (data.revenue_breakdown) {
                                 document.getElementById('report-top-revenue').innerHTML = `
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -698,18 +763,21 @@
                                         </div>
                                     </div>
                                 `;
-                                
+
+                                const netCash = data.revenue_breakdown.Cash + data.total_cash_in - data.total_cash_out;
                                 const breakDownHtml = `
                                     <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">₹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
                                     <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">₹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
                                     <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">₹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #FFF5F5;"><td colspan="2" style="text-align: right; color: #C53030;">Money OUT (Expenses):</td><td style="text-align: right; color: #C53030;">-₹${data.total_cash_out.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F0FFF4;"><td colspan="2" style="text-align: right; font-weight: bold; color: #2F855A;">Total After Expense (Cash in Drawer):</td><td style="text-align: right; font-weight: bold; color: #2F855A;">₹${netCash.toFixed(2)}</td></tr>
                                 `;
                                 tbody.insertAdjacentHTML('beforeend', breakDownHtml);
                             }
 
-                            
+
                             const bottleCountsDiv = document.getElementById('report-bottle-counts');
-                            if(bottleCountsDiv) bottleCountsDiv.innerHTML = '';
+                            if (bottleCountsDiv) bottleCountsDiv.innerHTML = '';
                         }
                     }
                 } else {
@@ -719,7 +787,7 @@
                 alert("Network error fetching report.");
             }
         }
-        
+
         function exportDailyReport() {
             const shopId = document.getElementById('report-shop').value;
             const dates = getReportDates();
@@ -800,11 +868,11 @@
                 alert('Please select a CSV file to upload.');
                 return;
             }
-            
+
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             formData.append('shopkeeper_id', shopkeeperId);
-            
+
             try {
                 const response = await fetch('/api/inventory/bulk_upload', {
                     method: 'POST',
@@ -828,20 +896,20 @@
             const stockEl = document.getElementById(`new-product-stock-${shopkeeperId}`);
             const typeEl = document.getElementById(`new-product-type-${shopkeeperId}`);
             const unitEl = document.getElementById(`new-product-unit-${shopkeeperId}`);
-            
+
             if (!nameEl || !priceEl || !stockEl) return;
-            
+
             const name = nameEl.value.trim();
             const price = priceEl.value;
             const stock = stockEl.value;
             const product_type = typeEl ? typeEl.value : "solid";
             const unit = unitEl ? unitEl.value.trim() : "Pcs";
-            
+
             if (!name || !price) {
                 alert('Please provide at least product name and price.');
                 return;
             }
-            
+
             try {
                 const response = await fetch('/api/products/add', {
                     method: 'POST',
@@ -855,7 +923,7 @@
                         unit: unit
                     })
                 });
-                
+
                 const data = await response.json();
                 if (response.ok) {
                     alert(data.detail || 'Product added successfully!');
@@ -874,11 +942,11 @@
                 alert('Please select a CSV file to upload.');
                 return;
             }
-            
+
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             formData.append('shopkeeper_id', shopkeeperId);
-            
+
             try {
                 const response = await fetch('/api/products/bulk_upload', {
                     method: 'POST',
@@ -945,10 +1013,10 @@
         async function uploadDirectPhoto(input, productId) {
             const file = input.files[0];
             if (!file) return;
-            
+
             const formData = new FormData();
             formData.append('file', file);
-            
+
             try {
                 const response = await fetch('/api/products/' + productId + '/image', {
                     method: 'POST',
