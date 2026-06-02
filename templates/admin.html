@@ -76,8 +76,15 @@
                             onmouseout="this.style.backgroundColor='transparent'">
                             <span style="color: #718096; max-width: 70%; word-break: break-word;"><strong>{{ sk.username
                                     }}</strong></span>
-                            <span class="btn btn-secondary btn-small"
-                                style="padding: 2px 6px; font-size: 11px;">Analyze</span>
+                            <div style="display: flex; gap: 4px;">
+                                <span class="btn btn-secondary btn-small"
+                                    style="padding: 2px 6px; font-size: 11px;">Analyze</span>
+                                {% if user.role == 'Admin' %}
+                                <button class="btn btn-destructive btn-small"
+                                    style="padding: 2px 6px; font-size: 11px;"
+                                    onclick="event.stopPropagation(); hardDeleteUser({{ sk.id }}, {{ sk.username | tojson }})">Delete</button>
+                                {% endif %}
+                            </div>
                         </li>
                         {% endfor %}
                     </ul>
@@ -1182,6 +1189,32 @@
                 }
             } catch (err) {
                 alert('Error fetching analytics.');
+            }
+        }
+
+        async function hardDeleteUser(userId, username) {
+            if (!confirm(`DANGER: Are you absolutely sure you want to PERMANENTLY delete the archived account '${username}'? This will erase all their products, bills, and history. This CANNOT be undone.`)) {
+                return;
+            }
+            if (!confirm(`FINAL WARNING: Have you exported necessary reports? Press OK to proceed with wiping all data for '${username}'.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/users/hard_delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert("Account and history permanently deleted.");
+                    location.reload();
+                } else {
+                    alert(data.detail || 'Failed to permanently delete user.');
+                }
+            } catch (err) {
+                alert('Network error during permanent deletion.');
             }
         }
     </script>
