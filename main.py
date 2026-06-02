@@ -1661,6 +1661,58 @@ async def delete_user(request: Request, data: dict, db: Session = Depends(get_db
     db.commit()
     return {"status": "success", "detail": f"User '{original_username}' successfully archived and deleted."}
 
+@app.post("/api/users/hard_delete")
+async def hard_delete_user(request: Request, data: dict, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role != "Admin":
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized. Only Admin can permanently delete."})
+        
+    target_id = data.get("user_id")
+    if target_id is None:
+        return JSONResponse(status_code=400, content={"detail": "Missing user ID"})
+    try:
+        target_id = int(target_id)
+    except (ValueError, TypeError):
+        return JSONResponse(status_code=400, content={"detail": "Invalid user ID format"})
+        
+    target_user = db.query(User).filter(User.id == target_id).first()
+    if not target_user:
+        return JSONResponse(status_code=404, content={"detail": "User not found"})
+        
+    if target_user.id == user.id:
+        return JSONResponse(status_code=400, content={"detail": "Cannot permanently delete yourself"})
+        
+    # Find all bills by this cashier
+    bills = db.query(Bill.id).filter(Bill.cashier_id == target_id).all()
+    bill_ids = [b[0] for b in bills]
+    
+    # Delete BillItems for these bills
+    if bill_ids:
+        db.query(BillItem).filter(BillItem.bill_id.in_(bill_ids)).delete(synchronize_session=False)
+        db.query(Bill).filter(Bill.id.in_(bill_ids)).delete(synchronize_session=False)
+
+    # Now, find all products by this shopkeeper
+    products = db.query(Product.id).filter(Product.shopkeeper_id == target_id).all()
+    product_ids = [p[0] for p in products]
+
+    if product_ids:
+        # Delete any remaining BillItems that reference these products
+        db.query(BillItem).filter(BillItem.product_id.in_(product_ids)).delete(synchronize_session=False)
+        # Delete ShopInventory for these products
+        db.query(ShopInventory).filter(ShopInventory.product_id.in_(product_ids)).delete(synchronize_session=False)
+        # Delete the products themselves
+        db.query(Product).filter(Product.id.in_(product_ids)).delete(synchronize_session=False)
+
+    # Delete CashTransactions
+    db.query(CashTransaction).filter(CashTransaction.shopkeeper_id == target_id).delete(synchronize_session=False)
+    # Delete ShopInventory explicitly by shopkeeper_id (just in case)
+    db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == target_id).delete(synchronize_session=False)
+    
+    db.delete(target_user)
+    db.commit()
+    
+    return {"status": "success", "detail": "User and all associated history permanently deleted."}
+
 @app.get("/api/analytics/shop/{shop_id}")
 async def get_shop_analytics(request: Request, shop_id: int, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
