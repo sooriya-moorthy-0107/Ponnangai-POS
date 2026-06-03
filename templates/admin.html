@@ -82,7 +82,7 @@
                                 {% if user.role == 'Admin' %}
                                 <button class="btn btn-destructive btn-small"
                                     style="padding: 2px 6px; font-size: 11px;"
-                                    onclick="event.stopPropagation(); hardDeleteUser({{ sk.id }}, {{ sk.username | tojson }})">Delete</button>
+                                    onclick='event.stopPropagation(); hardDeleteUser({{ sk.id }}, {{ sk.username | tojson }})'>Delete</button>
                                 {% endif %}
                             </div>
                         </li>
