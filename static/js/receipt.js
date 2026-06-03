@@ -352,7 +352,7 @@
             async function sendPrintData(bytes) {
                 const statusText = document.getElementById('bt-status-text');
                 if (!writeCharacteristic) {
-                    alert("Niyama printer is not connected. Connect via Bluetooth first!");
+                    await Swal.fire("Niyama printer is not connected. Connect via Bluetooth first!");
                     return;
                 }
 

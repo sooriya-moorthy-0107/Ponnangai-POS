@@ -1,17 +1,17 @@
 // Cart Logic
 let cart = [];
 
-function addToCart(productId, productName, productPrice, maxStock, productType = 'solid', unit = 'Pcs') {
+async function addToCart(productId, productName, productPrice, maxStock, productType = 'solid', unit = 'Pcs') {
     const existingItem = cart.find(item => item.id === productId);
     if (existingItem) {
         if (existingItem.qty >= existingItem.maxStock) {
-            alert(`Cannot add more. Only ${existingItem.maxStock} items available in stock.`);
+            await Swal.fire(`Cannot add more. Only ${existingItem.maxStock} items available in stock.`);
             return;
         }
         existingItem.qty += 1;
     } else {
         if (maxStock <= 0) {
-            alert("This product is out of stock.");
+            await Swal.fire("This product is out of stock.");
             return;
         }
         
@@ -51,12 +51,12 @@ function updateBottleType(id, newBtlType) {
     renderCart();
 }
 
-function updateQty(productId, change) {
+async function updateQty(productId, change) {
     const itemIndex = cart.findIndex(item => item.id === productId);
     if (itemIndex > -1) {
         const item = cart[itemIndex];
         if (change > 0 && item.qty >= item.maxStock) {
-            alert(`Cannot add more. Only ${item.maxStock} items available in stock.`);
+            await Swal.fire(`Cannot add more. Only ${item.maxStock} items available in stock.`);
             return;
         }
         item.qty += change;
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function submitBill() {
     if (cart.length === 0) {
-        alert("Cart is empty!");
+        await Swal.fire("Cart is empty!");
         return;
     }
 
@@ -188,10 +188,10 @@ async function submitBill() {
             // Trigger persistent modal receipt check & automatic printing
             handlePrintFlow(data.bill_id);
         } else {
-            alert(data.detail || "Failed to create bill");
+            await Swal.fire(data.detail || "Failed to create bill");
         }
     } catch (err) {
-        alert("Error connecting to server.");
+        await Swal.fire("Error connecting to server.");
         console.error(err);
     }
 }
@@ -274,7 +274,8 @@ async function fetchBillHistory() {
 
 async function revertBillFromHistory(billId, displayNo) {
     const label = displayNo ? `#${displayNo}` : `#${billId}`;
-    if (!confirm(`Are you sure you want to revert Bill ${label}? The stock will be restored and you can edit the items in the cart.`)) return;
+    const _swalRes11160 = await Swal.fire({ text: `Are you sure you want to revert Bill ${label}? The stock will be restored and you can edit the items in the cart.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+        if (!_swalRes11160.isConfirmed) return;
     
     try {
         const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
@@ -295,10 +296,10 @@ async function revertBillFromHistory(billId, displayNo) {
             // Refresh bill history list
             fetchBillHistory();
         } else {
-            alert(data.detail || "Failed to revert bill");
+            await Swal.fire(data.detail || "Failed to revert bill");
         }
     } catch (err) {
-        alert("Error connecting to server.");
+        await Swal.fire("Error connecting to server.");
         console.error(err);
     }
 }
@@ -307,14 +308,15 @@ document.addEventListener('DOMContentLoaded', fetchBillHistory);
 
 async function cancelBillFromHistory(billId, displayNo) {
     const label = displayNo ? `#${displayNo}` : `#${billId}`;
-    if (!confirm(`Are you sure you want to CANCEL Bill ${label}? The stock will be restored, and the bill will be marked as cancelled.`)) return;
+    const _swalRes12345 = await Swal.fire({ text: `Are you sure you want to CANCEL Bill ${label}? The stock will be restored, and the bill will be marked as cancelled.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+        if (!_swalRes12345.isConfirmed) return;
     
     try {
         const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
         const data = await response.json();
         
         if (response.ok) {
-            alert(`Bill ${label} has been cancelled and stock restored.`);
+            await Swal.fire(`Bill ${label} has been cancelled and stock restored.`);
             
             // Refresh product catalog stock levels dynamically
             await refreshProductCatalog();
@@ -322,10 +324,10 @@ async function cancelBillFromHistory(billId, displayNo) {
             // Refresh bill history list
             fetchBillHistory();
         } else {
-            alert(data.detail || "Failed to cancel bill");
+            await Swal.fire(data.detail || "Failed to cancel bill");
         }
     } catch (err) {
-        alert("Error connecting to server.");
+        await Swal.fire("Error connecting to server.");
         console.error(err);
     }
 }
@@ -662,7 +664,7 @@ function onDisconnected() {
 async function sendPrintData(bytes) {
     const statusText = document.getElementById('bt-status-text');
     if (!writeCharacteristic) {
-        alert("Printer is not connected. Connect via Bluetooth first!");
+        await Swal.fire("Printer is not connected. Connect via Bluetooth first!");
         openPrinterModal();
         return;
     }
@@ -958,11 +960,11 @@ async function handlePrintFlow(billId) {
                 }
             }
         } else {
-            alert("Could not load receipt details.");
+            await Swal.fire("Could not load receipt details.");
         }
     } catch (err) {
         console.error(err);
-        alert("Server communication failure.");
+        await Swal.fire("Server communication failure.");
     }
 }
 
@@ -1166,7 +1168,7 @@ async function submitCashTransaction() {
     const shopkeeperId = typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : '';
     
     if (isNaN(amount) || amount <= 0) {
-        alert("Please enter a valid amount greater than 0");
+        await Swal.fire("Please enter a valid amount greater than 0");
         return;
     }
     
@@ -1191,16 +1193,17 @@ async function submitCashTransaction() {
             document.getElementById('cash-desc').value = '';
             fetchCashData();
         } else {
-            alert("Failed to record cash transaction: " + (data.detail || 'Unknown error'));
+            await Swal.fire("Failed to record cash transaction: " + (data.detail || 'Unknown error'));
         }
     } catch (err) {
         console.error("Error submitting cash transaction", err);
-        alert("Network error while submitting cash transaction.");
+        await Swal.fire("Network error while submitting cash transaction.");
     }
 }
 
 async function revertCashTransaction(txId) {
-    if (!confirm("Are you sure you want to revert this transaction?")) return;
+    const _swalRes47195 = await Swal.fire({ text: "Are you sure you want to revert this transaction?", icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+        if (!_swalRes47195.isConfirmed) return;
     try {
         const response = await fetch(`/api/cash-transactions/${txId}`, {
             method: 'DELETE'
@@ -1209,10 +1212,10 @@ async function revertCashTransaction(txId) {
         if (data.status === 'success') {
             fetchCashData();
         } else {
-            alert("Failed to revert: " + (data.detail || 'Unknown error'));
+            await Swal.fire("Failed to revert: " + (data.detail || 'Unknown error'));
         }
     } catch(err) {
         console.error("Error reverting", err);
-        alert("Network error while reverting.");
+        await Swal.fire("Network error while reverting.");
     }
 }
