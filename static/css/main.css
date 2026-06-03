@@ -831,3 +831,53 @@ select:focus {
     margin-bottom: var(--spacing);
     border: 1px inset #E2E8F0;
 }
+
+        .cart-qty-ctrl input::-webkit-outer-spin-button,
+        .cart-qty-ctrl input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    
+/* Login Page Styles extracted from inline CSS */
+.login-title {
+    text-align: center;
+    color: var(--primary);
+    margin-bottom: 24px;
+}
+
+.alert-error {
+    background-color: #FED7D7;
+    color: var(--destructive);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.alert-success {
+    background-color: #C6F6D5;
+    color: #22543D;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    border: 1px solid #38A169;
+}
+
+.form-group-md {
+    margin-bottom: 16px;
+}
+
+.form-group-lg {
+    margin-bottom: 24px;
+}
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}

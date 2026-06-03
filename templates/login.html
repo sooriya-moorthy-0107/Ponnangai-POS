@@ -5,33 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Login - Ponnangai POS</title>
     <link rel="icon" type="image/png" href="/static/images/logo.png">
-    <link rel="stylesheet" href="/static/css/style.css?v=2">
+        <link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
     <div class="container">
         <div class="card login-box">
-            <h2 style="text-align: center; color: var(--primary); margin-bottom: 24px;">Ponnangai Enterprises</h2>
+            <h2 class="login-title">Ponnangai Enterprises</h2>
             
             {% if error %}
-            <div style="background-color: #FED7D7; color: var(--destructive); padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center; font-size: 14px;">
+            <div class="alert-error">
                 {{ error }}
             </div>
             {% endif %}
 
             {% if success %}
-            <div style="background-color: #C6F6D5; color: #22543D; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center; font-size: 14px; font-weight: bold; border: 1px solid #38A169;">
+            <div class="alert-success">
                 {{ success }}
             </div>
             {% endif %}
 
             <form action="/login" method="POST">
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Username</label>
+                <div class="form-group-md">
+                    <label class="form-label">Username</label>
                     <input type="text" name="username" placeholder="Enter username" required autocomplete="off">
                 </div>
                 
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Password</label>
+                <div class="form-group-lg">
+                    <label class="form-label">Password</label>
                     <input type="password" name="password" placeholder="Enter password" required>
                 </div>
                 

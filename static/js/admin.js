@@ -1,4 +1,4 @@
-﻿
+
         function toggleSessionDetails(sessionId) {
             const el = document.getElementById(`session-details-${sessionId}`);
             if (el) {
@@ -123,7 +123,7 @@
                                         </span>
                                     </td>
                                     <td style="text-align: right; font-weight: 600;">${row.total_quantity.toFixed(2)}</td>
-                                    <td style="text-align: right; color: var(--primary); font-weight: bold;">â‚¹${row.total_revenue.toFixed(2)}</td>
+                                    <td style="text-align: right; color: var(--primary); font-weight: bold;">₹${row.total_revenue.toFixed(2)}</td>
                                 `;
                                 tbody.appendChild(tr);
                             });
@@ -132,29 +132,29 @@
                             sumRow.style.backgroundColor = '#EBF8FF';
                             sumRow.innerHTML = `
                                 <td colspan="4" style="text-align: right; font-weight: bold; color: #2B6CB0;">Total Revenue:</td>
-                                <td style="text-align: right; font-weight: bold; color: var(--primary);">â‚¹${totalRev.toFixed(2)}</td>
+                                <td style="text-align: right; font-weight: bold; color: var(--primary);">₹${totalRev.toFixed(2)}</td>
                             `;
                             tbody.appendChild(sumRow);
 
                             if (data.revenue_breakdown) {
                                 document.getElementById('report-top-revenue').innerHTML = `
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span>Total Revenue: â‚¹${data.revenue_breakdown.Total.toFixed(2)}</span>
+                                        <span>Total Revenue: ₹${data.revenue_breakdown.Total.toFixed(2)}</span>
                                         <div style="font-size: 13px; font-weight: normal; color: #4A5568;">
-                                            <span style="margin-left: 12px;">Cash: â‚¹${data.revenue_breakdown.Cash.toFixed(2)}</span>
-                                            <span style="margin-left: 12px;">UPI: â‚¹${data.revenue_breakdown.UPI.toFixed(2)}</span>
-                                            <span style="margin-left: 12px;">Card: â‚¹${data.revenue_breakdown.Card.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">Cash: ₹${data.revenue_breakdown.Cash.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">UPI: ₹${data.revenue_breakdown.UPI.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">Card: ₹${data.revenue_breakdown.Card.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 `;
 
                                 const netCash = data.revenue_breakdown.Cash + data.total_cash_in - data.total_cash_out;
                                 const breakDownHtml = `
-                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">â‚¹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">â‚¹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">â‚¹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #FFF5F5;"><td colspan="4" style="text-align: right; color: #C53030;">Money OUT (Expenses):</td><td style="text-align: right; color: #C53030;">-â‚¹${data.total_cash_out.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F0FFF4;"><td colspan="4" style="text-align: right; font-weight: bold; color: #2F855A;">Total After Expense (Cash in Drawer):</td><td style="text-align: right; font-weight: bold; color: #2F855A;">â‚¹${netCash.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">₹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">₹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">₹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #FFF5F5;"><td colspan="4" style="text-align: right; color: #C53030;">Money OUT (Expenses):</td><td style="text-align: right; color: #C53030;">-₹${data.total_cash_out.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F0FFF4;"><td colspan="4" style="text-align: right; font-weight: bold; color: #2F855A;">Total After Expense (Cash in Drawer):</td><td style="text-align: right; font-weight: bold; color: #2F855A;">₹${netCash.toFixed(2)}</td></tr>
                                 `;
                                 tbody.insertAdjacentHTML('beforeend', breakDownHtml);
                             }
@@ -188,7 +188,7 @@
                                 tr.innerHTML = `
                                     <td><strong>${prod}</strong></td>
                                     <td style="text-align: right; font-weight: 600;">${val.qty.toFixed(2)}</td>
-                                    <td style="text-align: right; color: var(--primary); font-weight: bold;">â‚¹${val.rev.toFixed(2)}</td>
+                                    <td style="text-align: right; color: var(--primary); font-weight: bold;">₹${val.rev.toFixed(2)}</td>
                                 `;
                                 tbody.appendChild(tr);
                             }
@@ -197,29 +197,29 @@
                             sumRow.style.backgroundColor = '#EBF8FF';
                             sumRow.innerHTML = `
                                 <td colspan="2" style="text-align: right; font-weight: bold; color: #2B6CB0;">Total Revenue:</td>
-                                <td style="text-align: right; font-weight: bold; color: var(--primary);">â‚¹${totalRev.toFixed(2)}</td>
+                                <td style="text-align: right; font-weight: bold; color: var(--primary);">₹${totalRev.toFixed(2)}</td>
                             `;
                             tbody.appendChild(sumRow);
 
                             if (data.revenue_breakdown) {
                                 document.getElementById('report-top-revenue').innerHTML = `
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span>Total Revenue: â‚¹${data.revenue_breakdown.Total.toFixed(2)}</span>
+                                        <span>Total Revenue: ₹${data.revenue_breakdown.Total.toFixed(2)}</span>
                                         <div style="font-size: 13px; font-weight: normal; color: #4A5568;">
-                                            <span style="margin-left: 12px;">Cash: â‚¹${data.revenue_breakdown.Cash.toFixed(2)}</span>
-                                            <span style="margin-left: 12px;">UPI: â‚¹${data.revenue_breakdown.UPI.toFixed(2)}</span>
-                                            <span style="margin-left: 12px;">Card: â‚¹${data.revenue_breakdown.Card.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">Cash: ₹${data.revenue_breakdown.Cash.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">UPI: ₹${data.revenue_breakdown.UPI.toFixed(2)}</span>
+                                            <span style="margin-left: 12px;">Card: ₹${data.revenue_breakdown.Card.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 `;
 
                                 const netCash = data.revenue_breakdown.Cash + data.total_cash_in - data.total_cash_out;
                                 const breakDownHtml = `
-                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">â‚¹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">â‚¹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">â‚¹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #FFF5F5;"><td colspan="2" style="text-align: right; color: #C53030;">Money OUT (Expenses):</td><td style="text-align: right; color: #C53030;">-â‚¹${data.total_cash_out.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F0FFF4;"><td colspan="2" style="text-align: right; font-weight: bold; color: #2F855A;">Total After Expense (Cash in Drawer):</td><td style="text-align: right; font-weight: bold; color: #2F855A;">â‚¹${netCash.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">₹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">₹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">₹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #FFF5F5;"><td colspan="2" style="text-align: right; color: #C53030;">Money OUT (Expenses):</td><td style="text-align: right; color: #C53030;">-₹${data.total_cash_out.toFixed(2)}</td></tr>
+                                    <tr style="background-color: #F0FFF4;"><td colspan="2" style="text-align: right; font-weight: bold; color: #2F855A;">Total After Expense (Cash in Drawer):</td><td style="text-align: right; font-weight: bold; color: #2F855A;">₹${netCash.toFixed(2)}</td></tr>
                                 `;
                                 tbody.insertAdjacentHTML('beforeend', breakDownHtml);
                             }
@@ -607,7 +607,7 @@
                 if (response.ok) {
                     document.getElementById('analytics-shop-name').innerText = `${data.shop_name} - Analytics`;
                     document.getElementById('analytics-total-sales').innerText = `${data.total_sales} Bills`;
-                    document.getElementById('analytics-total-revenue').innerText = `â‚¹${data.total_revenue.toFixed(2)}`;
+                    document.getElementById('analytics-total-revenue').innerText = `₹${data.total_revenue.toFixed(2)}`;
 
                     const tbody = document.getElementById('analytics-breakdown-body');
                     tbody.innerHTML = '';
@@ -619,7 +619,7 @@
                                 <tr>
                                     <td>${item.product_name}</td>
                                     <td style="text-align: center;">${item.qty}</td>
-                                    <td style="text-align: right;">â‚¹${item.revenue.toFixed(2)}</td>
+                                    <td style="text-align: right;">₹${item.revenue.toFixed(2)}</td>
                                 </tr>
                             `;
                         });
@@ -632,6 +632,8 @@
             } catch (err) {
                 alert('Error fetching analytics.');
             }
+        }
+
         async function hardDeleteUser(userId, username) {
             if (!confirm(`DANGER: Are you absolutely sure you want to PERMANENTLY delete the archived account '${username}'? This will erase all their products, bills, and history. This CANNOT be undone.`)) {
                 return;
