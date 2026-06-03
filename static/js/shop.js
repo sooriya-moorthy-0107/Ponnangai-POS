@@ -12,7 +12,7 @@
             const fileInput = document.getElementById('csv-file');
 
             if (fileInput.files.length === 0) {
-                alert('Please select a CSV file to upload.');
+                await Swal.fire('Please select a CSV file to upload.');
                 return;
             }
 
@@ -27,13 +27,13 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    alert(data.detail || 'Inventory updated successfully!');
+                    await Swal.fire(data.detail || 'Inventory updated successfully!');
                     location.reload();
                 } else {
-                    alert(data.detail || 'Failed to upload CSV.');
+                    await Swal.fire(data.detail || 'Failed to upload CSV.');
                 }
             } catch (err) {
-                alert('Error uploading CSV.');
+                await Swal.fire('Error uploading CSV.');
             }
         }
     

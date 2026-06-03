@@ -72,7 +72,7 @@
             const dates = getReportDates();
 
             if (!shopId || !dates.start || !dates.end) {
-                alert("Please select a shop and ensure dates are valid.");
+                await Swal.fire("Please select a shop and ensure dates are valid.");
                 return;
             }
 
@@ -230,26 +230,27 @@
                         }
                     }
                 } else {
-                    alert(data.detail || "Error generating report");
+                    await Swal.fire(data.detail || "Error generating report");
                 }
             } catch (err) {
-                alert("Network error fetching report.");
+                await Swal.fire("Network error fetching report.");
             }
         }
 
-        function exportDailyReport() {
+        async function exportDailyReport() {
             const shopId = document.getElementById('report-shop').value;
             const dates = getReportDates();
             if (!shopId || !dates.start || !dates.end) {
-                alert("Please select a shop and valid dates.");
+                await Swal.fire("Please select a shop and valid dates.");
                 return;
             }
             window.location.href = `/api/reports/daily/export?shopkeeper_id=${shopId}&start_date=${dates.start}&end_date=${dates.end}`;
         }
 
         async function resetSystem() {
-            if (confirm("Are you absolutely sure? This will permanently delete ALL products, shop inventories, bills, and sales history. This CANNOT be undone.")) {
-                const check = prompt("Type RESET to confirm:");
+            const _swalRes15831 = await Swal.fire({ text: "Are you absolutely sure? This will permanently delete ALL products, shop inventories, bills, and sales history. This CANNOT be undone.", icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+            if (_swalRes15831.isConfirmed) {
+                const { value: check } = await Swal.fire({ title: "Type RESET to confirm:", input: 'text', showCancelButton: true });
                 if (check !== "RESET") return;
 
                 try {
@@ -258,13 +259,13 @@
                     });
                     const data = await response.json();
                     if (response.ok) {
-                        alert(data.detail || 'System reset successfully.');
+                        await Swal.fire(data.detail || 'System reset successfully.');
                         location.reload();
                     } else {
-                        alert(data.detail || 'Failed to reset system.');
+                        await Swal.fire(data.detail || 'Failed to reset system.');
                     }
                 } catch (err) {
-                    alert('Error resetting system.');
+                    await Swal.fire('Error resetting system.');
                 }
             }
         }
@@ -314,7 +315,7 @@
         async function uploadBulkStockToShop(shopkeeperId) {
             const fileInput = document.getElementById(`stock-csv-file-${shopkeeperId}`);
             if (!fileInput || fileInput.files.length === 0) {
-                alert('Please select a CSV file to upload.');
+                await Swal.fire('Please select a CSV file to upload.');
                 return;
             }
 
@@ -329,13 +330,13 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    alert(data.detail || 'Stock updated successfully!');
+                    await Swal.fire(data.detail || 'Stock updated successfully!');
                     location.reload();
                 } else {
-                    alert(data.detail || 'Failed to upload stock CSV.');
+                    await Swal.fire(data.detail || 'Failed to upload stock CSV.');
                 }
             } catch (err) {
-                alert('Error uploading stock CSV.');
+                await Swal.fire('Error uploading stock CSV.');
             }
         }
 
@@ -355,7 +356,7 @@
             const unit = unitEl ? unitEl.value.trim() : "Pcs";
 
             if (!name || !price) {
-                alert('Please provide at least product name and price.');
+                await Swal.fire('Please provide at least product name and price.');
                 return;
             }
 
@@ -375,20 +376,20 @@
 
                 const data = await response.json();
                 if (response.ok) {
-                    alert(data.detail || 'Product added successfully!');
+                    await Swal.fire(data.detail || 'Product added successfully!');
                     location.reload();
                 } else {
-                    alert(data.detail || 'Failed to add product.');
+                    await Swal.fire(data.detail || 'Failed to add product.');
                 }
             } catch (err) {
-                alert('Error adding product.');
+                await Swal.fire('Error adding product.');
             }
         }
 
         async function uploadBulkProductsToShop(shopkeeperId) {
             const fileInput = document.getElementById(`product-csv-file-${shopkeeperId}`);
             if (!fileInput || fileInput.files.length === 0) {
-                alert('Please select a CSV file to upload.');
+                await Swal.fire('Please select a CSV file to upload.');
                 return;
             }
 
@@ -403,13 +404,13 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    alert(data.detail || 'Products uploaded successfully!');
+                    await Swal.fire(data.detail || 'Products uploaded successfully!');
                     location.reload();
                 } else {
-                    alert(data.detail || 'Failed to upload CSV.');
+                    await Swal.fire(data.detail || 'Failed to upload CSV.');
                 }
             } catch (err) {
-                alert('Error uploading CSV.');
+                await Swal.fire('Error uploading CSV.');
             }
         }
 
@@ -428,18 +429,19 @@
                     body: JSON.stringify({ id: productId, stock: parseInt(newStock), shopkeeper_id: shopkeeperId })
                 });
                 if (response.ok) {
-                    alert('Stock updated successfully!');
+                    await Swal.fire('Stock updated successfully!');
                     location.reload();
                 } else {
-                    alert('Failed to update stock.');
+                    await Swal.fire('Failed to update stock.');
                 }
             } catch (err) {
-                alert('Error updating stock.');
+                await Swal.fire('Error updating stock.');
             }
         }
 
         async function deleteProduct(productId, productName) {
-            if (confirm(`Are you sure you want to delete product '${productName}'? This will soft-delete it so historical receipts and analytics are preserved, but it will be hidden from the active catalog and POS.`)) {
+            const _swalRes23946 = await Swal.fire({ text: `Are you sure you want to delete product '${productName}'? This will soft-delete it so historical receipts and analytics are preserved, but it will be hidden from the active catalog and POS.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+            if (_swalRes23946.isConfirmed) {
                 try {
                     const response = await fetch('/api/products/delete', {
                         method: 'POST',
@@ -448,13 +450,13 @@
                     });
                     const data = await response.json();
                     if (response.ok) {
-                        alert(data.detail || 'Product deleted successfully!');
+                        await Swal.fire(data.detail || 'Product deleted successfully!');
                         location.reload();
                     } else {
-                        alert(data.detail || 'Failed to delete product.');
+                        await Swal.fire(data.detail || 'Failed to delete product.');
                     }
                 } catch (err) {
-                    alert('Error deleting product.');
+                    await Swal.fire('Error deleting product.');
                 }
             }
         }
@@ -473,13 +475,13 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    alert(data.detail || 'Photo updated successfully!');
+                    await Swal.fire(data.detail || 'Photo updated successfully!');
                     location.reload();
                 } else {
-                    alert(data.detail || 'Failed to update photo.');
+                    await Swal.fire(data.detail || 'Failed to update photo.');
                 }
             } catch (err) {
-                alert('Error uploading photo.');
+                await Swal.fire('Error uploading photo.');
             }
             input.value = '';
         }
@@ -490,7 +492,7 @@
             const role = document.getElementById('new-role').value;
 
             if (!username || !password) {
-                alert('Please provide username and password.');
+                await Swal.fire('Please provide username and password.');
                 return;
             }
 
@@ -503,18 +505,18 @@
 
                 const data = await response.json();
                 if (response.ok) {
-                    alert(data.detail || 'User added successfully!');
+                    await Swal.fire(data.detail || 'User added successfully!');
                     location.reload();
                 } else {
-                    alert(data.detail || 'Failed to add user.');
+                    await Swal.fire(data.detail || 'Failed to add user.');
                 }
             } catch (err) {
-                alert('Error adding user.');
+                await Swal.fire('Error adding user.');
             }
         }
 
         async function resetPassword(userId, username) {
-            const newPwd = prompt(`Enter new password for ${username}:`);
+            const { value: newPwd } = await Swal.fire({ title: `Enter new password for ${username}:`, input: 'text', showCancelButton: true });
             if (!newPwd) return;
 
             try {
@@ -525,12 +527,12 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    alert(data.detail || 'Password updated successfully!');
+                    await Swal.fire(data.detail || 'Password updated successfully!');
                 } else {
-                    alert(data.detail || 'Failed to update password.');
+                    await Swal.fire(data.detail || 'Failed to update password.');
                 }
             } catch (err) {
-                alert('Error updating password.');
+                await Swal.fire('Error updating password.');
             }
         }
 
@@ -569,18 +571,19 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    alert('User updated successfully!');
+                    await Swal.fire('User updated successfully!');
                     location.reload();
                 } else {
-                    alert(data.detail || 'Failed to update user.');
+                    await Swal.fire(data.detail || 'Failed to update user.');
                 }
             } catch (err) {
-                alert('Error updating user.');
+                await Swal.fire('Error updating user.');
             }
         }
 
         async function deleteUser(userId, username) {
-            if (confirm(`Are you sure you want to permanently DELETE user '${username}'?`)) {
+            const _swalRes29872 = await Swal.fire({ text: `Are you sure you want to permanently DELETE user '${username}'?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+            if (_swalRes29872.isConfirmed) {
                 try {
                     const response = await fetch('/api/users/delete', {
                         method: 'POST',
@@ -589,13 +592,13 @@
                     });
                     const data = await response.json();
                     if (response.ok) {
-                        alert('User deleted successfully!');
+                        await Swal.fire('User deleted successfully!');
                         location.reload();
                     } else {
-                        alert(data.detail || 'Failed to delete user.');
+                        await Swal.fire(data.detail || 'Failed to delete user.');
                     }
                 } catch (err) {
-                    alert('Error deleting user.');
+                    await Swal.fire('Error deleting user.');
                 }
             }
         }
@@ -627,20 +630,19 @@
 
                     document.getElementById('analytics-modal').style.display = 'flex';
                 } else {
-                    alert(data.detail || 'Failed to fetch analytics.');
+                    await Swal.fire(data.detail || 'Failed to fetch analytics.');
                 }
             } catch (err) {
-                alert('Error fetching analytics.');
+                await Swal.fire('Error fetching analytics.');
             }
         }
 
         async function hardDeleteUser(userId, username) {
-            if (!confirm(`DANGER: Are you absolutely sure you want to PERMANENTLY delete the archived account '${username}'? This will erase all their products, bills, and history. This CANNOT be undone.`)) {
-                return;
-            }
-            if (!confirm(`FINAL WARNING: Have you exported necessary reports? Press OK to proceed with wiping all data for '${username}'.`)) {
-                return;
-            }
+            const _swalRes1 = await Swal.fire({ text: `DANGER: Are you absolutely sure you want to PERMANENTLY delete the archived account '${username}'? This will erase all their products, bills, and history. This CANNOT be undone.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+            if (!_swalRes1.isConfirmed) return;
+
+            const _swalRes2 = await Swal.fire({ text: `FINAL WARNING: Have you exported necessary reports? Press OK to proceed with wiping all data for '${username}'.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+            if (!_swalRes2.isConfirmed) return;
 
             try {
                 const response = await fetch('/api/users/hard_delete', {
@@ -650,13 +652,13 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    alert("Account and history permanently deleted.");
+                    await Swal.fire("Account and history permanently deleted.");
                     location.reload();
                 } else {
-                    alert(data.detail || 'Failed to permanently delete user.');
+                    await Swal.fire(data.detail || 'Failed to permanently delete user.');
                 }
             } catch (err) {
-                alert('Network error during permanent deletion.');
+                await Swal.fire('Network error during permanent deletion.');
             }
         }
     

@@ -101,7 +101,7 @@
             const desc = document.getElementById('cash-desc').value;
             
             if (isNaN(amount) || amount <= 0) {
-                alert("Please enter a valid amount greater than 0");
+                await Swal.fire("Please enter a valid amount greater than 0");
                 return;
             }
             
@@ -126,16 +126,17 @@
                     document.getElementById('cash-desc').value = '';
                     fetchCashData();
                 } else {
-                    alert("Failed to record cash transaction: " + (data.detail || 'Unknown error'));
+                    await Swal.fire("Failed to record cash transaction: " + (data.detail || 'Unknown error'));
                 }
             } catch (err) {
                 console.error("Error submitting cash transaction", err);
-                alert("Network error while submitting cash transaction.");
+                await Swal.fire("Network error while submitting cash transaction.");
             }
         }
         
         async function revertCashTransaction(txId) {
-            if (!confirm("Are you sure you want to revert this transaction?")) return;
+            const _swalRes6861 = await Swal.fire({ text: "Are you sure you want to revert this transaction?", icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+        if (!_swalRes6861.isConfirmed) return;
             try {
                 const response = await fetch(`/api/cash-transactions/${txId}`, {
                     method: 'DELETE'
@@ -144,11 +145,11 @@
                 if (data.status === 'success') {
                     fetchCashData();
                 } else {
-                    alert("Failed to revert: " + (data.detail || 'Unknown error'));
+                    await Swal.fire("Failed to revert: " + (data.detail || 'Unknown error'));
                 }
             } catch(err) {
                 console.error("Error reverting", err);
-                alert("Network error while reverting.");
+                await Swal.fire("Network error while reverting.");
             }
         }
 
@@ -294,7 +295,7 @@
 
         async function submitBill() {
             if (cart.length === 0) {
-                alert('Cart is empty.');
+                await Swal.fire('Cart is empty.');
                 return;
             }
             const paymentMode = document.getElementById('payment-mode').value;
@@ -319,10 +320,10 @@
                     await loadBillForReceipt(data.bill_id);
                     loadBillHistory();
                 } else {
-                    alert(data.detail || 'Checkout failed.');
+                    await Swal.fire(data.detail || 'Checkout failed.');
                 }
             } catch (err) {
-                alert('Network/Server error during checkout.');
+                await Swal.fire('Network/Server error during checkout.');
             }
         }
 
@@ -400,7 +401,8 @@
 
         async function revertBillFromHistory(billId, displayNo) {
             const label = displayNo ? `#${displayNo}` : `#${billId}`;
-            if (!confirm(`Are you sure you want to revert Bill ${label}? The stock will be restored and you can edit the items in the cart.`)) return;
+            const _swalRes20502 = await Swal.fire({ text: `Are you sure you want to revert Bill ${label}? The stock will be restored and you can edit the items in the cart.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+        if (!_swalRes20502.isConfirmed) return;
 
             try {
                 const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
@@ -423,30 +425,31 @@
                     renderCart();
                     loadBillHistory();
                 } else {
-                    alert(data.detail || "Failed to revert bill");
+                    await Swal.fire(data.detail || "Failed to revert bill");
                 }
             } catch (err) {
-                alert("Error connecting to server.");
+                await Swal.fire("Error connecting to server.");
                 console.error(err);
             }
         }
 
         async function cancelBillFromHistory(billId, displayNo) {
             const label = displayNo ? `#${displayNo}` : `#${billId}`;
-            if (!confirm(`Are you sure you want to CANCEL Bill ${label}? The stock will be restored, and the bill will be marked as cancelled.`)) return;
+            const _swalRes21960 = await Swal.fire({ text: `Are you sure you want to CANCEL Bill ${label}? The stock will be restored, and the bill will be marked as cancelled.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+        if (!_swalRes21960.isConfirmed) return;
 
             try {
                 const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
                 const data = await response.json();
 
                 if (response.ok) {
-                    alert(`Bill ${label} has been cancelled and stock restored.`);
+                    await Swal.fire(`Bill ${label} has been cancelled and stock restored.`);
                     loadBillHistory();
                 } else {
-                    alert(data.detail || "Failed to cancel bill");
+                    await Swal.fire(data.detail || "Failed to cancel bill");
                 }
             } catch (err) {
-                alert("Error connecting to server.");
+                await Swal.fire("Error connecting to server.");
                 console.error(err);
             }
         }
@@ -460,7 +463,7 @@
                     document.getElementById('receipt-preview-modal').classList.add('active');
                 }
             } catch (e) {
-                alert('Error loading receipt data.');
+                await Swal.fire('Error loading receipt data.');
             }
         }
 
@@ -768,7 +771,7 @@
         async function sendPrintData(bytes) {
             const statusText = document.getElementById('bt-status-text');
             if (!printCharacteristic) {
-                alert("Niyama printer is not connected. Connect via Bluetooth first!");
+                await Swal.fire("Niyama printer is not connected. Connect via Bluetooth first!");
                 return;
             }
 
@@ -804,7 +807,7 @@
 
         async function printActiveBillBluetooth() {
             if (!printCharacteristic || !activeBillData) {
-                alert("Printer not connected or no active bill to print.");
+                await Swal.fire("Printer not connected or no active bill to print.");
                 return;
             }
             try {
@@ -860,15 +863,15 @@
             return [year, month, day].join('-');
         }
 
-        function downloadPosReport(type) {
+        async function downloadPosReport(type) {
             const today = getTodayString();
             let start = today;
             let end = today;
             
             if (type === 'range') {
-                const s = prompt("Enter Start Date (YYYY-MM-DD):", today);
+                const { value: s } = await Swal.fire({ title: "Enter Start Date (YYYY-MM-DD):", inputValue: today, input: 'text', showCancelButton: true });
                 if (!s) return;
-                const e = prompt("Enter End Date (YYYY-MM-DD):", today);
+                const { value: e } = await Swal.fire({ title: "Enter End Date (YYYY-MM-DD):", inputValue: today, input: 'text', showCancelButton: true });
                 if (!e) return;
                 start = s;
                 end = e;
