@@ -87,9 +87,9 @@ function renderCart() {
         
         cartItemEl.innerHTML = `
             <div style="display: flex; flex-direction: column; flex: 1;">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <div class="cart-item-info" style="flex: 1;">
-                        <div class="cart-item-title">${item.name}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 8px;">
+                    <div class="cart-item-info" style="flex: 1; min-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <div class="cart-item-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
                         <div class="cart-item-price">₹${item.price.toFixed(2)}</div>
                     </div>
                     <div class="cart-item-controls">

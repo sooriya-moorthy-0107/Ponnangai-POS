@@ -239,7 +239,7 @@
                     <div style="font-weight:700; font-size:18px; color:#2D3748; word-break: break-word;">
                         ${item.name}
                     </div>
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap: 8px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap: 8px; flex-wrap: wrap;">
                         <div style="display:flex; align-items:center; gap:4px;">
                             <input type="number" step="${step}" min="0.01" value="${item.qty}" 
                                    style="width:70px; padding:6px; text-align:center; border:1px solid #CBD5E0; border-radius:4px; height:36px; font-weight:700; font-size:16px; outline:none;"
