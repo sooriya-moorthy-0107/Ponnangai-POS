@@ -35,7 +35,7 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 12px;
     border-bottom: 1px solid #E2E8F0;
     position: sticky;
@@ -154,6 +154,20 @@ select:focus {
     flex: 1;
     overflow-y: auto;
     padding-right: 4px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-content: start;
+}
+
+.pos-sidebar #bill-history-container .history-card {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1023px) and (orientation: landscape) {
+    .pos-sidebar #bill-history-container {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 
@@ -880,4 +894,9 @@ select:focus {
     font-size: 14px;
     font-weight: 600;
     margin-bottom: 8px;
+}
+
+.desktop-pos-view {
+    min-width: 1024px;
+    overflow-x: auto;
 }
