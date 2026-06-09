@@ -706,3 +706,10 @@ async function submitEditProduct() {
         await Swal.fire("Error updating product.");
     }
 }
+
+function toggleMobileMenu() {
+    const controls = document.querySelector(".header-controls");
+    const overlay = document.getElementById("mobile-menu-overlay");
+    if (controls) controls.classList.toggle("active");
+    if (overlay) overlay.classList.toggle("active");
+}

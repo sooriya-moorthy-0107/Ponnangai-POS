@@ -18,12 +18,19 @@
             <img src="/static/images/logo.png" alt="Ponnangai POS" style="height: 40px; object-fit: contain;">
             <h1 style="margin: 0;">{{ user.role }} Dashboard</h1>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <button id="mobile-menu-btn" class="hamburger-btn" onclick="toggleMobileMenu()">☰</button>
+
+        <div class="header-controls">
+            <!-- Mobile Close Button -->
+            <button class="mobile-close-btn" onclick="toggleMobileMenu()" style="display: none;">✕</button>
+
             <span style="font-size: 14px; font-weight: 600;">{{ user.username }} ({{ user.role }})</span>
             <a href="/shop" class="btn btn-secondary btn-small" style="text-decoration: none;">POS View</a>
             <a href="/logout" class="btn btn-destructive btn-small" style="text-decoration: none;">Logout</a>
         </div>
     </header>
+
+    <div id="mobile-menu-overlay" class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
 
     <div class="container">
         <!-- Dashboard Stats -->
