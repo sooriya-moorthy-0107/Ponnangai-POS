@@ -1,49 +1,87 @@
-# 🛒 Ponnangai POS
+# ✨ Ponnangai POS — Modern Point of Sale & Retail Billing System
 
-A mobile-first, multi-tenant Point of Sale (POS) and retail billing system built with Python, FastAPI, and Vanilla JS. Designed for high-speed, touch-friendly retail operations with robust multi-shop inventory management, factory production tracking, and real-time analytics.
+Ponnangai POS is a high-performance, mobile-first Point of Sale (POS) and retail billing application. Designed for speed, ease of use, and scalability, it features robust multi-role management, instant inventory tracking, bulk data management, and seamless printer integration.
 
-## ✨ Key Features
+---
 
-*   **📱 Mobile-First POS Interface:** A clean, flat UI optimized for fast tapping on mobile devices and tablets, preventing fat-finger errors with custom alignments.
-*   **🏭 Factory & Shop Roles:** Differentiates between standard Shopkeepers (who are bound by strict inventory checks) and the Factory role (which tracks unlimited production sales and bottle counts).
-*   **🖨️ Thermal Printer Integration:** Receipts are strictly formatted for 58mm Bluetooth/USB thermal printers, with built-in pairing workflows via Web Bluetooth API.
-*   **📊 Centralized Admin Dashboard:** Real-time metrics tracking global revenue, shop-specific itemized sales analytics, and low-stock warnings (< 10 units).
-*   **📈 Daily Sales Reports:** Detailed daily and custom-range sales reports with CSV export capabilities, tailored specifically for the needs of shops vs. factory output.
-*   **🔄 Advanced Returns Workflow:** Built-in "Bill History" sidebar allowing staff to instantly void bills, dynamically restore stock, and track voided receipts.
-*   **📦 Bulk Inventory Management:** Managers can download, edit, and upload CSV files to rapidly update thousands of products and stock levels at once.
-*   **🔐 Role-Based Access Control (RBAC):** Distinct tiers of access (Shopkeeper, Factory, Manager, Admin, Owner) ensuring secure data management.
+## 🌟 Key Features
 
-## 🛠️ Technology Stack
+*   **📱 Mobile-First Interface:** A modern, tactile, and responsive user interface optimized for fast-paced mobile and tablet touch operations.
+*   **🔐 Role-Based Access Control (RBAC):** Defined permissions for Owner, Admin, Manager, and Shop/Factory operators to ensure data security.
+*   **🖨️ Thermal Printer Integration:** Ready-to-print formatting for 58mm Bluetooth/USB thermal receipt printers via Web Bluetooth API.
+*   **📦 Bulk Inventory Management:** Standardized templates for CSV bulk uploads and downloads to quickly update product catalogs and stock levels.
+*   **🔄 Advanced Returns & Voids:** Interactive transaction history sidebar allowing staff to void bills, track voided receipts, and automatically restore stock levels.
+*   **📊 Business Intelligence:** Centralized analytics dashboard displaying real-time revenue, itemized sales trends, and automated low-stock warnings.
 
-*   **Backend:** Python 3, FastAPI
-*   **Database:** PostgreSQL, SQLAlchemy ORM
-*   **Frontend:** Vanilla HTML, CSS, JavaScript
-*   **Templating:** Jinja2
+---
 
-## 🚀 Quick Start
+## 🛠️ Tech Stack & Architecture
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/sooriya-moorthy-0107/Ponnangai-POS.git
-    cd Ponnangai-POS
-    ```
+*   **Backend:** Python 3.x, FastAPI (Asynchronous Web Framework)
+*   **Frontend:** HTML5, CSS3 (Modern Flat Design), Vanilla ES6 JavaScript, Jinja2 Templates
+*   **Database:** PostgreSQL (via SQLAlchemy ORM & Alembic migrations)
+*   **Infrastructure:** Nginx (Reverse Proxy), Systemd (Process Supervisor), Let's Encrypt (SSL/TLS Encryption)
 
-2.  **Start via Docker (Recommended)**
-    ```bash
-    docker compose up -d --build
-    ```
-    Alternatively, install via python directly: `pip install -r requirements.txt` and `python main.py`
+---
 
-3.  **Access the Dashboard**
-    Open `http://localhost:8000` in your browser.
-    *Default Admin Credentials:* `admin` / `admin123`
+## 💻 Getting Started
 
-## 💡 System Workflow
+### 1. Local Development (Docker)
+The quickest way to spin up the entire application locally:
+```bash
+# Clone the repository
+git clone https://github.com/<your-username>/Ponnangai-POS.git
+cd Ponnangai-POS
 
-1.  **Admin Setup:** The Admin logs into the dashboard, creates Shopkeeper and Factory accounts, and adds global products to the database.
-2.  **Inventory Allocation:** The Manager bulk-uploads CSV files to assign specific stock levels to different shopkeepers.
-3.  **Sales Operations:** Shopkeepers and Factory staff log in on their mobile devices, add items to the cart via the touch grid, specify loose vs bottle packaging, and generate 58mm receipts.
-4.  **Reporting:** Owners and Admins monitor real-time revenue, export CSV reports, and track empty bottle returns directly from the centralized dashboard.
+# Spin up services
+docker compose up -d --build
+```
+The application will be accessible at `http://localhost:8000`.
+
+### 2. Manual Setup
+For local development without Docker:
+```bash
+# Set up a virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run application
+python main.py
+```
+
+---
+
+## 🌐 Production Deployment
+
+The project includes production-grade configuration files and a deployment helper script ([deploy.sh](file:///d:/Ponnangai/retail%20billing%20software/Ponnangai-POS/deploy.sh)) for Ubuntu servers.
+
+### ⚡ Automated Deployment Setup
+For initial server provisioning, you can execute the configuration script on your host machine:
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+This script installs environment dependencies, configures Python venv, establishes Nginx server blocks, setups the application's Systemd service, and wires the environment configurations.
+
+### 🔄 Deploying Updates (Zero-Downtime Pipeline)
+To pull your latest changes and restart the application backend without logging in manually, execute this one-liner from your local development environment:
+
+```bash
+ssh -i "/path/to/key.pem" ubuntu@<your-server-ip> "cd /home/ubuntu/Ponnangai-POS && git pull origin production && ./venv/bin/pip install -r requirements.txt && sudo systemctl restart ponnangai-pos"
+```
+
+### 📋 Diagnostics & Operations
+Once deployed, use these standard commands on the server to manage the service lifecycle:
+
+| Action | Command |
+| :--- | :--- |
+| **Check service status** | `sudo systemctl status ponnangai-pos` |
+| **Restart application** | `sudo systemctl restart ponnangai-pos` |
+| **View live log stream** | `sudo journalctl -u ponnangai-pos -f` |
+| **Restart web server** | `sudo systemctl restart nginx` |
 
 ---
 *Developed for Ponnangai Enterprises.*
