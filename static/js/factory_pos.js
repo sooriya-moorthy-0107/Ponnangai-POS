@@ -347,7 +347,6 @@
                             card.style.opacity = '0.65';
                             card.style.borderLeft = '4px solid #E53E3E';
                             card.style.position = 'relative';
-                            card.style.overflow = 'hidden';
                         }
 
                         const badgeHtml = bill.is_cancelled
@@ -376,7 +375,7 @@
                         `;
 
                         card.innerHTML = `
-                            <div class="history-card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
+                            <div class="history-card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; flex-wrap: wrap;">
                                 <span style="${titleStyle}">Bill #${bill.bill_number || bill.id}</span>
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     ${badgeHtml}
