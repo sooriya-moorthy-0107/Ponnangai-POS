@@ -882,4 +882,10 @@
         window.addEventListener('load', () => {
             loadBillHistory();
         });
-    
+
+        function toggleMobileMenu() {
+            const controls = document.querySelector(".header-controls");
+            const overlay = document.getElementById("mobile-menu-overlay");
+            if (controls) controls.classList.toggle("active");
+            if (overlay) overlay.classList.toggle("active");
+        }

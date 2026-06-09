@@ -35,12 +35,106 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 12px;
     border-bottom: 1px solid #E2E8F0;
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 100;
+}
+
+.header-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.hamburger-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--primary);
+    cursor: pointer;
+    padding: 4px;
+}
+
+.mobile-menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: transparent; /* Invisible overlay to catch clicks to close menu */
+    z-index: 90;
+}
+
+.mobile-close-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 24px;
+    font-weight: bold;
+    color: #4A5568;
+    cursor: pointer;
+    text-align: left;
+    padding: 0 0 16px 0;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #E2E8F0;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .hamburger-btn {
+        display: block;
+    }
+    
+    .mobile-close-btn {
+        display: block !important;
+    }
+    
+    .header-controls {
+        position: fixed;
+        top: 0;
+        right: -260px; /* hidden off-screen */
+        width: 260px;
+        height: 100vh;
+        background-color: var(--card-bg);
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        padding: 24px;
+        box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+        z-index: 100;
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        gap: 16px;
+    }
+
+    .header-controls.active {
+        right: 0;
+    }
+
+    header {
+        flex-wrap: nowrap;
+    }
+
+    header h1 {
+        font-size: 1rem !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 60vw;
+    }
+
+    .mobile-menu-overlay.active {
+        display: block;
+    }
+
+    .header-controls > *:not(.mobile-close-btn) {
+        width: 100% !important;
+        margin: 0;
+        justify-content: center;
+        text-align: center;
+    }
 }
 
 header h1 {

@@ -18,13 +18,18 @@
             <img src="/static/images/logo.png" alt="Ponnangai POS" style="height: 40px; object-fit: contain;">
             <h1 style="margin: 0;">Ponnangai POS</h1>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <button id="mobile-menu-btn" class="hamburger-btn" onclick="toggleMobileMenu()">☰</button>
+
+        <div class="header-controls">
+            <!-- Mobile Close Button -->
+            <button class="mobile-close-btn" onclick="toggleMobileMenu()" style="display: none;">✕</button>
+
             {% if user.role in ['Admin', 'Owner', 'Manager'] %}
             <!-- Shop selector dropdown for Admin/Manager/Owner -->
-            <div
-                style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: var(--radius);">
+            <div class="header-user-area"
+                style="display: flex; align-items: center; gap: 6px; background: #EDF2F7; padding: 6px 10px; border-radius: var(--border-radius);">
                 <label for="shop-selector"
-                    style="font-size: 12px; font-weight: bold; color: white; margin-bottom: 0; white-space: nowrap;">
+                    style="font-size: 12px; font-weight: bold; color: #4A5568; margin-bottom: 0; white-space: nowrap;">
                     Shop:</label>
                 <select id="shop-selector" onchange="switchShop(this.value)"
                     style="padding: 4px 8px; font-size: 13px; font-weight: 600; border-radius: 4px; border: 1px solid #CBD5E0; background: white; color: #2D3748; cursor: pointer; outline: none; margin-bottom: 0;">
@@ -35,20 +40,22 @@
                 </select>
             </div>
             {% else %}
-            <span style="font-size: 14px; font-weight: 600;"> {{ user.username }} ({{ user.role }})</span>
+            <span class="header-user-area" style="font-size: 14px; font-weight: 600;"> {{ user.username }} ({{ user.role }})</span>
             {% endif %}
 
-            <button id="printer-status-btn" class="btn btn-secondary btn-small"
-                style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; gap: 6px; font-weight: bold; width: auto;"
+            <button id="printer-status-btn" class="btn btn-secondary btn-small header-printer-btn"
+                style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; width: auto;"
                 onclick="openPrinterModal()">
                  <span id="header-printer-status">Disconnected</span>
             </button>
-            <a href="/logout" class="btn btn-destructive btn-small" style="text-decoration: none;">Logout</a>
+            <a href="/logout" class="btn btn-destructive btn-small header-logout-btn" style="text-decoration: none;">Logout</a>
             {% if user.role in ['Admin', 'Owner', 'Manager'] %}
-            <a href="/admin" class="btn btn-secondary btn-small" style="text-decoration: none;">Dashboard</a>
+            <a href="/admin" class="btn btn-secondary btn-small header-dashboard-btn" style="text-decoration: none;">Dashboard</a>
             {% endif %}
         </div>
     </header>
+
+    <div id="mobile-menu-overlay" class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
 
     <div class="container">
 

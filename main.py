@@ -1776,6 +1776,34 @@ async def upload_product_image(request: Request, product_id: int, file: UploadFi
     db.commit()
     
     return {"status": "success", "detail": "Photo updated successfully!", "image_filename": new_filename}
+
+@app.post("/api/products/{product_id}/edit")
+async def edit_product_info(request: Request, product_id: int, name: str = Form(...), file: UploadFile | None = File(None), db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Manager", "Owner"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return JSONResponse(status_code=404, content={"detail": "Product not found"})
+        
+    product.name = name.strip()
+    
+    if file and file.filename:
+        ext = os.path.splitext(file.filename)[1].lower()
+        if not ext:
+            ext = ".jpg"
+        new_filename = f"product_{product_id}{ext}"
+        file_path = os.path.join("photos", new_filename)
+        
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+            
+        product.image_filename = new_filename
+        
+    db.commit()
+    return {"status": "success", "detail": "Product updated successfully!"}
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

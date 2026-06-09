@@ -20,18 +20,25 @@
             <img src="/static/images/logo.png" alt="Ponnangai POS" style="height: 40px; object-fit: contain;">
             <h1 style="margin: 0;">Ponnangai POS - Factory Cashier</h1>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <span style="font-size: 14px; font-weight: 600;">‍ Cashier: {{ user.username }}</span>
-            <button id="printer-status-btn" class="btn btn-secondary btn-small"
-                style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; gap: 6px; font-weight: bold; width: auto;"
+        <button id="mobile-menu-btn" class="hamburger-btn" onclick="toggleMobileMenu()">☰</button>
+
+        <div class="header-controls">
+            <!-- Mobile Close Button -->
+            <button class="mobile-close-btn" onclick="toggleMobileMenu()" style="display: none;">✕</button>
+
+            <span class="header-user-area" style="font-size: 14px; font-weight: 600;">‍ Cashier: {{ user.username }}</span>
+            <button id="printer-status-btn" class="btn btn-secondary btn-small header-printer-btn"
+                style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; width: auto;"
                 onclick="openPrinterModal()">
                  <span id="header-printer-status">Disconnected</span>
             </button>
 
-            <a href="/logout" class="btn btn-secondary btn-small"
-                style="text-decoration: none; border: 1px solid #CBD5E0; color: #2D3748; background: #EDF2F7;">Logout</a>
+            <a href="/logout" class="btn btn-secondary btn-small header-logout-btn"
+                style="text-decoration: none; border: 1px solid #CBD5E0; color: #2D3748; background: #EDF2F7; text-align: center;">Logout</a>
         </div>
     </header>
+
+    <div id="mobile-menu-overlay" class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
 
     <div class="container">
         <div class="pos-container">

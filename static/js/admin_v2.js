@@ -659,6 +659,50 @@
                 }
             } catch (err) {
                 await Swal.fire('Network error during permanent deletion.');
-            }
         }
+    }
+
+function openEditProductModal(id, currentName) {
+    document.getElementById("edit-product-id").value = id;
+    document.getElementById("edit-product-name").value = currentName;
+    document.getElementById("edit-product-image").value = "";
+    document.getElementById("edit-product-modal").style.display = "flex";
+}
+
+function closeEditProductModal() {
+    document.getElementById("edit-product-modal").style.display = "none";
+}
+
+async function submitEditProduct() {
+    const id = document.getElementById("edit-product-id").value;
+    const name = document.getElementById("edit-product-name").value.trim();
+    const fileInput = document.getElementById("edit-product-image");
     
+    if (!name) {
+        await Swal.fire("Product name cannot be empty.");
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append("name", name);
+    if (fileInput.files[0]) {
+        formData.append("file", fileInput.files[0]);
+    }
+    
+    try {
+        const response = await fetch(`/api/products/${id}/edit`, {
+            method: "POST",
+            body: formData
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            await Swal.fire(data.detail || "Product updated successfully!");
+            location.reload();
+        } else {
+            await Swal.fire(data.detail || "Failed to update product.");
+        }
+    } catch (err) {
+        await Swal.fire("Error updating product.");
+    }
+}
