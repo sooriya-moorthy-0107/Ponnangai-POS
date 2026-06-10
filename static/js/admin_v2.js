@@ -1,4 +1,16 @@
 
+// Added for XSS protection
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+
         function toggleSessionDetails(sessionId) {
             const el = document.getElementById(`session-details-${sessionId}`);
             if (el) {
@@ -186,7 +198,7 @@
                             for (const [prod, val] of Object.entries(shopAgg)) {
                                 const tr = document.createElement('tr');
                                 tr.innerHTML = `
-                                    <td><strong>${prod}</strong></td>
+                                    <td><strong>${escapeHTML(prod)}</strong></td>
                                     <td style="text-align: right; font-weight: 600;">${val.qty.toFixed(2)}</td>
                                     <td style="text-align: right; color: var(--primary); font-weight: bold;">₹${val.rev.toFixed(2)}</td>
                                 `;
@@ -620,7 +632,7 @@
                         data.breakdown.forEach(item => {
                             tbody.innerHTML += `
                                 <tr>
-                                    <td>${item.product_name}</td>
+                                    <td>${escapeHTML(item.product_name)}</td>
                                     <td style="text-align: center;">${item.qty}</td>
                                     <td style="text-align: right;">₹${item.revenue.toFixed(2)}</td>
                                 </tr>

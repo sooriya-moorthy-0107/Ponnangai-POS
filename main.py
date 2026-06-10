@@ -9,9 +9,19 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, ForeignKey, func, Boolean, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 from starlette.middleware.sessions import SessionMiddleware
+from dotenv import load_dotenv
+from passlib.context import CryptContext
+import secrets
+import uuid
+
+load_dotenv()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # --- Configuration & Setup ---
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://pos_user:pos_password@localhost:5432/ponnangai_pos")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+SECRET_KEY = os.getenv("SECRET_KEY", "fallback-dev-key")
+PRODUCTION = os.getenv("PRODUCTION", "False").lower() == "true"
 
 # Adjust postgres scheme for SQLAlchemy 1.4+ compatibility if needed
 if DATABASE_URL.startswith("postgres://"):
@@ -25,7 +35,36 @@ Base = declarative_base()
 
 app = FastAPI(title="Ponnangai POS")
 # Using Starlette's SessionMiddleware for simple cookie-based sessions
-app.add_middleware(SessionMiddleware, secret_key="ponnangai-super-secret-key")
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SECRET_KEY,
+    https_only=PRODUCTION,
+    same_site="lax"
+)
+
+from starlette.middleware.base import BaseHTTPMiddleware
+from urllib.parse import urlparse
+
+class CSRFMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.method in ["POST", "PUT", "DELETE", "PATCH"]:
+            origin = request.headers.get("origin")
+            if origin:
+                origin_parsed = urlparse(origin)
+                host_parsed = urlparse(str(request.base_url))
+                if origin_parsed.netloc != host_parsed.netloc:
+                    return JSONResponse(status_code=403, content={"detail": "CSRF verification failed (Origin mismatch)"})
+            # Also check referer if origin is missing
+            referer = request.headers.get("referer")
+            if not origin and referer:
+                referer_parsed = urlparse(referer)
+                host_parsed = urlparse(str(request.base_url))
+                if referer_parsed.netloc != host_parsed.netloc:
+                    return JSONResponse(status_code=403, content={"detail": "CSRF verification failed (Referer mismatch)"})
+        return await call_next(request)
+
+app.add_middleware(CSRFMiddleware)
+
 
 # Ensure directories exist according to structure
 os.makedirs("templates", exist_ok=True)
@@ -277,22 +316,24 @@ def seed_db():
     db = SessionLocal()
     if db.query(User).count() == 0:
         # Create initial users
-        admin = User(username="admin", password="Somuponn", role="Admin")
-        manager = User(username="manager", password="manager123", role="Manager")
-        owner = User(username="owner", password="owner123", role="Owner")
+        admin = User(username="admin", password=pwd_context.hash("Somuponn"), role="Admin")
+        manager = User(username="manager", password=pwd_context.hash("manager123"), role="Manager")
+        owner = User(username="owner", password=pwd_context.hash("owner123"), role="Owner")
         db.add_all([admin, manager, owner])
         db.commit()
     else:
         owner = db.query(User).filter(User.role == "Owner").first()
         if not owner:
-            owner = User(username="owner", password="owner123", role="Owner")
+            owner = User(username="owner", password=pwd_context.hash("owner123"), role="Owner")
             db.add(owner)
             db.commit()
 
         admin = db.query(User).filter(User.username == "admin").first()
         if admin:
-            admin.password = "Somuponn"
-            db.commit()
+            # Only hash if it's currently the plaintext password
+            if not admin.password.startswith("$2"):
+                admin.password = pwd_context.hash("Somuponn")
+                db.commit()
     db.close()
 
 seed_db()
@@ -320,7 +361,7 @@ async def login_page(request: Request):
 async def do_login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     username_clean = username.strip()
     user = db.query(User).filter(User.username == username_clean, User.is_deleted == False).first()
-    if not user or user.password != password:
+    if not user or not pwd_context.verify(password, user.password):
         return templates.TemplateResponse(request=request, name="login.html", context={"request": request, "error": "Invalid username or password"})
     
     request.session["user_id"] = user.id
@@ -1082,7 +1123,7 @@ async def update_password(request: Request, data: dict, db: Session = Depends(ge
     if not target_user:
         return JSONResponse(status_code=404, content={"detail": "User not found"})
         
-    target_user.password = new_password
+    target_user.password = pwd_context.hash(new_password)
     db.commit()
     return {"status": "success", "detail": f"Password updated for {target_user.username}"}
 
@@ -1600,7 +1641,7 @@ async def add_user(request: Request, data: dict, db: Session = Depends(get_db)):
     if existing_user:
         return JSONResponse(status_code=400, content={"detail": "Username already exists"})
         
-    new_user = User(username=username, password=password, role=role)
+    new_user = User(username=username, password=pwd_context.hash(password), role=role)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -1764,11 +1805,14 @@ async def upload_product_image(request: Request, product_id: int, file: UploadFi
     if not file.filename:
         return JSONResponse(status_code=400, content={"detail": "No file uploaded"})
         
+    if file.content_type not in ["image/jpeg", "image/png", "image/webp", "image/gif"]:
+        return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed."})
+        
     # Generate clean filename based on product ID
     ext = os.path.splitext(file.filename)[1].lower()
-    if not ext:
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
         ext = ".jpg"
-    new_filename = f"product_{product_id}{ext}"
+    new_filename = f"product_{product_id}_{uuid.uuid4().hex}{ext}"
     file_path = os.path.join("photos", new_filename)
     
     # Save the file
@@ -1806,10 +1850,13 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
             db.add(new_inv)
     
     if file and file.filename:
+        if file.content_type not in ["image/jpeg", "image/png", "image/webp", "image/gif"]:
+            return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed."})
+            
         ext = os.path.splitext(file.filename)[1].lower()
-        if not ext:
+        if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
             ext = ".jpg"
-        new_filename = f"product_{product_id}{ext}"
+        new_filename = f"product_{product_id}_{uuid.uuid4().hex}{ext}"
         file_path = os.path.join("photos", new_filename)
         
         content = await file.read()

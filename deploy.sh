@@ -18,7 +18,7 @@ python3 -m venv venv
 ./venv/bin/pip install wheel
 ./venv/bin/pip install -r requirements.txt
 
-echo "DATABASE_URL=\"postgresql://postgres:Ponnangai123*@ponnangai-db.ch4gua8mcdeb.ap-south-1.rds.amazonaws.com:5432/postgres\"" > .env
+# Note: Make sure to manually create a .env file with DATABASE_URL, SECRET_KEY, and PRODUCTION=True before starting the service.
 
 cat << 'EOF' | sudo tee /etc/systemd/system/ponnangai-pos.service
 [Unit]

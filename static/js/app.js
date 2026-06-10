@@ -1,3 +1,15 @@
+
+// Added for XSS protection
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // Cart Logic
 let cart = [];
 
@@ -89,7 +101,7 @@ function renderCart() {
             <div style="display: flex; flex-direction: column; flex: 1;">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 8px;">
                     <div class="cart-item-info" style="flex: 1; min-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        <div class="cart-item-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
+                        <div class="cart-item-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(item.name)}</div>
                         <div class="cart-item-price">₹${item.price.toFixed(2)}</div>
                     </div>
                     <div class="cart-item-controls">
@@ -359,7 +371,7 @@ function renderProducts(productsList) {
             card.setAttribute('onclick', `addToCart(${product.id}, '${escapedName}', ${product.price}, ${product.stock})`);
             
             const imageHtml = product.image_filename 
-                ? `<img src="/photos/${product.image_filename}" alt="${product.name}" class="product-image">`
+                ? `<img src="/photos/${product.image_filename}" alt="${escapeHTML(product.name)}" class="product-image">`
                 : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
                 
             const stockHtml = product.stock <= 5
@@ -368,7 +380,7 @@ function renderProducts(productsList) {
                 
             card.innerHTML = `
                 ${imageHtml}
-                <div class="product-name">${product.name}</div>
+                <div class="product-name">${escapeHTML(product.name)}</div>
                 <div class="product-price">₹${product.price.toFixed(2)}</div>
                 ${stockHtml}
                 <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
@@ -380,13 +392,13 @@ function renderProducts(productsList) {
             card.style.position = 'relative';
             
             const imageHtml = product.image_filename 
-                ? `<img src="/photos/${product.image_filename}" alt="${product.name}" class="product-image" style="filter: grayscale(100%);">`
+                ? `<img src="/photos/${product.image_filename}" alt="${escapeHTML(product.name)}" class="product-image" style="filter: grayscale(100%);">`
                 : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
                 
             card.innerHTML = `
                 <div style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">OUT OF STOCK</div>
                 ${imageHtml}
-                <div class="product-name">${product.name}</div>
+                <div class="product-name">${escapeHTML(product.name)}</div>
                 <div class="product-price">₹${product.price.toFixed(2)}</div>
                 <div style="font-size: 10px; color: #E53E3E; margin-bottom: 4px; font-weight: bold;">Out of Stock</div>
                 <button class="btn btn-secondary btn-small" style="margin-top: auto; cursor: not-allowed;" disabled>Out of Stock</button>
@@ -867,7 +879,7 @@ function generateReceiptHtml(billData) {
     billData.items.forEach(item => {
         itemsHtml += `
             <div class="receipt-item" style="${billData.is_cancelled ? 'text-decoration: line-through; opacity: 0.7;' : ''}">
-                <div style="flex: 2; word-break: break-word;">${item.name}</div>
+                <div style="flex: 2; word-break: break-word;">${escapeHTML(item.name)}</div>
                 <div style="flex: 1; text-align: center;">${item.quantity}</div>
                 <div style="flex: 1; text-align: right;">${item.total.toFixed(2)}</div>
             </div>
@@ -1142,7 +1154,7 @@ async function fetchCashData() {
                 card.innerHTML = `
                     <div>
                         <div style="font-weight: 600; font-size: 14px;">${t.type === 'IN' ? 'Money IN' : 'Money OUT'}</div>
-                        <div style="font-size: 12px; color: #718096;">${t.description || 'No description'}</div>
+                        <div style="font-size: 12px; color: #718096;">${escapeHTML(t.description || 'No description')}</div>
                         <div style="font-size: 10px; color: #A0AEC0; margin-top: 4px;">${timeStr}</div>
                     </div>
                     <div style="display: flex; align-items: center;">

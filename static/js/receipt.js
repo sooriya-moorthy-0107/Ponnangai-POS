@@ -1,4 +1,16 @@
 
+// Added for XSS protection
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+
         // --- Printer Configuration State ---
         const DEFAULT_SETTINGS = {
             width: '58',
@@ -103,7 +115,7 @@
 
             async function connectToDevice(device) {
                 const statusText = document.getElementById('bt-status-text');
-                statusText.innerHTML = `<span style="color: #D69E2E;">🟡 Connecting to ${device.name || 'Printer'}...</span>`;
+                statusText.innerHTML = `<span style="color: #D69E2E;">🟡 Connecting to ${escapeHTML(device.name || 'Printer')}...</span>`;
 
                 bluetoothDevice = device;
                 bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
@@ -155,7 +167,7 @@
                     throw new Error("No write capability found on this Niyama device.");
                 }
 
-                statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
+                statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${escapeHTML(bluetoothDevice.name)}</span>`;
                 document.getElementById('bt-print-btn').style.display = 'block';
                 document.getElementById('bt-test-btn').style.display = 'block';
             }
@@ -365,7 +377,7 @@
                         // Minimal delay to prevent hardware buffer congestion
                         await new Promise(resolve => setTimeout(resolve, 35));
                     }
-                    statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
+                    statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${escapeHTML(bluetoothDevice.name)}</span>`;
                 } catch (err) {
                     console.error("Wireless printing failed", err);
                     statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;"> Print Failed: ${err.message || err}</span>`;

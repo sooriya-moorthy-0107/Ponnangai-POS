@@ -1,4 +1,16 @@
 
+// Added for XSS protection
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+
         const ACTIVE_SHOPKEEPER_ID = ACTIVE_CASHIER_ID;
         let cart = [];
         let bluetoothDevice = null;
@@ -77,7 +89,7 @@
                         card.innerHTML = `
                             <div>
                                 <div style="font-weight: 600; font-size: 14px;">${t.type === 'IN' ? 'Money IN' : 'Money OUT'}</div>
-                                <div style="font-size: 12px; color: #718096;">${t.description || 'No description'}</div>
+                                <div style="font-size: 12px; color: #718096;">${escapeHTML(t.description || 'No description')}</div>
                                 <div style="font-size: 10px; color: #A0AEC0; margin-top: 4px;">${timeStr}</div>
                             </div>
                             <div style="display: flex; align-items: center;">
@@ -237,7 +249,7 @@
                 html += `
                 <div style="padding:16px 0; border-bottom:1px solid #E2E8F0; display: flex; flex-direction: column; gap: 10px;">
                     <div style="font-weight:700; font-size:18px; color:#2D3748; word-break: break-word;">
-                        ${item.name}
+                        ${escapeHTML(item.name)}
                     </div>
                     <div style="display:flex; align-items:center; justify-content:space-between; gap: 8px; flex-wrap: wrap;">
                         <div style="display:flex; align-items:center; gap:4px;">
@@ -472,7 +484,7 @@
             bill.items.forEach(item => {
                 itemsHtml += `
                 <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-                    <div style="flex: 2;">${item.name}</div>
+                    <div style="flex: 2;">${escapeHTML(item.name)}</div>
                     <div style="flex: 1; text-align: center;">${item.quantity}</div>
                     <div style="flex: 1; text-align: right;">₹${item.total.toFixed(2)}</div>
                 </div>
@@ -522,7 +534,7 @@
 
         async function connectToDevice(device) {
             const statusText = document.getElementById('bt-status-text');
-            statusText.innerHTML = `<span style="color: #D69E2E;">🟡 Connecting to ${device.name || 'Printer'}...</span>`;
+            statusText.innerHTML = `<span style="color: #D69E2E;">🟡 Connecting to ${escapeHTML(device.name || 'Printer')}...</span>`;
 
             bluetoothDevice = device;
             bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
@@ -574,7 +586,7 @@
                 throw new Error("No write capability found on this Niyama device.");
             }
 
-            statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
+            statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${escapeHTML(bluetoothDevice.name)}</span>`;
             document.getElementById('header-printer-status').innerText = 'Connected';
             document.getElementById('bt-test-btn').style.display = 'inline-block';
         }
@@ -782,7 +794,7 @@
                     await printCharacteristic.writeValue(chunk);
                     await new Promise(resolve => setTimeout(resolve, 35));
                 }
-                statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${bluetoothDevice.name}</span>`;
+                statusText.innerHTML = `<span style="color: #48BB78; font-weight: bold;">🟢 Connected to ${escapeHTML(bluetoothDevice.name)}</span>`;
             } catch (err) {
                 console.error("Wireless printing failed", err);
                 statusText.innerHTML = `<span style="color: #E53E3E; font-weight: bold;"> Print Failed: ${err.message || err}</span>`;

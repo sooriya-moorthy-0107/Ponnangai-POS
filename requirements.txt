@@ -5,3 +5,6 @@ jinja2
 python-multipart
 itsdangerous
 psycopg2-binary
+passlib
+bcrypt==3.2.2
+python-dotenv
