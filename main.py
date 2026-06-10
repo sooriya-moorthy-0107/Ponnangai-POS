@@ -277,7 +277,7 @@ def seed_db():
     db = SessionLocal()
     if db.query(User).count() == 0:
         # Create initial users
-        admin = User(username="admin", password="admin123", role="Admin")
+        admin = User(username="admin", password="Somuponn", role="Admin")
         manager = User(username="manager", password="manager123", role="Manager")
         owner = User(username="owner", password="owner123", role="Owner")
         db.add_all([admin, manager, owner])
@@ -287,6 +287,11 @@ def seed_db():
         if not owner:
             owner = User(username="owner", password="owner123", role="Owner")
             db.add(owner)
+            db.commit()
+
+        admin = db.query(User).filter(User.username == "admin").first()
+        if admin:
+            admin.password = "Somuponn"
             db.commit()
     db.close()
 
@@ -1778,7 +1783,7 @@ async def upload_product_image(request: Request, product_id: int, file: UploadFi
     return {"status": "success", "detail": "Photo updated successfully!", "image_filename": new_filename}
 
 @app.post("/api/products/{product_id}/edit")
-async def edit_product_info(request: Request, product_id: int, name: str = Form(...), file: UploadFile | None = File(None), db: Session = Depends(get_db)):
+async def edit_product_info(request: Request, product_id: int, name: str = Form(...), stock: int = Form(None), shopkeeper_id: int = Form(None), file: UploadFile | None = File(None), db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user or user.role not in ["Admin", "Manager", "Owner"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
@@ -1788,6 +1793,17 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
         return JSONResponse(status_code=404, content={"detail": "Product not found"})
         
     product.name = name.strip()
+    
+    if stock is not None and shopkeeper_id is not None:
+        shop_inv = db.query(ShopInventory).filter(
+            ShopInventory.product_id == product_id,
+            ShopInventory.shopkeeper_id == shopkeeper_id
+        ).first()
+        if shop_inv:
+            shop_inv.stock = stock
+        else:
+            new_inv = ShopInventory(shopkeeper_id=shopkeeper_id, product_id=product_id, stock=stock)
+            db.add(new_inv)
     
     if file and file.filename:
         ext = os.path.splitext(file.filename)[1].lower()
