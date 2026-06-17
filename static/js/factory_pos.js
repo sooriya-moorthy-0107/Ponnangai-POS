@@ -180,7 +180,7 @@ function escapeHTML(str) {
             if (existing) {
                 existing.qty += 1;
             } else {
-                cart.push({ id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: 'loose', bottle_type: 'Type 1', bottle_count: 1 });
+                cart.push({ id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: 'loose', bottle_type: 'Pharma Bottle', bottle_count: 1 });
             }
             renderCart();
         }
@@ -279,9 +279,13 @@ function escapeHTML(str) {
                         </select>
                         ${item.packaging_type === 'bottle' ? `
                         <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updateBottleType(${item.id}, this.value)">
-                            <option value="Type 1" ${item.bottle_type === 'Type 1' ? 'selected' : ''}>Type 1</option>
-                            <option value="Type 2" ${item.bottle_type === 'Type 2' ? 'selected' : ''}>Type 2</option>
-                            <option value="Type 3" ${item.bottle_type === 'Type 3' ? 'selected' : ''}>Type 3</option>
+                            <option value="Pharma Bottle" ${item.bottle_type === 'Pharma Bottle' ? 'selected' : ''}>Pharma Bottle</option>
+                            <option value="Lotus Bottle" ${item.bottle_type === 'Lotus Bottle' ? 'selected' : ''}>Lotus Bottle</option>
+                            <option value="Water Bottle" ${item.bottle_type === 'Water Bottle' ? 'selected' : ''}>Water Bottle</option>
+                            <option value="Harpic Bottle" ${item.bottle_type === 'Harpic Bottle' ? 'selected' : ''}>Harpic Bottle</option>
+                            <option value="Floorwash Bottle" ${item.bottle_type === 'Floorwash Bottle' ? 'selected' : ''}>Floorwash Bottle</option>
+                            <option value="half Liter bottle" ${item.bottle_type === 'half Liter bottle' ? 'selected' : ''}>half Liter bottle</option>
+                            <option value="Glass Cleaner Bottle" ${item.bottle_type === 'Glass Cleaner Bottle' ? 'selected' : ''}>Glass Cleaner Bottle</option>
                         </select>` : ''}
                     </div>
                     ` : ''}

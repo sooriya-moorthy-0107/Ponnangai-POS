@@ -16,7 +16,7 @@ import uuid
 
 load_dotenv()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto") 
 
 # --- Configuration & Setup ---
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
@@ -134,7 +134,7 @@ class BillItem(Base):
     quantity = Column(Float, nullable=False) # Changed from Integer to Float for loose quantity sales
     price_at_sale = Column(Float, nullable=False)
     packaging_type = Column(String, default="loose") # loose, bottle
-    bottle_type = Column(String, nullable=True) # Type 1, Type 2, Type 3
+    bottle_type = Column(String, nullable=True) # Pharma Bottle, Lotus Bottle, etc.
     bottle_count = Column(Integer, default=0)
 
     bill = relationship("Bill", back_populates="items")
@@ -1805,12 +1805,12 @@ async def upload_product_image(request: Request, product_id: int, file: UploadFi
     if not file.filename:
         return JSONResponse(status_code=400, content={"detail": "No file uploaded"})
         
-    if file.content_type not in ["image/jpeg", "image/png", "image/webp", "image/gif"]:
-        return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed."})
+    if not file.content_type or not file.content_type.startswith("image/"):
+        return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only image files are allowed."})
         
     # Generate clean filename based on product ID
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+    if not ext:
         ext = ".jpg"
     new_filename = f"product_{product_id}_{uuid.uuid4().hex}{ext}"
     file_path = os.path.join("photos", new_filename)
@@ -1850,11 +1850,11 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
             db.add(new_inv)
     
     if file and file.filename:
-        if file.content_type not in ["image/jpeg", "image/png", "image/webp", "image/gif"]:
-            return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed."})
+        if not file.content_type or not file.content_type.startswith("image/"):
+            return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only image files are allowed."})
             
         ext = os.path.splitext(file.filename)[1].lower()
-        if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+        if not ext:
             ext = ".jpg"
         new_filename = f"product_{product_id}_{uuid.uuid4().hex}{ext}"
         file_path = os.path.join("photos", new_filename)
