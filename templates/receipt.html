@@ -150,17 +150,21 @@
                 <div
                     style="margin-top: 8px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-weight: bold; font-size: 9px; display: flex; {% if bill.is_cancelled %}opacity: 0.7;{% endif %}">
                     <div style="flex: 2;">Item</div>
+                    <div style="flex: 1; text-align: center;">Rate</div>
                     <div style="flex: 1; text-align: center;">Qty</div>
-                    <div style="flex: 1; text-align: right;">Total</div>
+                    <div style="flex: 1.5; text-align: right;">Amount</div>
                 </div>
 
                 {% for item in bill.items %}
-                <div class="receipt-item" {% if bill.is_cancelled %}style="text-decoration: line-through; opacity: 0.7;"
-                    {% endif %}>
-                    <div style="flex: 2; word-break: break-word;">{{ item.product.name if item.product else 'Deleted
-                        Item' }}</div>
-                    <div style="flex: 1; text-align: center;">{{ item.quantity }}</div>
-                    <div style="flex: 1; text-align: right;">{{ "%.2f"|format(item.price_at_sale * item.quantity) }}
+                <div class="receipt-item" style="display: flex; flex-direction: column; margin-bottom: 6px; {% if bill.is_cancelled %}text-decoration: line-through; opacity: 0.7;{% endif %}">
+                    <div style="font-weight: bold; margin-bottom: 2px; word-break: break-word;">{{ item.product.name if item.product else 'Deleted Item' }}</div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <div style="flex: 2; color: #4A5568; font-size: 8px;">
+                            ({% if item.packaging_type %}{{ item.packaging_type }}{% if item.packaging_type == 'bottle' and item.bottle_type %} - {{ item.bottle_type }}{% endif %}{% else %}loose{% endif %})
+                        </div>
+                        <div style="flex: 1; text-align: center;">{{ "%.2f"|format(item.price_at_sale) }}</div>
+                        <div style="flex: 1; text-align: center;">{{ item.quantity }}</div>
+                        <div style="flex: 1.5; text-align: right;">{{ "%.2f"|format(item.price_at_sale * item.quantity) }}</div>
                     </div>
                 </div>
                 {% endfor %}
@@ -168,20 +172,20 @@
                 <div class="receipt-summary" style="margin-top: 8px;">
                     <div
                         style="display: flex; justify-content: space-between; font-size: 9px; {% if bill.is_cancelled %}text-decoration: line-through; opacity: 0.7;{% endif %}">
-                        <span>Subtotal:</span>
+                        <span>subtotal</span>
                         <span>{{ "%.2f"|format(bill.total_amount) }}</span>
                     </div>
                     {% if bill.discount > 0 %}
                     <div
                         style="display: flex; justify-content: space-between; font-size: 9px; color: #4A5568; {% if bill.is_cancelled %}text-decoration: line-through; opacity: 0.7;{% endif %}">
-                        <span>Discount:</span>
+                        <span>discount</span>
                         <span>- {{ "%.2f"|format(bill.discount) }}</span>
                     </div>
                     {% endif %}
 
                     <div class="receipt-total" {% if bill.is_cancelled
                         %}style="text-decoration: line-through; color: #E53E3E;" {% endif %}>
-                        <span>FINAL TOTAL:</span>
+                        <span>total paid</span>
                         <span>₹{{ "%.2f"|format(bill.final_amount) }}</span>
                     </div>
                 </div>

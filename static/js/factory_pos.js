@@ -486,11 +486,22 @@ function escapeHTML(str) {
             const container = document.getElementById('receipt-container-preview');
             let itemsHtml = '';
             bill.items.forEach(item => {
+                let pkgInfo = '';
+                if (item.packaging_type && item.packaging_type !== 'loose') {
+                     pkgInfo = `(${item.packaging_type}${item.bottle_type ? ' - ' + item.bottle_type : ''})`;
+                } else {
+                     pkgInfo = `(loose)`;
+                }
+                
                 itemsHtml += `
-                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-                    <div style="flex: 2;">${escapeHTML(item.name)}</div>
-                    <div style="flex: 1; text-align: center;">${item.quantity}</div>
-                    <div style="flex: 1; text-align: right;">₹${item.total.toFixed(2)}</div>
+                <div style="display: flex; flex-direction: column; font-size: 11px; margin-bottom: 6px;">
+                    <div style="font-weight: bold; margin-bottom: 2px;">${escapeHTML(item.name)}</div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <div style="flex: 2; color: #4A5568; font-size: 10px;">${pkgInfo}</div>
+                        <div style="flex: 1; text-align: center;">${item.price.toFixed(2)}</div>
+                        <div style="flex: 1; text-align: center;">${item.quantity}</div>
+                        <div style="flex: 1.5; text-align: right;">${item.total.toFixed(2)}</div>
+                    </div>
                 </div>
                 `;
             });
@@ -505,16 +516,17 @@ function escapeHTML(str) {
             </div>
             <div style="border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 8px; font-weight: bold; display: flex; font-size: 11px;">
                 <div style="flex: 2;">Item</div>
+                <div style="flex: 1; text-align: center;">Rate</div>
                 <div style="flex: 1; text-align: center;">Qty</div>
-                <div style="flex: 1; text-align: right;">Amount</div>
+                <div style="flex: 1.5; text-align: right;">Amount</div>
             </div>
             <div style="border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 8px;">
                 ${itemsHtml}
             </div>
             <div style="font-size: 12px; display: flex; flex-direction: column; gap: 3px; align-items: flex-end; margin-bottom: 8px;">
-                <div>Subtotal: ₹${bill.total_amount.toFixed(2)}</div>
-                ${bill.discount > 0 ? `<div>Discount: ₹${bill.discount.toFixed(2)}</div>` : ''}
-                <div style="font-weight: bold; font-size: 14px;">Total Paid: ₹${bill.final_amount.toFixed(2)}</div>
+                <div>subtotal: ₹${bill.total_amount.toFixed(2)}</div>
+                ${bill.discount > 0 ? `<div>discount: ₹${bill.discount.toFixed(2)}</div>` : ''}
+                <div style="font-weight: bold; font-size: 14px;">total paid: ₹${bill.final_amount.toFixed(2)}</div>
             </div>
             <div style="text-align: center; font-size: 11px; margin-top: 10px;">
                 <p style="margin: 0; font-weight: bold;">Thank You! Visit Again</p>

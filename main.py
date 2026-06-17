@@ -602,7 +602,9 @@ async def get_bill_details(request: Request, bill_id: int, db: Session = Depends
             "name": item.product.name if item.product else "Deleted Item",
             "quantity": item.quantity,
             "price": item.price_at_sale,
-            "total": item.price_at_sale * item.quantity
+            "total": item.price_at_sale * item.quantity,
+            "packaging_type": item.packaging_type,
+            "bottle_type": item.bottle_type
         })
         
     return {
