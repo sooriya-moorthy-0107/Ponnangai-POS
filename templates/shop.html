@@ -75,7 +75,7 @@
                 {% for product in products %}
                 {% if product.stock > 0 %}
                 <div class="product-card"
-                    onclick="addToCart('{{ product.id }}', '{{ product.name }}', '{{ product.price }}', '{{ product.stock }}', '{{ product.product_type }}', '{{ product.unit }}')"
+                    onclick="addToCart({{ product.id }}, '{{ product.name }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}')"
                     style="cursor: pointer;">
                     {% if product.image_filename %}
                     <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image">
@@ -216,7 +216,7 @@
         </div>
         </div>
 
-    <script src="/static/js/app.js?v=2"></script>
+    <script src="/static/js/app.js?v=4"></script>
     <script>
         const ACTIVE_SHOPKEEPER_ID = '{{ target_shopkeeper_id }}';
     </script>

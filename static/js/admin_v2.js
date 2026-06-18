@@ -97,21 +97,13 @@ function escapeHTML(str) {
                     const thead = document.querySelector('#report-table thead tr');
                     tbody.innerHTML = '';
 
-                    if (data.shop_role === 'Factory') {
-                        thead.innerHTML = `
-                            <th>Product Name</th>
-                            <th>Bottle Type</th>
-                            <th>Packaging Type</th>
-                            <th style="text-align: right;">Total Quantity Sold</th>
-                            <th style="text-align: right;">Total Revenue (Rs)</th>
-                        `;
-                    } else {
-                        thead.innerHTML = `
-                            <th>Product Name</th>
-                            <th style="text-align: right;">Total Qty Sold</th>
-                            <th style="text-align: right;">Total Revenue</th>
-                        `;
-                    }
+                    thead.innerHTML = `
+                        <th>Product Name</th>
+                        <th>Bottle Type</th>
+                        <th>Packaging Type</th>
+                        <th style="text-align: right;">Total Quantity Sold</th>
+                        <th style="text-align: right;">Total Revenue (Rs)</th>
+                    `;
 
                     if (data.data.length === 0) {
                         document.getElementById('report-results').style.display = 'none';
@@ -122,123 +114,65 @@ function escapeHTML(str) {
 
                         let totalRev = 0;
 
-                        if (data.shop_role === 'Factory') {
-                            data.data.forEach(row => {
-                                totalRev += row.total_revenue;
-                                const tr = document.createElement('tr');
-                                tr.innerHTML = `
-                                    <td><strong>${row.product}</strong></td>
-                                    <td>${row.bottle_type !== 'N/A' ? row.bottle_type : '<span style="color:#A0AEC0;">-</span>'}</td>
-                                    <td>
-                                        <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; ${row.packaging === 'bottle' ? 'background: #EBF8FF; color: #2B6CB0;' : 'background: #EDF2F7; color: #4A5568;'}">
-                                            ${row.packaging}
-                                        </span>
-                                    </td>
-                                    <td style="text-align: right; font-weight: 600;">${row.total_quantity.toFixed(2)}</td>
-                                    <td style="text-align: right; color: var(--primary); font-weight: bold;">₹${row.total_revenue.toFixed(2)}</td>
-                                `;
-                                tbody.appendChild(tr);
-                            });
-
-                            const sumRow = document.createElement('tr');
-                            sumRow.style.backgroundColor = '#EBF8FF';
-                            sumRow.innerHTML = `
-                                <td colspan="4" style="text-align: right; font-weight: bold; color: #2B6CB0;">Total Revenue:</td>
-                                <td style="text-align: right; font-weight: bold; color: var(--primary);">₹${totalRev.toFixed(2)}</td>
+                        data.data.forEach(row => {
+                            totalRev += row.total_revenue;
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td><strong>${row.product}</strong></td>
+                                <td>${row.bottle_type !== 'N/A' ? row.bottle_type : '<span style="color:#A0AEC0;">-</span>'}</td>
+                                <td>
+                                    <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; ${row.packaging === 'bottle' ? 'background: #EBF8FF; color: #2B6CB0;' : 'background: #EDF2F7; color: #4A5568;'}">
+                                        ${row.packaging}
+                                    </span>
+                                </td>
+                                <td style="text-align: right; font-weight: 600;">${row.total_quantity.toFixed(2)}</td>
+                                <td style="text-align: right; color: var(--primary); font-weight: bold;">₹${row.total_revenue.toFixed(2)}</td>
                             `;
-                            tbody.appendChild(sumRow);
+                            tbody.appendChild(tr);
+                        });
 
-                            if (data.revenue_breakdown) {
-                                document.getElementById('report-top-revenue').innerHTML = `
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span>Total Revenue: ₹${data.revenue_breakdown.Total.toFixed(2)}</span>
-                                        <div style="font-size: 13px; font-weight: normal; color: #4A5568;">
-                                            <span style="margin-left: 12px;">Cash: ₹${data.revenue_breakdown.Cash.toFixed(2)}</span>
-                                            <span style="margin-left: 12px;">UPI: ₹${data.revenue_breakdown.UPI.toFixed(2)}</span>
-                                            <span style="margin-left: 12px;">Card: ₹${data.revenue_breakdown.Card.toFixed(2)}</span>
-                                        </div>
+                        const sumRow = document.createElement('tr');
+                        sumRow.style.backgroundColor = '#EBF8FF';
+                        sumRow.innerHTML = `
+                            <td colspan="4" style="text-align: right; font-weight: bold; color: #2B6CB0;">Total Revenue:</td>
+                            <td style="text-align: right; font-weight: bold; color: var(--primary);">₹${totalRev.toFixed(2)}</td>
+                        `;
+                        tbody.appendChild(sumRow);
+
+                        if (data.revenue_breakdown) {
+                            document.getElementById('report-top-revenue').innerHTML = `
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Total Revenue: ₹${data.revenue_breakdown.Total.toFixed(2)}</span>
+                                    <div style="font-size: 13px; font-weight: normal; color: #4A5568;">
+                                        <span style="margin-left: 12px;">Cash: ₹${data.revenue_breakdown.Cash.toFixed(2)}</span>
+                                        <span style="margin-left: 12px;">UPI: ₹${data.revenue_breakdown.UPI.toFixed(2)}</span>
+                                        <span style="margin-left: 12px;">Card: ₹${data.revenue_breakdown.Card.toFixed(2)}</span>
                                     </div>
-                                `;
-
-                                const netCash = data.revenue_breakdown.Cash + data.total_cash_in - data.total_cash_out;
-                                const breakDownHtml = `
-                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">₹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">₹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">₹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #FFF5F5;"><td colspan="4" style="text-align: right; color: #C53030;">Money OUT (Expenses):</td><td style="text-align: right; color: #C53030;">-₹${data.total_cash_out.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F0FFF4;"><td colspan="4" style="text-align: right; font-weight: bold; color: #2F855A;">Total After Expense (Cash in Drawer):</td><td style="text-align: right; font-weight: bold; color: #2F855A;">₹${netCash.toFixed(2)}</td></tr>
-                                `;
-                                tbody.insertAdjacentHTML('beforeend', breakDownHtml);
-                            }
-
-
-                            const bottleCountsDiv = document.getElementById('report-bottle-counts');
-                            if (bottleCountsDiv) {
-                                let bcHtml = '<strong>Bottle Counts:</strong> ';
-                                let hasBottles = false;
-                                for (const [type, count] of Object.entries(data.bottle_counts)) {
-                                    if (count > 0) {
-                                        bcHtml += `<span style="margin-left: 8px; padding: 2px 8px; background: #CBD5E0; border-radius: 12px; font-size: 12px;">${type} = ${count}</span>`;
-                                        hasBottles = true;
-                                    }
-                                }
-                                bottleCountsDiv.innerHTML = hasBottles ? bcHtml : '';
-                            }
-                        } else {
-                            const shopAgg = {};
-                            data.data.forEach(row => {
-                                if (!shopAgg[row.product]) {
-                                    shopAgg[row.product] = { qty: 0, rev: 0 };
-                                }
-                                shopAgg[row.product].qty += row.total_quantity;
-                                shopAgg[row.product].rev += row.total_revenue;
-                                totalRev += row.total_revenue;
-                            });
-
-                            for (const [prod, val] of Object.entries(shopAgg)) {
-                                const tr = document.createElement('tr');
-                                tr.innerHTML = `
-                                    <td><strong>${escapeHTML(prod)}</strong></td>
-                                    <td style="text-align: right; font-weight: 600;">${val.qty.toFixed(2)}</td>
-                                    <td style="text-align: right; color: var(--primary); font-weight: bold;">₹${val.rev.toFixed(2)}</td>
-                                `;
-                                tbody.appendChild(tr);
-                            }
-
-                            const sumRow = document.createElement('tr');
-                            sumRow.style.backgroundColor = '#EBF8FF';
-                            sumRow.innerHTML = `
-                                <td colspan="2" style="text-align: right; font-weight: bold; color: #2B6CB0;">Total Revenue:</td>
-                                <td style="text-align: right; font-weight: bold; color: var(--primary);">₹${totalRev.toFixed(2)}</td>
+                                </div>
                             `;
-                            tbody.appendChild(sumRow);
 
-                            if (data.revenue_breakdown) {
-                                document.getElementById('report-top-revenue').innerHTML = `
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span>Total Revenue: ₹${data.revenue_breakdown.Total.toFixed(2)}</span>
-                                        <div style="font-size: 13px; font-weight: normal; color: #4A5568;">
-                                            <span style="margin-left: 12px;">Cash: ₹${data.revenue_breakdown.Cash.toFixed(2)}</span>
-                                            <span style="margin-left: 12px;">UPI: ₹${data.revenue_breakdown.UPI.toFixed(2)}</span>
-                                            <span style="margin-left: 12px;">Card: ₹${data.revenue_breakdown.Card.toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                `;
-
-                                const netCash = data.revenue_breakdown.Cash + data.total_cash_in - data.total_cash_out;
-                                const breakDownHtml = `
-                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">₹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">₹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F7FAFC;"><td colspan="2" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">₹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #FFF5F5;"><td colspan="2" style="text-align: right; color: #C53030;">Money OUT (Expenses):</td><td style="text-align: right; color: #C53030;">-₹${data.total_cash_out.toFixed(2)}</td></tr>
-                                    <tr style="background-color: #F0FFF4;"><td colspan="2" style="text-align: right; font-weight: bold; color: #2F855A;">Total After Expense (Cash in Drawer):</td><td style="text-align: right; font-weight: bold; color: #2F855A;">₹${netCash.toFixed(2)}</td></tr>
-                                `;
-                                tbody.insertAdjacentHTML('beforeend', breakDownHtml);
+                            const netCash = data.revenue_breakdown.Cash + data.total_cash_in - data.total_cash_out;
+                            const breakDownHtml = `
+                                <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Cash:</td><td style="text-align: right;">₹${data.revenue_breakdown.Cash.toFixed(2)}</td></tr>
+                                <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">UPI:</td><td style="text-align: right;">₹${data.revenue_breakdown.UPI.toFixed(2)}</td></tr>
+                                <tr style="background-color: #F7FAFC;"><td colspan="4" style="text-align: right; color: #4A5568;">Card:</td><td style="text-align: right;">₹${data.revenue_breakdown.Card.toFixed(2)}</td></tr>
+                                <tr style="background-color: #FFF5F5;"><td colspan="4" style="text-align: right; color: #C53030;">Money OUT (Expenses):</td><td style="text-align: right; color: #C53030;">-₹${data.total_cash_out.toFixed(2)}</td></tr>
+                                <tr style="background-color: #F0FFF4;"><td colspan="4" style="text-align: right; font-weight: bold; color: #2F855A;">Total After Expense (Cash in Drawer):</td><td style="text-align: right; font-weight: bold; color: #2F855A;">₹${netCash.toFixed(2)}</td></tr>
+                            `;
+                            tbody.insertAdjacentHTML('beforeend', breakDownHtml);
+                        }
+                        
+                        const bottleCountsDiv = document.getElementById('report-bottle-counts');
+                        if (bottleCountsDiv) {
+                            let bcHtml = '<strong>Bottle Counts:</strong> ';
+                            let hasBottles = false;
+                            for (const [type, count] of Object.entries(data.bottle_counts)) {
+                                if (count > 0) {
+                                    bcHtml += `<span style="margin-left: 8px; padding: 2px 8px; background: #CBD5E0; border-radius: 12px; font-size: 12px;">${type} = ${count}</span>`;
+                                    hasBottles = true;
+                                }
                             }
-
-
-                            const bottleCountsDiv = document.getElementById('report-bottle-counts');
-                            if (bottleCountsDiv) bottleCountsDiv.innerHTML = '';
+                            bottleCountsDiv.innerHTML = hasBottles ? bcHtml : '';
                         }
                     }
                 } else {

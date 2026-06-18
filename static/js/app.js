@@ -34,7 +34,10 @@ async function addToCart(productId, productName, productPrice, maxStock, product
             qty: 1, 
             maxStock: maxStock,
             type: productType,
-            unit: unit
+            unit: unit,
+            packaging_type: productType === 'liquid' ? 'loose' : null,
+            bottle_type: productType === 'liquid' ? 'Pharma Bottle' : null,
+            bottle_count: productType === 'liquid' ? 1 : 0
         };
         
         cart.push(newItem);
@@ -96,6 +99,26 @@ function renderCart() {
         const step = item.type === 'liquid' ? 'any' : '1';
         
         let packagingHtml = '';
+        if (item.type === 'liquid') {
+            packagingHtml = `
+            <div style="display:flex; gap: 8px; align-items: center; margin-top: 8px;">
+                <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updatePackaging(${item.id}, this.value)">
+                    <option value="loose" ${item.packaging_type === 'loose' ? 'selected' : ''}>Loose</option>
+                    <option value="bottle" ${item.packaging_type === 'bottle' ? 'selected' : ''}>Bottle</option>
+                </select>
+                ${item.packaging_type === 'bottle' ? `
+                <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updateBottleType(${item.id}, this.value)">
+                    <option value="Pharma Bottle" ${item.bottle_type === 'Pharma Bottle' ? 'selected' : ''}>Pharma Bottle</option>
+                    <option value="Lotus Bottle" ${item.bottle_type === 'Lotus Bottle' ? 'selected' : ''}>Lotus Bottle</option>
+                    <option value="Water Bottle" ${item.bottle_type === 'Water Bottle' ? 'selected' : ''}>Water Bottle</option>
+                    <option value="Harpic Bottle" ${item.bottle_type === 'Harpic Bottle' ? 'selected' : ''}>Harpic Bottle</option>
+                    <option value="Floorwash Bottle" ${item.bottle_type === 'Floorwash Bottle' ? 'selected' : ''}>Floorwash Bottle</option>
+                    <option value="half Liter bottle" ${item.bottle_type === 'half Liter bottle' ? 'selected' : ''}>half Liter bottle</option>
+                    <option value="Glass Cleaner Bottle" ${item.bottle_type === 'Glass Cleaner Bottle' ? 'selected' : ''}>Glass Cleaner Bottle</option>
+                </select>` : ''}
+            </div>
+            `;
+        }
         
         cartItemEl.innerHTML = `
             <div style="display: flex; flex-direction: column; flex: 1;">
@@ -167,7 +190,7 @@ async function submitBill() {
     const paymentMode = document.getElementById('payment-mode').value;
 
     const payload = {
-        items: cart.map(item => ({ id: item.id, qty: item.qty })),
+        items: cart.map(item => ({ id: item.id, qty: item.qty, price: item.price, packaging_type: item.packaging_type, bottle_type: item.bottle_type, bottle_count: item.bottle_count || 0 })),
         discount: discount,
         payment_mode: paymentMode,
         shopkeeper_id: typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : null
@@ -368,7 +391,7 @@ function renderProducts(productsList) {
         if (product.stock > 0) {
             card.className = 'product-card';
             card.style.cursor = 'pointer';
-            card.setAttribute('onclick', `addToCart(${product.id}, '${escapedName}', ${product.price}, ${product.stock})`);
+            card.setAttribute('onclick', `addToCart(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}')`);
             
             const imageHtml = product.image_filename 
                 ? `<img src="/photos/${product.image_filename}" alt="${escapeHTML(product.name)}" class="product-image">`
