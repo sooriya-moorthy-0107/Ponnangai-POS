@@ -26,15 +26,23 @@
             <!-- Mobile Close Button -->
             <button class="mobile-close-btn" onclick="toggleMobileMenu()" style="display: none;">✕</button>
 
+            {% if user.role not in ['Admin', 'Owner', 'Manager'] %}
             <span class="header-user-area" style="font-size: 14px; font-weight: 600;">‍ Cashier: {{ user.username }}</span>
+            {% endif %}
+
             <button id="printer-status-btn" class="btn btn-secondary btn-small header-printer-btn"
                 style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; width: auto;"
                 onclick="openPrinterModal()">
                  <span id="header-printer-status">Disconnected</span>
             </button>
 
-            <a href="/logout" class="btn btn-secondary btn-small header-logout-btn"
-                style="text-decoration: none; border: 1px solid #CBD5E0; color: #2D3748; background: #EDF2F7; text-align: center;">Logout</a>
+            {% if user.role in ['Admin', 'Owner', 'Manager'] %}
+            <a href="/admin" class="btn btn-secondary btn-small header-dashboard-btn" style="text-decoration: none;">Dashboard</a>
+            <button class="btn btn-secondary btn-small header-dashboard-btn" onclick="document.getElementById('shop-selector-modal').classList.add('active')">Shop-POS</button>
+            <a href="/factory" class="btn btn-secondary btn-small header-dashboard-btn" style="text-decoration: none;">Factory-POS</a>
+            {% endif %}
+
+            <a href="/logout" class="btn btn-destructive btn-small header-logout-btn" style="text-decoration: none;">Logout</a>
         </div>
     </header>
 
@@ -256,6 +264,30 @@
     <script>
         const ACTIVE_CASHIER_ID = {{ target_cashier_id }};
     </script>
+    <!-- Shop Selector Modal -->
+    <div id="shop-selector-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
+        <div class="card" style="width: 100%; max-width: 400px; display: flex; flex-direction: column; background: white; z-index: 1001; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 20px;">
+                <h3 style="margin: 0; font-size: 18px; color: var(--primary);">Select Shop POS</h3>
+                <button class="btn btn-secondary btn-small" onclick="document.getElementById('shop-selector-modal').classList.remove('active')" style="padding: 4px 8px;">✕</button>
+            </div>
+            <div style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto;">
+                {% for sk in shopkeepers %}
+                {% if sk.role == 'Shopkeeper' %}
+                <button onclick="window.location.href='/shop?shopkeeper_id={{ sk.id }}';" 
+                        style="padding: 16px 8px; border-radius: 10px; border: 2px solid #E2E8F0; background: white; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
+                        onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-2px)';"
+                        onmouseout="this.style.borderColor='#E2E8F0'; this.style.transform='translateY(0)';">
+                    <span style="font-size: 28px; margin-bottom: 8px;">🏪</span>
+                    <span style="font-size: 13px; font-weight: 700; color: #2D3748; word-break: break-word;">{{ sk.username }}</span>
+                </button>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <button class="btn" style="width: 100%;" onclick="document.getElementById('shop-selector-modal').classList.remove('active')">Close</button>
+        </div>
+    </div>
+
     <script src="/static/js/factory_pos.js?v=4"></script>
 </body>
 </html>

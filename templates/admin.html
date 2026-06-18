@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ user.role }} Dashboard - Ponnangai POS</title>
     <link rel="icon" type="image/png" href="/static/images/logo.png">
-        <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/main.css">
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -25,7 +25,9 @@
             <button class="mobile-close-btn" onclick="toggleMobileMenu()" style="display: none;">✕</button>
 
             <span style="font-size: 14px; font-weight: 600;">{{ user.username }} ({{ user.role }})</span>
-            <a href="/shop" class="btn btn-secondary btn-small" style="text-decoration: none;">POS View</a>
+            <button class="btn btn-secondary btn-small"
+                onclick="document.getElementById('shop-selector-modal').classList.add('active')">Shop-POS</button>
+            <a href="/factory" class="btn btn-secondary btn-small" style="text-decoration: none;">Factory-POS</a>
             <a href="/logout" class="btn btn-destructive btn-small" style="text-decoration: none;">Logout</a>
         </div>
     </header>
@@ -90,8 +92,7 @@
                                 <span class="btn btn-secondary btn-small"
                                     style="padding: 2px 6px; font-size: 11px;">Analyze</span>
                                 {% if user.role == 'Admin' %}
-                                <button class="btn btn-destructive btn-small"
-                                    style="padding: 2px 6px; font-size: 11px;"
+                                <button class="btn btn-destructive btn-small" style="padding: 2px 6px; font-size: 11px;"
                                     onclick='event.stopPropagation(); hardDeleteUser({{ sk.id }}, {{ sk.username | tojson }})'>Delete</button>
                                 {% endif %}
                             </div>
@@ -555,41 +556,76 @@
     <!-- Edit Product Modal -->
     <div id="edit-product-modal"
         style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: var(--spacing);">
-        <div class="card"
-            style="width: 100%; max-width: 400px; display: flex; flex-direction: column;">
+        <div class="card" style="width: 100%; max-width: 400px; display: flex; flex-direction: column;">
             <div
                 style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">
                 <h2 style="font-size: 18px; color: var(--primary); margin: 0;">Edit Product</h2>
-                <button class="btn btn-secondary btn-small"
-                    onclick="closeEditProductModal()">✕</button>
+                <button class="btn btn-secondary btn-small" onclick="closeEditProductModal()">✕</button>
             </div>
-            
+
             <input type="hidden" id="edit-product-id">
             <input type="hidden" id="edit-shopkeeper-id">
-            
+
             <div style="margin-bottom: 16px;">
-                <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block; font-weight: bold;">Product Name</label>
+                <label
+                    style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block; font-weight: bold;">Product
+                    Name</label>
                 <input type="text" id="edit-product-name" style="margin-bottom: 0;">
             </div>
-            
+
             <div style="margin-bottom: 16px;">
-                <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block; font-weight: bold;">Stock</label>
+                <label
+                    style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block; font-weight: bold;">Stock</label>
                 <input type="number" id="edit-product-stock" style="margin-bottom: 0;">
             </div>
-            
+
             <div style="margin-bottom: 24px;">
-                <label style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block; font-weight: bold;">Product Image (Optional)</label>
+                <label
+                    style="font-size: 12px; color: #4A5568; margin-bottom: 4px; display: block; font-weight: bold;">Product
+                    Image (Optional)</label>
                 <input type="file" id="edit-product-image" accept="image/*" style="font-size: 14px; padding: 4px;">
             </div>
-            
+
             <div style="display: flex; gap: 8px;">
                 <button type="button" class="btn" style="flex: 1;" onclick="submitEditProduct()">Save</button>
-                <button type="button" class="btn btn-danger" style="flex: 1;" onclick="closeEditProductModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" style="flex: 1;"
+                    onclick="closeEditProductModal()">Cancel</button>
             </div>
         </div>
     </div>
 
-        <script src="/static/js/admin_v2.js"></script>
+    <!-- Shop Selector Modal -->
+    <div id="shop-selector-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
+        <div class="card"
+            style="width: 100%; max-width: 400px; display: flex; flex-direction: column; background: white; z-index: 1001; padding: 24px;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 20px;">
+                <h3 style="margin: 0; font-size: 18px; color: var(--primary);">Select Shop POS</h3>
+                <button class="btn btn-secondary btn-small"
+                    onclick="document.getElementById('shop-selector-modal').classList.remove('active')"
+                    style="padding: 4px 8px;">✕</button>
+            </div>
+            <div
+                style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto;">
+                {% for sk in shopkeepers %}
+                {% if sk.role == 'Shopkeeper' %}
+                <button onclick="window.location.href='/shop?shopkeeper_id={{ sk.id }}';"
+                    style="padding: 16px 8px; border-radius: 10px; border: 2px solid #E2E8F0; background: white; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
+                    onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-2px)';"
+                    onmouseout="this.style.borderColor='#E2E8F0'; this.style.transform='translateY(0)';">
+
+                    <span style="font-size: 13px; font-weight: 700; color: #2D3748; word-break: break-word;">{{
+                        sk.username }}</span>
+                </button>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <button class="btn" style="width: 100%;"
+                onclick="document.getElementById('shop-selector-modal').classList.remove('active')">Close</button>
+        </div>
+    </div>
+
+    <script src="/static/js/admin_v2.js"></script>
 </body>
 
 </html>

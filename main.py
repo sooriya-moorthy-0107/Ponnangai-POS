@@ -452,6 +452,9 @@ async def factory_pos_page(request: Request, db: Session = Depends(get_db)):
     target_cashier = db.query(User).filter(User.id == target_cashier_id).first()
     cashier_name = target_cashier.username if target_cashier else "Factory"
     
+    users = db.query(User).filter(User.is_deleted == False).all()
+    shopkeepers = [u for u in users if u.role in ["Shopkeeper", "Factory"]]
+    
     return templates.TemplateResponse(request=request, name="factory_pos.html", context={
         "request": request,
         "user": user,
@@ -459,7 +462,8 @@ async def factory_pos_page(request: Request, db: Session = Depends(get_db)):
         "solid_products": solid_products,
         "target_shopkeeper_id": target_cashier_id,
         "target_cashier_id": target_cashier_id,
-        "cashier_name": cashier_name
+        "cashier_name": cashier_name,
+        "shopkeepers": shopkeepers
     })
 
 
