@@ -1288,3 +1288,28 @@ document.addEventListener('click', function(e) {
         m.classList.remove('active');
     }
 });
+
+// Global Modal Close Listeners for Esc and Backdrop Click
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const activeModals = document.querySelectorAll('.modal-overlay');
+        activeModals.forEach(m => {
+            if (m.style.display === 'flex' || m.classList.contains('active')) {
+                m.style.display = 'none';
+                m.classList.remove('active');
+            }
+        });
+        
+        const shopSelector = document.getElementById('shop-selector-modal');
+        if (shopSelector && shopSelector.classList.contains('active')) {
+            shopSelector.classList.remove('active');
+        }
+    }
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        e.target.style.display = 'none';
+        e.target.classList.remove('active');
+    }
+});
