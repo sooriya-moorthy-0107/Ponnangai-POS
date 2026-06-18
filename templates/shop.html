@@ -25,22 +25,27 @@
             <button class="mobile-close-btn" onclick="toggleMobileMenu()" style="display: none;">✕</button>
 
             {% if user.role not in ['Admin', 'Owner', 'Manager'] %}
-            <span class="header-user-area" style="font-size: 14px; font-weight: 600;"> {{ user.username }} ({{ user.role }})</span>
+            <span class="header-user-area" style="font-size: 14px; font-weight: 600;"> {{ user.username }} ({{ user.role
+                }})</span>
             {% endif %}
 
             <button id="printer-status-btn" class="btn btn-secondary btn-small header-printer-btn"
                 style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; width: auto;"
                 onclick="openPrinterModal()">
-                 <span id="header-printer-status">Disconnected</span>
+                <span id="header-printer-status">Disconnected</span>
             </button>
-            
+
             {% if user.role in ['Admin', 'Owner', 'Manager'] %}
-            <a href="/admin" class="btn btn-secondary btn-small header-dashboard-btn" style="text-decoration: none;">Dashboard</a>
-            <button class="btn btn-secondary btn-small header-dashboard-btn" onclick="document.getElementById('shop-selector-modal').classList.add('active')">Shop-POS</button>
-            <a href="/factory" class="btn btn-secondary btn-small header-dashboard-btn" style="text-decoration: none;">Factory-POS</a>
+            <a href="/admin" class="btn btn-secondary btn-small header-dashboard-btn"
+                style="text-decoration: none;">Dashboard</a>
+            <button class="btn btn-secondary btn-small header-dashboard-btn"
+                onclick="document.getElementById('shop-selector-modal').classList.add('active')">Shop-POS</button>
+            <a href="/factory" class="btn btn-secondary btn-small header-dashboard-btn"
+                style="text-decoration: none;">Factory-POS</a>
             {% endif %}
-            
-            <a href="/logout" class="btn btn-destructive btn-small header-logout-btn" style="text-decoration: none;">Logout</a>
+
+            <a href="/logout" class="btn btn-destructive btn-small header-logout-btn"
+                style="text-decoration: none;">Logout</a>
         </div>
     </header>
 
@@ -52,16 +57,22 @@
         <div class="pos-container">
             <!-- Vertical Sidebar Tabs -->
             <div class="pos-sidebar">
-                <button class="btn btn-small" id="tab-pos" onclick="switchTab('pos')" style="background-color: var(--primary); color: white; width: 100%; justify-content: flex-start; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">POS System</button>
-                <button class="btn btn-secondary btn-small" id="tab-cash" onclick="switchTab('cash')" style="background-color: #EDF2F7; color: #2D3748; width: 100%; justify-content: flex-start; border: 1px solid #CBD5E0;">Cash / Expense</button>
-                
+                <button class="btn btn-small" id="tab-pos" onclick="switchTab('pos')"
+                    style="background-color: var(--primary); color: white; width: 100%; justify-content: flex-start; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">POS
+                    System</button>
+                <button class="btn btn-secondary btn-small" id="tab-cash" onclick="switchTab('cash')"
+                    style="background-color: #EDF2F7; color: #2D3748; width: 100%; justify-content: flex-start; border: 1px solid #CBD5E0;">Cash
+                    / Expense</button>
+
                 <!-- Bill History Sidebar -->
                 <div class="bill-history-section card">
-                    <h2 style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block; width: 100%;">
+                    <h2
+                        style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block; width: 100%;">
                         Recent Bills
                     </h2>
                     <div id="bill-history-container">
-                        <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...</div>
+                        <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -70,151 +81,181 @@
             <div class="pos-content">
                 <div class="shop-layout" id="pos-view">
 
-            <!-- Product Grid -->
-            <div class="product-grid">
-                {% for product in products %}
-                {% if product.stock > 0 %}
-                <div class="product-card"
-                    onclick="addToCart({{ product.id }}, '{{ product.name }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}')"
-                    style="cursor: pointer;">
-                    {% if product.image_filename %}
-                    <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image">
+                    <!-- Product Grid -->
+                    <div class="product-grid">
+                        {% for product in products %}
+                        {% if product.stock > 0 %}
+                        <div class="product-card"
+                            onclick="addToCart({{ product.id }}, '{{ product.name }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}')"
+                            style="cursor: pointer;">
+                            {% if product.image_filename %}
+                            <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}"
+                                class="product-image">
+                            {% else %}
+                            <div class="product-image"
+                                style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
+                                No Image</div>
+                            {% endif %}
+                            <div class="product-name">{{ product.name }}</div>
+                            <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
+                            {% if product.stock <= 5 %} <div
+                                style="font-size: 10px; color: var(--destructive); margin-bottom: 4px; font-weight: bold;">
+                                Only
+                                {{ product.stock }} left!
+                        </div>
+                        {% else %}
+                        <div style="font-size: 10px; color: #4A5568; margin-bottom: 4px;">Stock: {{ product.stock }}
+                        </div>
+                        {% endif %}
+                        <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
+                    </div>
                     {% else %}
-                    <div class="product-image"
-                        style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
-                        No Image</div>
+                    <div class="product-card out-of-stock-card"
+                        style="opacity: 0.65; cursor: not-allowed; position: relative;">
+                        <div
+                            style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">
+                            OUT OF STOCK</div>
+                        {% if product.image_filename %}
+                        <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image"
+                            style="filter: grayscale(100%);">
+                        {% else %}
+                        <div class="product-image"
+                            style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
+                            No Image</div>
+                        {% endif %}
+                        <div class="product-name">{{ product.name }}</div>
+                        <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
+                        <div style="font-size: 10px; color: #E53E3E; margin-bottom: 4px; font-weight: bold;">Out of
+                            Stock</div>
+                        <button class="btn btn-secondary btn-small" style="margin-top: auto; cursor: not-allowed;"
+                            disabled>Out
+                            of Stock</button>
+                    </div>
                     {% endif %}
-                    <div class="product-name">{{ product.name }}</div>
-                    <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
-                    {% if product.stock <= 5 %} <div
-                        style="font-size: 10px; color: var(--destructive); margin-bottom: 4px; font-weight: bold;">Only
-                        {{ product.stock }} left!
-                </div>
-                {% else %}
-                <div style="font-size: 10px; color: #4A5568; margin-bottom: 4px;">Stock: {{ product.stock }}</div>
-                {% endif %}
-                <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
-            </div>
-            {% else %}
-            <div class="product-card out-of-stock-card" style="opacity: 0.65; cursor: not-allowed; position: relative;">
-                <div
-                    style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">
-                    OUT OF STOCK</div>
-                {% if product.image_filename %}
-                <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image"
-                    style="filter: grayscale(100%);">
-                {% else %}
-                <div class="product-image"
-                    style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
-                    No Image</div>
-                {% endif %}
-                <div class="product-name">{{ product.name }}</div>
-                <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
-                <div style="font-size: 10px; color: #E53E3E; margin-bottom: 4px; font-weight: bold;">Out of Stock</div>
-                <button class="btn btn-secondary btn-small" style="margin-top: auto; cursor: not-allowed;" disabled>Out
-                    of Stock</button>
-            </div>
-            {% endif %}
-            {% else %}
-            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
-                No products found. Please ask the Manager to add some inventory.
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Cart Section -->
-        <div class="cart-section card">
-            <h2
-                style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
-                Current Bill</h2>
-
-            <div id="cart-items" style="min-height: 150px;">
-                <!-- Items will be injected here via JS -->
-                <div style="text-align: center; color: #A0AEC0; margin-top: 40px; font-size: 14px;">Tap products to add
-                    them to cart</div>
-            </div>
-
-            <div class="bill-summary">
-                <div class="summary-row">
-                    <span>Subtotal</span>
-                    <span id="cart-subtotal">₹0.00</span>
-                </div>
-                <div class="summary-row" style="align-items: center;">
-                    <span>Discount (₹)</span>
-                    <input type="number" id="discount-input" min="0" value="0"
-                        style="width: 80px; padding: 4px; margin-bottom: 0; text-align: right;">
-                </div>
-                <div class="summary-row" style="margin-top: 8px;">
-                    <span>Payment Mode</span>
-                    <select id="payment-mode" style="width: auto; padding: 4px; margin-bottom: 0;">
-                        <option value="Cash">Cash</option>
-                        <option value="UPI">UPI</option>
-                        <option value="Card">Card</option>
-                    </select>
-                </div>
-                <div class="summary-row summary-total"
-                    style="margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px;">
-                    <span>Final Total</span>
-                    <span id="cart-final-total">₹0.00</span>
-                </div>
-            </div>
-
-            <button class="btn" style="margin-top: 24px; font-size: 18px; padding: 16px;" onclick="submitBill()">
-                Confirm & Print Bill
-            </button>
-        </div>
-
-        </div>
-
-        <!-- Cash Tracker Section -->
-        <div id="cash-view" class="cash-layout" style="display: none;">
-            <!-- Left: Add Transaction Form -->
-            <div class="card">
-                <h2 style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px;">Add Cash Transaction</h2>
-                
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;">Amount (₹)</label>
-                    <input type="number" id="cash-amount" min="1" step="0.5" placeholder="Enter amount" style="width: 100%; padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
-                </div>
-                
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;">Transaction Type</label>
-                    <select id="cash-type" style="width: 100%; padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
-                        <option value="IN">Money IN (Added Change/Cash)</option>
-                        <option value="OUT">Money OUT (Expense/Withdrawn)</option>
-                    </select>
-                </div>
-                
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;">Description / Reason</label>
-                    <input type="text" id="cash-desc" placeholder="e.g. Bought tea, Added 10rs change" style="width: 100%; padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
-                </div>
-                
-                <button class="btn" style="width: 100%; padding: 12px;" onclick="submitCashTransaction()">Save Transaction</button>
-            </div>
-            
-            <!-- Right: Balance & History -->
-            <div class="card" style="display: flex; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between; align-items: center; background: #EBF8FF; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #90CDF4;">
-                    <div>
-                        <div style="font-size: 12px; color: #4A5568; font-weight: bold; text-transform: uppercase;">Expected Cash in Drawer</div>
-                        <div style="font-size: 28px; font-weight: 800; color: #2B6CB0;" id="cash-balance">₹0.00</div>
+                    {% else %}
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
+                        No products found. Please ask the Manager to add some inventory.
                     </div>
-                    <div style="text-align: right; font-size: 13px; color: #4A5568;">
-                        <div style="margin-bottom: 4px;">Cash Sales Today: <span id="cash-sales" style="font-weight: bold; color: #38A169;">₹0.00</span></div>
-                        <div style="margin-bottom: 4px;">Money IN: <span id="cash-in" style="font-weight: bold; color: #319795;">+₹0.00</span></div>
-                        <div>Money OUT: <span id="cash-out" style="font-weight: bold; color: #E53E3E;">-₹0.00</span></div>
-                    </div>
+                    {% endfor %}
                 </div>
-                
-                <h2 style="font-size: 16px; margin-bottom: 12px; border-bottom: 2px solid var(--primary); padding-bottom: 8px;">Today's Transactions</h2>
-                <div id="cash-history-container" style="overflow-y: auto; flex: 1; max-height: 300px; padding-right: 8px;">
-                    <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...</div>
+
+                <!-- Cart Section -->
+                <div class="cart-section card">
+                    <h2
+                        style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
+                        Current Bill</h2>
+
+                    <div id="cart-items" style="min-height: 150px;">
+                        <!-- Items will be injected here via JS -->
+                        <div style="text-align: center; color: #A0AEC0; margin-top: 40px; font-size: 14px;">Tap products
+                            to add
+                            them to cart</div>
+                    </div>
+
+                    <div class="bill-summary">
+                        <div class="summary-row">
+                            <span>Subtotal</span>
+                            <span id="cart-subtotal">₹0.00</span>
+                        </div>
+                        <div class="summary-row" style="align-items: center;">
+                            <span>Discount (₹)</span>
+                            <input type="number" id="discount-input" min="0" value="0"
+                                style="width: 80px; padding: 4px; margin-bottom: 0; text-align: right;">
+                        </div>
+                        <div class="summary-row" style="margin-top: 8px;">
+                            <span>Payment Mode</span>
+                            <select id="payment-mode" style="width: auto; padding: 4px; margin-bottom: 0;">
+                                <option value="Cash">Cash</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Card">Card</option>
+                            </select>
+                        </div>
+                        <div class="summary-row summary-total"
+                            style="margin-top: 16px; border-top: 1px solid #E2E8F0; padding-top: 16px;">
+                            <span>Final Total</span>
+                            <span id="cart-final-total">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <button class="btn" style="margin-top: 24px; font-size: 18px; padding: 16px;"
+                        onclick="submitBill()">
+                        Confirm & Print Bill
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Cash Tracker Section -->
+            <div id="cash-view" class="cash-layout" style="display: none;">
+                <!-- Left: Add Transaction Form -->
+                <div class="card">
+                    <h2
+                        style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px;">
+                        Add Cash Transaction</h2>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label
+                            style="display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;">Amount
+                            (₹)</label>
+                        <input type="number" id="cash-amount" min="1" step="0.5" placeholder="Enter amount"
+                            style="width: 100%; padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label
+                            style="display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;">Transaction
+                            Type</label>
+                        <select id="cash-type"
+                            style="width: 100%; padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                            <option value="IN">Money IN (Added Change/Cash)</option>
+                            <option value="OUT">Money OUT (Expense/Withdrawn)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label
+                            style="display: block; font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;">Description
+                            / Reason</label>
+                        <input type="text" id="cash-desc" placeholder="e.g. Bought tea, Added 10rs change"
+                            style="width: 100%; padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px;">
+                    </div>
+
+                    <button class="btn" style="width: 100%; padding: 12px;" onclick="submitCashTransaction()">Save
+                        Transaction</button>
+                </div>
+
+                <!-- Right: Balance & History -->
+                <div class="card" style="display: flex; flex-direction: column;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; background: #EBF8FF; padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #90CDF4;">
+                        <div>
+                            <div style="font-size: 12px; color: #4A5568; font-weight: bold; text-transform: uppercase;">
+                                Expected Cash in Drawer</div>
+                            <div style="font-size: 28px; font-weight: 800; color: #2B6CB0;" id="cash-balance">₹0.00
+                            </div>
+                        </div>
+                        <div style="text-align: right; font-size: 13px; color: #4A5568;">
+                            <div style="margin-bottom: 4px;">Cash Sales Today: <span id="cash-sales"
+                                    style="font-weight: bold; color: #38A169;">₹0.00</span></div>
+                            <div style="margin-bottom: 4px;">Money IN: <span id="cash-in"
+                                    style="font-weight: bold; color: #319795;">+₹0.00</span></div>
+                            <div>Money OUT: <span id="cash-out" style="font-weight: bold; color: #E53E3E;">-₹0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2
+                        style="font-size: 16px; margin-bottom: 12px; border-bottom: 2px solid var(--primary); padding-bottom: 8px;">
+                        Today's Transactions</h2>
+                    <div id="cash-history-container"
+                        style="overflow-y: auto; flex: 1; max-height: 300px; padding-right: 8px;">
+                        <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        </div>
-        </div>
+    </div>
 
     <script src="/static/js/app.js?v=6"></script>
     <script>
@@ -244,12 +285,12 @@
                     <button type="button" class="btn btn-secondary"
                         style="flex: 1; padding: 10px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;"
                         onclick="connectBluetooth()">
-                         Pair / Connect
+                        Pair / Connect
                     </button>
                     <button type="button" id="bt-test-btn" class="btn btn-secondary"
                         style="display: none; padding: 10px 12px; font-size: 13px; font-weight: 600; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; width: auto;"
                         onclick="printTestReceipt()">
-                         Test Slip
+                        Test Slip
                     </button>
                 </div>
 
@@ -334,12 +375,12 @@
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
                     <button id="modal-bt-print-btn" class="btn" style="background-color: #2B6CB0; color: white;"
                         onclick="printActiveBillBluetooth()">
-                         Print via Bluetooth
+                        Print via Bluetooth
                     </button>
                     <button class="btn btn-secondary"
                         style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748;"
                         onclick="printActiveBillBrowser()">
-                         Print via Browser Dialog
+                        Print via Browser Dialog
                     </button>
                 </div>
             </div>
@@ -359,30 +400,34 @@
 
     <!-- Shop Selector Modal -->
     <div id="shop-selector-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
-        <div class="card" style="width: 100%; max-width: 400px; display: flex; flex-direction: column; background: white; z-index: 1001; padding: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 20px;">
+        <div class="card"
+            style="width: 100%; max-width: 400px; display: flex; flex-direction: column; background: white; z-index: 1001; padding: 24px;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 20px;">
                 <h3 style="margin: 0; font-size: 18px; color: var(--primary);">Select Shop POS</h3>
-                <button class="close-btn-red" onclick="document.getElementById('shop-selector-modal').classList.remove('active')">×</button>
+                <button class="close-btn-red"
+                    onclick="document.getElementById('shop-selector-modal').classList.remove('active')">×</button>
             </div>
-            <div style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto;">
+            <div
+                style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto;">
                 {% for sk in shopkeepers %}
                 {% if sk.role == 'Shopkeeper' %}
-                <button onclick="switchShop('{{sk.id }}')"  
-                        {% if sk.id==target_shopkeeper_id %}
-                        style="padding: 16px 8px; border-radius: 10px; border: 2px solid var(--primary); background: #E6FFFA; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
-                        onmouseout="this.style.borderColor='var(--primary)'; this.style.transform='translateY(0)';"
-                        {% else %}
-                        style="padding: 16px 8px; border-radius: 10px; border: 2px solid #E2E8F0; background: white; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
-                        onmouseout="this.style.borderColor='#E2E8F0'; this.style.transform='translateY(0)';"
-                        {% endif %}
-                        onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-2px)';">
+                <button onclick="switchShop('{{sk.id }}')" {% if sk.id==target_shopkeeper_id %}
+                    style="padding: 16px 8px; border-radius: 10px; border: 2px solid var(--primary); background: #E6FFFA; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
+                    onmouseout="this.style.borderColor='var(--primary)'; this.style.transform='translateY(0)';" {% else
+                    %}
+                    style="padding: 16px 8px; border-radius: 10px; border: 2px solid #E2E8F0; background: white; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
+                    onmouseout="this.style.borderColor='#E2E8F0'; this.style.transform='translateY(0)';" {% endif %}
+                    onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-2px)';">
                     <span style="font-size: 28px; margin-bottom: 8px;">🏪</span>
-                    <span style="font-size: 13px; font-weight: 700; color: #2D3748; word-break: break-word;">{{ sk.username }}</span>
+                    <span style="font-size: 13px; font-weight: 700; color: #2D3748; word-break: break-word;">{{
+                        sk.username }}</span>
                 </button>
                 {% endif %}
                 {% endfor %}
             </div>
-            <button class="btn" style="width: 100%;" onclick="document.getElementById('shop-selector-modal').classList.remove('active')">Close</button>
+            <button class="btn" style="width: 100%;"
+                onclick="document.getElementById('shop-selector-modal').classList.remove('active')">Close</button>
         </div>
     </div>
 </body>

@@ -26,12 +26,12 @@ async function addToCart(productId, productName, productPrice, maxStock, product
             await Swal.fire("This product is out of stock.");
             return;
         }
-        
-        let newItem = { 
-            id: productId, 
-            name: productName, 
-            price: productPrice, 
-            qty: 1, 
+
+        let newItem = {
+            id: productId,
+            name: productName,
+            price: productPrice,
+            qty: 1,
             maxStock: maxStock,
             type: productType,
             unit: unit,
@@ -39,7 +39,7 @@ async function addToCart(productId, productName, productPrice, maxStock, product
             bottle_type: productType === 'liquid' ? 'Pharma Bottle' : null,
             bottle_count: productType === 'liquid' ? 1 : 0
         };
-        
+
         cart.push(newItem);
     }
     renderCart();
@@ -95,9 +95,9 @@ function renderCart() {
 
         const cartItemEl = document.createElement('div');
         cartItemEl.className = 'cart-item';
-        
+
         const step = item.type === 'liquid' ? 'any' : '1';
-        
+
         let packagingHtml = '';
         if (item.type === 'liquid') {
             packagingHtml = `
@@ -119,7 +119,7 @@ function renderCart() {
             </div>
             `;
         }
-        
+
         cartItemEl.innerHTML = `
             <div style="display: flex; flex-direction: column; flex: 1;">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 8px;">
@@ -160,11 +160,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (discountInput) {
         discountInput.addEventListener('input', renderCart);
     }
-    
+
     // Check for reverted bill data
     const revertCartStr = sessionStorage.getItem('revert_cart');
     const revertDiscountStr = sessionStorage.getItem('revert_discount');
-    
+
     if (revertCartStr) {
         try {
             cart = JSON.parse(revertCartStr);
@@ -206,20 +206,20 @@ async function submitBill() {
         });
 
         const data = await response.json();
-        
+
         if (response.ok) {
             // Clear cart & reset UI
             cart = [];
             renderCart();
             const discountInput = document.getElementById('discount-input');
             if (discountInput) discountInput.value = 0;
-            
+
             // Refresh catalog dynamically immediately
             refreshProductCatalog();
-            
+
             // Refresh bill history sidebar
             fetchBillHistory();
-            
+
             // Trigger persistent modal receipt check & automatic printing
             handlePrintFlow(data.bill_id);
         } else {
@@ -240,14 +240,14 @@ async function fetchBillHistory() {
     try {
         const response = await fetch(`/api/bills/history?shopkeeper_id=${shopkeeperId}`);
         const data = await response.json();
-        
+
         if (response.ok) {
             container.innerHTML = '';
             if (data.bills.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">No recent bills</div>';
                 return;
             }
-            
+
             data.bills.forEach(bill => {
                 const card = document.createElement('div');
                 card.className = 'history-card';
@@ -256,14 +256,14 @@ async function fetchBillHistory() {
                     card.style.borderLeft = '4px solid #E53E3E';
                     card.style.position = 'relative';
                 }
-                
-                const badgeHtml = bill.is_cancelled 
-                    ? '<span style="background-color: #FFF5F5; color: #E53E3E; border: 1px solid #FEB2B2; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">CANCELLED</span>' 
+
+                const badgeHtml = bill.is_cancelled
+                    ? '<span style="background-color: #FFF5F5; color: #E53E3E; border: 1px solid #FEB2B2; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; letter-spacing: 0.5px;">CANCELLED</span>'
                     : '';
-                    
+
                 const priceStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #A0AEC0;' : '';
                 const titleStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #718096;' : '';
-                
+
                 const actionButtonsHtml = bill.is_cancelled ? `
                     <button class="btn btn-small" style="background-color: #718096; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="handlePrintFlow(${bill.id})">
                          Print Void Receipt
@@ -309,12 +309,12 @@ async function fetchBillHistory() {
 async function revertBillFromHistory(billId, displayNo) {
     const label = displayNo ? `#${displayNo}` : `#${billId}`;
     const _swalRes11160 = await Swal.fire({ text: `Are you sure you want to revert Bill ${label}? The stock will be restored and you can edit the items in the cart.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
-        if (!_swalRes11160.isConfirmed) return;
-    
+    if (!_swalRes11160.isConfirmed) return;
+
     try {
         const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
         const data = await response.json();
-        
+
         if (response.ok) {
             // Load items into active cart
             cart = data.items;
@@ -323,10 +323,10 @@ async function revertBillFromHistory(billId, displayNo) {
                 discountInput.value = data.discount;
             }
             renderCart();
-            
+
             // Refresh product catalog stock levels dynamically
             await refreshProductCatalog();
-            
+
             // Refresh bill history list
             fetchBillHistory();
         } else {
@@ -343,18 +343,18 @@ document.addEventListener('DOMContentLoaded', fetchBillHistory);
 async function cancelBillFromHistory(billId, displayNo) {
     const label = displayNo ? `#${displayNo}` : `#${billId}`;
     const _swalRes12345 = await Swal.fire({ text: `Are you sure you want to CANCEL Bill ${label}? The stock will be restored, and the bill will be marked as cancelled.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
-        if (!_swalRes12345.isConfirmed) return;
-    
+    if (!_swalRes12345.isConfirmed) return;
+
     try {
         const response = await fetch(`/api/bills/${billId}/revert`, { method: 'POST' });
         const data = await response.json();
-        
+
         if (response.ok) {
             await Swal.fire(`Bill ${label} has been cancelled and stock restored.`);
-            
+
             // Refresh product catalog stock levels dynamically
             await refreshProductCatalog();
-            
+
             // Refresh bill history list
             fetchBillHistory();
         } else {
@@ -370,9 +370,9 @@ async function cancelBillFromHistory(billId, displayNo) {
 function renderProducts(productsList) {
     const grid = document.querySelector('.product-grid');
     if (!grid) return;
-    
+
     grid.innerHTML = '';
-    
+
     if (productsList.length === 0) {
         grid.innerHTML = `
             <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
@@ -381,26 +381,26 @@ function renderProducts(productsList) {
         `;
         return;
     }
-    
+
     productsList.forEach(product => {
         const card = document.createElement('div');
-        
+
         // Escape quotes & backslashes for safe function argument passing in onclick
         const escapedName = product.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-        
+
         if (product.stock > 0) {
             card.className = 'product-card';
             card.style.cursor = 'pointer';
             card.setAttribute('onclick', `addToCart(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}')`);
-            
-            const imageHtml = product.image_filename 
+
+            const imageHtml = product.image_filename
                 ? `<img src="/photos/${product.image_filename}" alt="${escapeHTML(product.name)}" class="product-image">`
                 : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
-                
+
             const stockHtml = product.stock <= 5
                 ? `<div style="font-size: 10px; color: var(--destructive); margin-bottom: 4px; font-weight: bold;">Only ${product.stock} left!</div>`
                 : `<div style="font-size: 10px; color: #4A5568; margin-bottom: 4px;">Stock: ${product.stock}</div>`;
-                
+
             card.innerHTML = `
                 ${imageHtml}
                 <div class="product-name">${escapeHTML(product.name)}</div>
@@ -413,11 +413,11 @@ function renderProducts(productsList) {
             card.style.opacity = '0.65';
             card.style.cursor = 'not-allowed';
             card.style.position = 'relative';
-            
-            const imageHtml = product.image_filename 
+
+            const imageHtml = product.image_filename
                 ? `<img src="/photos/${product.image_filename}" alt="${escapeHTML(product.name)}" class="product-image" style="filter: grayscale(100%);">`
                 : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
-                
+
             card.innerHTML = `
                 <div style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">OUT OF STOCK</div>
                 ${imageHtml}
@@ -436,10 +436,10 @@ async function refreshProductCatalog() {
     try {
         const shopkeeperId = typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : '';
         if (!shopkeeperId) return;
-        
+
         const response = await fetch(`/api/inventory/data/${shopkeeperId}`);
         const data = await response.json();
-        
+
         if (response.ok) {
             renderProducts(data.products);
         } else {
@@ -970,22 +970,22 @@ async function handlePrintFlow(billId) {
     try {
         const response = await fetch(`/api/bills/${billId}`);
         const data = await response.json();
-        
+
         if (response.ok) {
             activeBillData = data.bill;
-            
+
             // Generate HTML for receipt structures
             const receiptHtml = generateReceiptHtml(activeBillData);
             document.getElementById('receipt-container-preview').innerHTML = receiptHtml;
-            
+
             const printBox = document.getElementById('receipt-container');
             if (printBox) {
                 printBox.innerHTML = receiptHtml;
             }
-            
+
             // Pop open the Receipt Preview modal
             openReceiptModal();
-            
+
             // Check Bluetooth Autoprint triggers
             const settings = getSettings();
             if (settings.autoPrint) {
@@ -1016,7 +1016,7 @@ async function printTestReceipt() {
     const settings = getSettings();
     const charLimit = parseInt(settings.charLimit);
     const encoder = new EscPosEncoder(charLimit);
-    
+
     encoder.init();
     encoder.align('center').bold(true).fontSize('double').line("Niyama POS").fontSize('normal').bold(false);
     encoder.divider();
@@ -1026,7 +1026,7 @@ async function printTestReceipt() {
     encoder.divider();
     encoder.feed(5);
     encoder.addRaw([0x1D, 0x56, 0x42, 0x00]);
-    
+
     const bytes = encoder.getBytes();
     await sendPrintData(bytes);
 }
@@ -1044,13 +1044,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     applySettings();
-    
+
     // Background Auto Connect to paired printer on page load
     autoConnectBluetooth();
-    
+
     // Setup controls events (if rendered for Admin/Manager roles)
     document.querySelectorAll('.width-toggle-buttons .toggle-btn').forEach(btn => {
-        btn.onclick = function(e) {
+        btn.onclick = function (e) {
             const width = e.target.dataset.width;
             const settings = getSettings();
             settings.width = width;
@@ -1059,20 +1059,20 @@ document.addEventListener('DOMContentLoaded', () => {
             applySettings();
         };
     });
-    
+
     const fontSlider = document.getElementById('font-size-slider');
     if (fontSlider) {
-        fontSlider.oninput = function(e) {
+        fontSlider.oninput = function (e) {
             const settings = getSettings();
             settings.fontSize = e.target.value;
             saveSettings(settings);
             applySettings();
         };
     }
-    
+
     const heightSlider = document.getElementById('line-height-slider');
     if (heightSlider) {
-        heightSlider.oninput = function(e) {
+        heightSlider.oninput = function (e) {
             const settings = getSettings();
             settings.lineHeight = e.target.value;
             saveSettings(settings);
@@ -1082,17 +1082,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const charSlider = document.getElementById('char-limit-slider');
     if (charSlider) {
-        charSlider.oninput = function(e) {
+        charSlider.oninput = function (e) {
             const settings = getSettings();
             settings.charLimit = e.target.value;
             saveSettings(settings);
             applySettings();
         };
     }
-    
+
     const autoSwitch = document.getElementById('auto-print-switch');
     if (autoSwitch) {
-        autoSwitch.onchange = function(e) {
+        autoSwitch.onchange = function (e) {
             const settings = getSettings();
             settings.autoPrint = e.target.checked;
             saveSettings(settings);
@@ -1109,7 +1109,7 @@ function switchTab(tabId) {
     if (tabId === 'pos') {
         document.getElementById('pos-view').style.display = ''; // falls back to .shop-layout flex
         document.getElementById('cash-view').style.display = 'none';
-        
+
         document.getElementById('tab-pos').style.backgroundColor = 'var(--primary)';
         document.getElementById('tab-pos').style.color = 'white';
         document.getElementById('tab-cash').style.backgroundColor = '#EDF2F7';
@@ -1117,12 +1117,12 @@ function switchTab(tabId) {
     } else {
         document.getElementById('pos-view').style.display = 'none';
         document.getElementById('cash-view').style.display = 'grid'; // using grid layout
-        
+
         document.getElementById('tab-pos').style.backgroundColor = '#EDF2F7';
         document.getElementById('tab-pos').style.color = '#2D3748';
         document.getElementById('tab-cash').style.backgroundColor = 'var(--primary)';
         document.getElementById('tab-cash').style.color = 'white';
-        
+
         fetchCashData();
     }
 }
@@ -1132,48 +1132,48 @@ async function fetchCashData() {
     try {
         const response = await fetch(`/api/cash-transactions?shopkeeper_id=${shopkeeperId}`);
         const data = await response.json();
-        
+
         if (response.ok) {
             document.getElementById('cash-balance').textContent = `₹${data.balance.toFixed(2)}`;
             document.getElementById('cash-sales').textContent = `₹${data.cash_sales.toFixed(2)}`;
             document.getElementById('cash-in').textContent = `+₹${data.total_in.toFixed(2)}`;
             document.getElementById('cash-out').textContent = `-₹${data.total_out.toFixed(2)}`;
-            
+
             const container = document.getElementById('cash-history-container');
             container.innerHTML = '';
-            
+
             if (data.transactions.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">No cash transactions today</div>';
                 return;
             }
-            
+
             data.transactions.forEach(t => {
                 const isOut = t.type === 'OUT';
                 const color = isOut ? '#E53E3E' : '#319795';
                 const sign = isOut ? '-' : '+';
-                
+
                 const txTime = new Date(t.timestamp);
                 const now = new Date();
                 const diffSecs = (now - txTime) / 1000;
                 const canRevert = diffSecs < 180;
-                
+
                 const timeStr = txTime.toLocaleString(undefined, {
-                    year: 'numeric', month: '2-digit', day: '2-digit', 
+                    year: 'numeric', month: '2-digit', day: '2-digit',
                     hour: '2-digit', minute: '2-digit'
                 });
-                
+
                 const card = document.createElement('div');
                 card.style.padding = '12px';
                 card.style.borderBottom = '1px solid #E2E8F0';
                 card.style.display = 'flex';
                 card.style.justifyContent = 'space-between';
                 card.style.alignItems = 'center';
-                
+
                 let revertBtnHtml = '';
                 if (canRevert) {
                     revertBtnHtml = `<button onclick="revertCashTransaction(${t.id})" style="margin-left: 12px; background: none; border: none; color: #E53E3E; cursor: pointer; font-size: 12px; text-decoration: underline;">Revert</button>`;
                 }
-                
+
                 card.innerHTML = `
                     <div>
                         <div style="font-weight: 600; font-size: 14px;">${t.type === 'IN' ? 'Money IN' : 'Money OUT'}</div>
@@ -1200,28 +1200,28 @@ async function submitCashTransaction() {
     const type = document.getElementById('cash-type').value;
     const desc = document.getElementById('cash-desc').value;
     const shopkeeperId = typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : '';
-    
+
     if (isNaN(amount) || amount <= 0) {
         await Swal.fire("Please enter a valid amount greater than 0");
         return;
     }
-    
+
     const payload = {
         amount: amount,
         type: type,
         description: desc,
         shopkeeper_id: shopkeeperId
     };
-    
+
     try {
         const response = await fetch('/api/cash-transactions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
             document.getElementById('cash-amount').value = '';
             document.getElementById('cash-desc').value = '';
@@ -1237,7 +1237,7 @@ async function submitCashTransaction() {
 
 async function revertCashTransaction(txId) {
     const _swalRes47195 = await Swal.fire({ text: "Are you sure you want to revert this transaction?", icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
-        if (!_swalRes47195.isConfirmed) return;
+    if (!_swalRes47195.isConfirmed) return;
     try {
         const response = await fetch(`/api/cash-transactions/${txId}`, {
             method: 'DELETE'
@@ -1248,7 +1248,7 @@ async function revertCashTransaction(txId) {
         } else {
             await Swal.fire("Failed to revert: " + (data.detail || 'Unknown error'));
         }
-    } catch(err) {
+    } catch (err) {
         console.error("Error reverting", err);
         await Swal.fire("Network error while reverting.");
     }
@@ -1262,7 +1262,7 @@ function toggleMobileMenu() {
 }
 
 // Close modals when clicking outside or pressing ESC
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         const activeModals = document.querySelectorAll('.modal-overlay');
         activeModals.forEach(m => {
@@ -1278,7 +1278,7 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     if (e.target.classList.contains('modal-overlay')) {
         const m = e.target;
         if (m.id === 'printer-settings-modal' && typeof closePrinterModal === 'function') closePrinterModal();
@@ -1290,7 +1290,7 @@ document.addEventListener('click', function(e) {
 });
 
 // Global Modal Close Listeners for Esc and Backdrop Click
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         const activeModals = document.querySelectorAll('.modal-overlay');
         activeModals.forEach(m => {
@@ -1299,7 +1299,7 @@ document.addEventListener('keydown', function(e) {
                 m.classList.remove('active');
             }
         });
-        
+
         const shopSelector = document.getElementById('shop-selector-modal');
         if (shopSelector && shopSelector.classList.contains('active')) {
             shopSelector.classList.remove('active');
@@ -1307,7 +1307,7 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     if (e.target.classList.contains('modal-overlay')) {
         e.target.style.display = 'none';
         e.target.classList.remove('active');
