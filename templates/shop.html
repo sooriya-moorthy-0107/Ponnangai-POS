@@ -24,22 +24,7 @@
             <!-- Mobile Close Button -->
             <button class="mobile-close-btn" onclick="toggleMobileMenu()" style="display: none;">✕</button>
 
-            {% if user.role in ['Admin', 'Owner', 'Manager'] %}
-            <!-- Shop selector dropdown for Admin/Manager/Owner -->
-            <div class="header-user-area"
-                style="display: flex; align-items: center; gap: 6px; background: #EDF2F7; padding: 6px 10px; border-radius: var(--border-radius);">
-                <label for="shop-selector"
-                    style="font-size: 12px; font-weight: bold; color: #4A5568; margin-bottom: 0; white-space: nowrap;">
-                    Shop:</label>
-                <select id="shop-selector" onchange="switchShop(this.value)"
-                    style="padding: 4px 8px; font-size: 13px; font-weight: 600; border-radius: 4px; border: 1px solid #CBD5E0; background: white; color: #2D3748; cursor: pointer; outline: none; margin-bottom: 0;">
-                    {% for sk in shopkeepers %}
-                    <option value="{{ sk.id }}" {% if sk.id==target_shopkeeper_id %}selected{% endif %}>{{ sk.username
-                        }}'s Shop</option>
-                    {% endfor %}
-                </select>
-            </div>
-            {% else %}
+            {% if user.role not in ['Admin', 'Owner', 'Manager'] %}
             <span class="header-user-area" style="font-size: 14px; font-weight: 600;"> {{ user.username }} ({{ user.role }})</span>
             {% endif %}
 
@@ -48,10 +33,14 @@
                 onclick="openPrinterModal()">
                  <span id="header-printer-status">Disconnected</span>
             </button>
-            <a href="/logout" class="btn btn-destructive btn-small header-logout-btn" style="text-decoration: none;">Logout</a>
+            
             {% if user.role in ['Admin', 'Owner', 'Manager'] %}
             <a href="/admin" class="btn btn-secondary btn-small header-dashboard-btn" style="text-decoration: none;">Dashboard</a>
+            <button class="btn btn-secondary btn-small header-dashboard-btn" onclick="document.getElementById('shop-selector-modal').classList.add('active')">Shop-POS</button>
+            <a href="/factory" class="btn btn-secondary btn-small header-dashboard-btn" style="text-decoration: none;">Factory-POS</a>
             {% endif %}
+            
+            <a href="/logout" class="btn btn-destructive btn-small header-logout-btn" style="text-decoration: none;">Logout</a>
         </div>
     </header>
 
@@ -366,6 +355,30 @@
     <!-- Hidden Print-Only Container for Browser print dialog -->
     <div id="receipt-container" class="no-print" style="display: none;">
         <!-- Filled dynamically before printing -->
+    </div>
+
+    <!-- Shop Selector Modal -->
+    <div id="shop-selector-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
+        <div class="card" style="width: 100%; max-width: 400px; display: flex; flex-direction: column; background: white; z-index: 1001; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 20px;">
+                <h3 style="margin: 0; font-size: 18px; color: var(--primary);">Select Shop POS</h3>
+                <button class="btn btn-secondary btn-small" onclick="document.getElementById('shop-selector-modal').classList.remove('active')" style="padding: 4px 8px;">✕</button>
+            </div>
+            <div style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto;">
+                {% for sk in shopkeepers %}
+                {% if sk.role == 'Shopkeeper' %}
+                <button onclick="switchShop({{ sk.id }})" 
+                        style="padding: 16px 8px; border-radius: 10px; border: 2px solid {% if sk.id==target_shopkeeper_id %}var(--primary){% else %}#E2E8F0{% endif %}; background: {% if sk.id==target_shopkeeper_id %}#E6FFFA{% else %}white{% endif %}; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
+                        onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-2px)';"
+                        onmouseout="this.style.borderColor='{% if sk.id==target_shopkeeper_id %}var(--primary){% else %}#E2E8F0{% endif %}'; this.style.transform='translateY(0)';">
+                    <span style="font-size: 28px; margin-bottom: 8px;">🏪</span>
+                    <span style="font-size: 13px; font-weight: 700; color: #2D3748; word-break: break-word;">{{ sk.username }}</span>
+                </button>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <button class="btn" style="width: 100%;" onclick="document.getElementById('shop-selector-modal').classList.remove('active')">Close</button>
+        </div>
     </div>
 </body>
 
