@@ -170,28 +170,30 @@ function escapeHTML(str) {
             if (existing) {
                 existing.qty += 1;
             } else {
-                cart.push({ id, name, price, qty: 1, unit, type: 'solid' });
+                cart.push({ uid: Date.now().toString() + Math.random().toString().slice(2, 6), id, name, price, qty: 1, unit, type: 'solid' });
             }
             renderCart();
         }
 
         function addLiquid(id, name, price) {
-            const existing = cart.find(i => i.id === id);
-            if (existing) {
-                existing.qty += 1;
+            const existingInstances = cart.filter(i => i.id === id);
+            if (existingInstances.length === 0) {
+                cart.push({ uid: Date.now().toString() + Math.random().toString().slice(2, 6), id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: 'loose', bottle_type: 'Pharma Bottle', bottle_count: 0 });
+            } else if (existingInstances.length === 1) {
+                cart.push({ uid: Date.now().toString() + Math.random().toString().slice(2, 6), id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: 'bottle', bottle_type: 'Pharma Bottle', bottle_count: 1 });
             } else {
-                cart.push({ id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: 'loose', bottle_type: 'Pharma Bottle', bottle_count: 1 });
+                existingInstances[0].qty += 1;
             }
             renderCart();
         }
 
-        function removeFromCart(id) {
-            cart = cart.filter(i => i.id !== id);
+        function removeFromCart(uid) {
+            cart = cart.filter(i => i.uid !== uid);
             renderCart();
         }
 
-        function updateRate(id, newRate) {
-            const item = cart.find(i => i.id === id);
+        function updateRate(uid, newRate) {
+            const item = cart.find(i => i.uid === uid);
             if (!item) return;
             const val = parseFloat(newRate);
             if (isNaN(val) || val < 0) return;
@@ -200,36 +202,51 @@ function escapeHTML(str) {
             renderCart(); // re-render to update line total display
         }
 
-        function updateQty(id, newQty) {
-            const item = cart.find(i => i.id === id);
+        function updateQty(uid, newQty) {
+            const item = cart.find(i => i.uid === uid);
             if (!item) return;
             const val = parseFloat(newQty);
             if (isNaN(val) || val <= 0) {
-                removeFromCart(id);
+                removeFromCart(uid);
                 return;
             }
             item.qty = val;
+            
+            if (item.type === 'liquid') {
+                if (val % 1 !== 0) {
+                    item.packaging_type = 'loose';
+                    item.bottle_count = 0;
+                } else if (item.packaging_type === 'bottle') {
+                    item.bottle_count = val;
+                }
+            }
+            
             calculateTotal();
             renderCart(); // re-render to update line total display
         }
 
 
-        function updatePackaging(id, newPkg) {
-            const item = cart.find(i => i.id === id);
+        function updatePackaging(uid, newPkg) {
+            const item = cart.find(i => i.uid === uid);
             if (!item) return;
             item.packaging_type = newPkg;
+            if (newPkg === 'bottle') {
+                item.bottle_count = Math.floor(item.qty);
+            } else {
+                item.bottle_count = 0;
+            }
             renderCart();
         }
 
-        function updateBottleCount(id, count) {
-            const item = cart.find(i => i.id === id);
+        function updateBottleCount(uid, count) {
+            const item = cart.find(i => i.uid === uid);
             if (!item) return;
             item.bottle_count = parseInt(count) || 0;
             renderCart();
         }
 
-        function updateBottleType(id, newBtlType) {
-            const item = cart.find(i => i.id === id);
+        function updateBottleType(uid, newBtlType) {
+            const item = cart.find(i => i.uid === uid);
             if (!item) return;
             item.bottle_type = newBtlType;
             renderCart();
@@ -255,30 +272,30 @@ function escapeHTML(str) {
                         <div style="display:flex; align-items:center; gap:4px;">
                             <input type="number" step="${step}" min="0.01" value="${item.qty}" 
                                    style="width:70px; padding:6px; text-align:center; border:1px solid #CBD5E0; border-radius:4px; height:36px; font-weight:700; font-size:16px; outline:none;"
-                                   onchange="updateQty(${item.id}, this.value)">
+                                   onchange="updateQty('${item.uid}', this.value)">
                             <span style="font-size:14px; font-weight:600; color:#A0AEC0;">${item.unit}</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:4px;">
                             <input type="number" step="any" min="0" value="${item.price}"
                                    style="width:85px; padding:6px; font-size:16px; font-weight:600; text-align:right; border:1px solid #CBD5E0; border-radius:4px; height:36px; outline:none;"
                                    onfocus="if(this.value==='0') this.value='';"
-                                   onchange="updateRate(${item.id}, this.value)">
+                                   onchange="updateRate('${item.uid}', this.value)">
                         </div>
                         <div style="font-size:18px; font-weight:bold; color:var(--primary); text-align: right; min-width: 70px;">
                             ₹${(item.price * item.qty).toFixed(2)}
                         </div>
                         <div>
-                            <button class="btn-remove" style="background:#E53E3E; color:white; border:none; border-radius:4px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:18px;" onclick="removeFromCart(${item.id})">X</button>
+                            <button class="btn-remove" style="background:#E53E3E; color:white; border:none; border-radius:4px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:18px;" onclick="removeFromCart('${item.uid}')">X</button>
                         </div>
                     </div>
                     ${item.type === 'liquid' ? `
                     <div style="display:flex; gap: 8px; align-items: center; margin-top: 4px;">
-                        <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updatePackaging(${item.id}, this.value)">
+                        <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updatePackaging('${item.uid}', this.value)">
                             <option value="loose" ${item.packaging_type === 'loose' ? 'selected' : ''}>Loose</option>
                             <option value="bottle" ${item.packaging_type === 'bottle' ? 'selected' : ''}>Bottle</option>
                         </select>
                         ${item.packaging_type === 'bottle' ? `
-                        <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updateBottleType(${item.id}, this.value)">
+                        <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updateBottleType('${item.uid}', this.value)">
                             <option value="Pharma Bottle" ${item.bottle_type === 'Pharma Bottle' ? 'selected' : ''}>Pharma Bottle</option>
                             <option value="Lotus Bottle" ${item.bottle_type === 'Lotus Bottle' ? 'selected' : ''}>Lotus Bottle</option>
                             <option value="Water Bottle" ${item.bottle_type === 'Water Bottle' ? 'selected' : ''}>Water Bottle</option>
@@ -303,10 +320,20 @@ function escapeHTML(str) {
         function calculateTotal() {
             subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
             discount = parseFloat(document.getElementById('discount-input').value) || 0;
-            finalTotal = Math.max(0, subtotal - discount);
+            const rawFinal = Math.max(0, subtotal - discount);
+            finalTotal = Math.floor(rawFinal);
+            const roundOff = finalTotal - rawFinal;
 
             document.getElementById('cart-subtotal').innerText = `₹${subtotal.toFixed(2)}`;
             document.getElementById('cart-final-total').innerText = `₹${finalTotal.toFixed(2)}`;
+
+            const roundupRow = document.getElementById('roundup-row');
+            if (roundOff !== 0) {
+                roundupRow.style.display = 'flex';
+                document.getElementById('cart-roundup').innerText = `-(${Math.abs(roundOff).toFixed(2)})`;
+            } else {
+                roundupRow.style.display = 'none';
+            }
         }
 
         async function submitBill() {

@@ -117,6 +117,7 @@ class Bill(Base):
     total_amount = Column(Float, nullable=False)
     discount = Column(Float, default=0.0)
     final_amount = Column(Float, nullable=False)
+    round_off = Column(Float, default=0.0)
     payment_mode = Column(String, default="Cash") # Cash/UPI
     timestamp = Column(DateTime, default=datetime.now)
     cashier_id = Column(Integer, ForeignKey("users.id"))
@@ -231,7 +232,13 @@ except Exception:
 try:
     db_init.execute(text("ALTER TABLE bills ADD COLUMN is_cancelled BOOLEAN DEFAULT FALSE"))
     db_init.commit()
-except Exception:
+except Exception as e:
+    db_init.rollback()
+
+try:
+    db_init.execute(text("ALTER TABLE bills ADD COLUMN round_off FLOAT DEFAULT 0.0"))
+    db_init.commit()
+except Exception as e:
     db_init.rollback()
 
 try:
@@ -694,7 +701,9 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
         bill_items.append(b_item)
         
     discount = float(data.get("discount", 0.0))
-    final_amount = max(0.0, total_amount - discount)
+    raw_final = max(0.0, total_amount - discount)
+    final_amount = float(int(raw_final))
+    round_off = final_amount - raw_final
     
     cashier_name = sk_user.username
     if user.id != sk_user.id:
@@ -704,6 +713,7 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
         total_amount=total_amount,
         discount=discount,
         final_amount=final_amount,
+        round_off=round_off,
         payment_mode=data.get("payment_mode", "Cash"),
         cashier_id=target_shopkeeper_id,
         cashier_name=cashier_name

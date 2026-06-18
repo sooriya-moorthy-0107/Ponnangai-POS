@@ -183,6 +183,14 @@
                     </div>
                     {% endif %}
 
+                    {% if bill.round_off != 0.0 %}
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 9px; color: #4A5568; {% if bill.is_cancelled %}text-decoration: line-through; opacity: 0.7;{% endif %}">
+                        <span>roundup</span>
+                        <span>- ({{ "%.2f"|format(bill.round_off|abs) }})</span>
+                    </div>
+                    {% endif %}
+
                     <div class="receipt-total" {% if bill.is_cancelled
                         %}style="text-decoration: line-through; color: #E53E3E;" {% endif %}>
                         <span>total paid</span>
