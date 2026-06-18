@@ -498,10 +498,14 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
             shop_inventory[inv.shopkeeper_id] = {}
         shop_inventory[inv.shopkeeper_id][inv.product_id] = inv.stock
         
-    # Dashboard metrics
-    total_revenue = db.query(func.sum(Bill.final_amount)).filter(Bill.is_cancelled == False).scalar() or 0.0
-    total_sales = db.query(Bill).filter(Bill.is_cancelled == False).count()
-    total_expenses = db.query(func.sum(CashTransaction.amount)).filter(CashTransaction.transaction_type == 'OUT').scalar() or 0.0
+    from datetime import datetime, time
+    today_start = datetime.combine(datetime.today(), time.min)
+    today_end = datetime.combine(datetime.today(), time.max)
+    
+    # Dashboard metrics (Filtered for today)
+    total_revenue = db.query(func.sum(Bill.final_amount)).filter(Bill.is_cancelled == False, Bill.timestamp >= today_start, Bill.timestamp <= today_end).scalar() or 0.0
+    total_sales = db.query(Bill).filter(Bill.is_cancelled == False, Bill.timestamp >= today_start, Bill.timestamp <= today_end).count()
+    total_expenses = db.query(func.sum(CashTransaction.amount)).filter(CashTransaction.transaction_type == 'OUT', CashTransaction.timestamp >= today_start, CashTransaction.timestamp <= today_end).scalar() or 0.0
     
     # Low stock alerts across active shops and active products (ignores soft-deleted stocks)
     low_stock_alerts = db.query(ShopInventory).join(Product).join(User, ShopInventory.shopkeeper_id == User.id).filter(
@@ -511,15 +515,27 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
         User.role != "Factory"
     ).all()
     
-    # Shop performance for active shopkeepers
+    # Shop performance for active shopkeepers (All-time and Today)
     shop_performance = []
+    shop_performance_today = []
     for sk in shopkeepers:
+        # All time
         sales = db.query(Bill).filter(Bill.cashier_id == sk.id, Bill.is_cancelled == False).count()
         rev = db.query(func.sum(Bill.final_amount)).filter(Bill.cashier_id == sk.id, Bill.is_cancelled == False).scalar() or 0.0
         shop_performance.append({
             "shopkeeper": sk,
             "sales": sales,
             "revenue": rev
+        })
+        # Today
+        sales_today = db.query(Bill).filter(Bill.cashier_id == sk.id, Bill.is_cancelled == False, Bill.timestamp >= today_start, Bill.timestamp <= today_end).count()
+        rev_today = db.query(func.sum(Bill.final_amount)).filter(Bill.cashier_id == sk.id, Bill.is_cancelled == False, Bill.timestamp >= today_start, Bill.timestamp <= today_end).scalar() or 0.0
+        exp_today = db.query(func.sum(CashTransaction.amount)).filter(CashTransaction.shopkeeper_id == sk.id, CashTransaction.transaction_type == 'OUT', CashTransaction.timestamp >= today_start, CashTransaction.timestamp <= today_end).scalar() or 0.0
+        shop_performance_today.append({
+            "shopkeeper": sk,
+            "sales": sales_today,
+            "revenue": rev_today,
+            "expenses": exp_today
         })
         
     return templates.TemplateResponse(request=request, name="admin.html", context={
@@ -534,8 +550,36 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
         "total_sales": total_sales,
         "total_expenses": total_expenses,
         "low_stock_alerts": low_stock_alerts,
-        "shop_performance": shop_performance
+        "shop_performance": shop_performance,
+        "shop_performance_today": shop_performance_today,
+        "archived_shopkeepers": archived_shopkeepers
     })
+
+@app.get("/api/admin/expenses/today/{shop_id}")
+async def get_shop_expenses_today(shop_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Owner", "Manager"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    from datetime import datetime, time
+    today_start = datetime.combine(datetime.today(), time.min)
+    today_end = datetime.combine(datetime.today(), time.max)
+    
+    expenses = db.query(CashTransaction).filter(
+        CashTransaction.shopkeeper_id == shop_id,
+        CashTransaction.transaction_type == 'OUT',
+        CashTransaction.timestamp >= today_start,
+        CashTransaction.timestamp <= today_end
+    ).order_by(CashTransaction.timestamp.desc()).all()
+    
+    return [
+        {
+            "id": exp.id,
+            "amount": exp.amount,
+            "reason": exp.description,
+            "timestamp": exp.timestamp.strftime("%I:%M %p")
+        } for exp in expenses
+    ]
 
 @app.get("/receipt/{bill_id}", response_class=HTMLResponse)
 async def receipt_page(request: Request, bill_id: int, db: Session = Depends(get_db)):

@@ -910,6 +910,28 @@ select:focus {
     color: var(--text-color);
 }
 
+.close-btn-red {
+    background-color: #E53E3E;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    transition: background-color 0.2s;
+}
+
+.close-btn-red:hover {
+    background-color: #C53030;
+}
+
 .modal-body {
     padding: var(--spacing);
     overflow-y: auto;

@@ -37,12 +37,12 @@
     <div class="container">
         <!-- Dashboard Stats -->
         <div class="dashboard-stats">
-            <div class="card stat-card">
-                <div style="color: #718096; font-size: 14px; font-weight: 600;">Total Revenue</div>
+            <div class="card stat-card" onclick="openModal('today-revenue-modal')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="color: #718096; font-size: 14px; font-weight: 600;">Today's Revenue</div>
                 <div class="stat-value">₹{{ "%.2f"|format(total_revenue) }}</div>
             </div>
-            <div class="card stat-card">
-                <div style="color: #718096; font-size: 14px; font-weight: 600;">Total Sales</div>
+            <div class="card stat-card" onclick="openModal('today-bills-modal')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="color: #718096; font-size: 14px; font-weight: 600;">Today's Sales</div>
                 <div class="stat-value">{{ total_sales }} Bills</div>
             </div>
             <div class="card stat-card"
@@ -62,45 +62,18 @@
             <div class="card">
                 <h2
                     style="font-size: 18px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block;">
-                    Shop Performance</h2>
+                    Today's Expenses (₹{{ "%.2f"|format(total_expenses) }})</h2>
                 <ul style="list-style: none; padding: 0;">
-                    {% for sp in shop_performance %}
+                    {% for sp in shop_performance_today %}
                     <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;"
-                        onclick="viewShopAnalytics('{{sp.shopkeeper.id }}')" 
+                        onclick="viewShopExpensesToday('{{sp.shopkeeper.id }}', '{{sp.shopkeeper.username|escape}}')" 
                         onmouseover="this.style.backgroundColor='#F7FAFC'"
                         onmouseout="this.style.backgroundColor='transparent'">
                         <span><strong>{{ sp.shopkeeper.username }}</strong></span>
-                        <span style="text-align: right;">{{ sp.sales }} Bills<br><span
-                                style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue)
-                                }}</span></span>
+                        <span style="text-align: right; color: #C53030; font-weight: 600;">₹{{ "%.2f"|format(sp.expenses) }}</span>
                     </li>
                     {% endfor %}
                 </ul>
-                {% if archived_shopkeepers %}
-                <div style="margin-top: 16px; border-top: 1px dashed #CBD5E0; padding-top: 12px;">
-                    <h3
-                        style="font-size: 13px; margin-bottom: 8px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">
-                        Archived Shops (History)</h3>
-                    <ul style="list-style: none; padding: 0;">
-                        {% for sk in archived_shopkeepers %}
-                        <li style="padding: 6px 0; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 13px;"
-                            onclick="viewShopAnalytics('{{sk.id }}')"  onmouseover="this.style.backgroundColor='#EDF2F7'"
-                            onmouseout="this.style.backgroundColor='transparent'">
-                            <span style="color: #718096; max-width: 70%; word-break: break-word;"><strong>{{ sk.username
-                                    }}</strong></span>
-                            <div style="display: flex; gap: 4px;">
-                                <span class="btn btn-secondary btn-small"
-                                    style="padding: 2px 6px; font-size: 11px;">Analyze</span>
-                                {% if user.role == 'Admin' %}
-                                <button class="btn btn-destructive btn-small" style="padding: 2px 6px; font-size: 11px;"
-                                    onclick="event.stopPropagation(); hardDeleteUser('{{ sk.id }}', '{{ sk.username }}')">Delete</button>
-                                {% endif %}
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
             </div>
 
             <div class="card">
@@ -220,19 +193,19 @@
                     </div>
                 </div>
                 <div>
-                    <label
-                        style="font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 4px; display: block;">Select
-                        Shop</label>
-                    <select id="report-shop"
-                        style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; min-width: 200px;">
-                        <option value="">-- Select a Shop --</option>
-                        {% for sk in shopkeepers %}
-                        <option value="{{ sk.id }}">{{ sk.username }}</option>
-                        {% endfor %}
-                        {% for sk in archived_shopkeepers %}
-                        <option value="{{ sk.id }}">{{ sk.username }} (Archived)</option>
-                        {% endfor %}
-                    </select>
+                    <label style="font-size: 12px; font-weight: 600; color: #4A5568; margin-bottom: 4px; display: block;">Select Shop</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="report-shop" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; min-width: 200px;">
+                            <option value="">-- Select a Shop --</option>
+                            {% for sk in shopkeepers %}
+                            <option value="{{ sk.id }}">{{ sk.username }}</option>
+                            {% endfor %}
+                            {% for sk in archived_shopkeepers %}
+                            <option value="{{ sk.id }}">{{ sk.username }} (Archived)</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-secondary" onclick="openModal('shop-performance-modal')">Shop Performance</button>
+                    </div>
                 </div>
                 <button class="btn" onclick="fetchDailyReport()">Generate Report</button>
             </div>
@@ -518,12 +491,9 @@
         style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: var(--spacing);">
         <div class="card"
             style="width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;">
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">
-                <h2 id="analytics-shop-name" style="font-size: 18px; color: var(--primary); margin: 0;">Shop Analytics
-                </h2>
-                <button class="btn btn-secondary btn-small"
-                    onclick="document.getElementById('analytics-modal').style.display='none'">Close</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">
+                <h2 id="analytics-shop-name" style="font-size: 18px; color: var(--primary); margin: 0;">Shop Analytics</h2>
+                <button class="close-btn-red" onclick="document.getElementById('analytics-modal').style.display='none'">×</button>
             </div>
             <div style="display: flex; gap: 16px; margin-bottom: 16px;">
                 <div
@@ -557,10 +527,9 @@
     <div id="edit-product-modal"
         style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: var(--spacing);">
         <div class="card" style="width: 100%; max-width: 400px; display: flex; flex-direction: column;">
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">
-                <h2 style="font-size: 18px; color: var(--primary); margin: 0;">Edit Product</h2>
-                <button class="btn btn-secondary btn-small" onclick="closeEditProductModal()">✕</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; font-size: 18px; color: var(--primary);">Edit Product</h3>
+                <button class="close-btn-red" onclick="closeEditProductModal()">×</button>
             </div>
 
             <input type="hidden" id="edit-product-id">
@@ -598,12 +567,9 @@
     <div id="shop-selector-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
         <div class="card"
             style="width: 100%; max-width: 400px; display: flex; flex-direction: column; background: white; z-index: 1001; padding: 24px;">
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 20px;">
                 <h3 style="margin: 0; font-size: 18px; color: var(--primary);">Select Shop POS</h3>
-                <button class="btn btn-secondary btn-small"
-                    onclick="document.getElementById('shop-selector-modal').classList.remove('active')"
-                    style="padding: 4px 8px;">✕</button>
+                <button class="close-btn-red" onclick="document.getElementById('shop-selector-modal').classList.remove('active')">×</button>
             </div>
             <div
                 style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto;">
@@ -622,6 +588,99 @@
             </div>
             <button class="btn" style="width: 100%;"
                 onclick="document.getElementById('shop-selector-modal').classList.remove('active')">Close</button>
+        </div>
+    </div>
+
+    <!-- Today's Revenue Modal -->
+    <div id="today-revenue-modal" class="modal-overlay">
+        <div class="card" style="max-width: 400px; width: 100%; background: white; padding: 24px;">
+            <div class="modal-header" style="padding: 0 0 16px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; background: none;">
+                <h2>Today's Revenue</h2>
+                <button class="close-btn-red" onclick="closeModal('today-revenue-modal')">×</button>
+            </div>
+            <ul style="list-style: none; padding: 0; margin-top: 16px;">
+                {% for sp in shop_performance_today %}
+                <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
+                    <span><strong>{{ sp.shopkeeper.username }}</strong></span>
+                    <span style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue) }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Today's Bills Modal -->
+    <div id="today-bills-modal" class="modal-overlay">
+        <div class="card" style="max-width: 400px; width: 100%; background: white; padding: 24px;">
+            <div class="modal-header" style="padding: 0 0 16px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; background: none;">
+                <h2>Today's Bills</h2>
+                <button class="close-btn-red" onclick="closeModal('today-bills-modal')">×</button>
+            </div>
+            <ul style="list-style: none; padding: 0; margin-top: 16px;">
+                {% for sp in shop_performance_today %}
+                <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
+                    <span><strong>{{ sp.shopkeeper.username }}</strong></span>
+                    <span style="font-weight: 600;">{{ sp.sales }} Bills</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Shop Expenses Today Modal -->
+    <div id="shop-expenses-modal" class="modal-overlay">
+        <div class="card" style="max-width: 500px; width: 100%; background: white; padding: 24px;">
+            <div class="modal-header" style="padding: 0 0 16px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; background: none;">
+                <h2><span id="expense-shop-name"></span> - Today's Expenses</h2>
+                <button class="close-btn-red" onclick="closeModal('shop-expenses-modal')">×</button>
+            </div>
+            <div id="expense-list-container" style="margin-top: 16px; max-height: 400px; overflow-y: auto;">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <!-- Shop Performance All-Time Modal -->
+    <div id="shop-performance-modal" class="modal-overlay">
+        <div class="card" style="max-width: 500px; width: 100%; background: white; padding: 24px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header" style="padding: 0 0 16px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; background: none;">
+                <h2>Shop Performance (All Time)</h2>
+                <button class="close-btn-red" onclick="closeModal('shop-performance-modal')">×</button>
+            </div>
+            <ul style="list-style: none; padding: 0; margin-top: 16px;">
+                {% for sp in shop_performance %}
+                <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;"
+                    onclick="viewShopAnalytics('{{sp.shopkeeper.id }}'); closeModal('shop-performance-modal');" 
+                    onmouseover="this.style.backgroundColor='#F7FAFC'"
+                    onmouseout="this.style.backgroundColor='transparent'">
+                    <span><strong>{{ sp.shopkeeper.username }}</strong></span>
+                    <span style="text-align: right;">{{ sp.sales }} Bills<br><span
+                            style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue)
+                            }}</span></span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% if archived_shopkeepers %}
+            <div style="margin-top: 16px; border-top: 1px dashed #CBD5E0; padding-top: 12px;">
+                <h3 style="font-size: 13px; margin-bottom: 8px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px;">Archived Shops (History)</h3>
+                <ul style="list-style: none; padding: 0;">
+                    {% for sk in archived_shopkeepers %}
+                    <li style="padding: 6px 0; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 13px;"
+                        onclick="viewShopAnalytics('{{sk.id }}'); closeModal('shop-performance-modal');"  onmouseover="this.style.backgroundColor='#EDF2F7'"
+                        onmouseout="this.style.backgroundColor='transparent'">
+                        <span style="color: #718096; max-width: 70%; word-break: break-word;"><strong>{{ sk.username }}</strong></span>
+                        <div style="display: flex; gap: 4px;">
+                            <span class="btn btn-secondary btn-small" style="padding: 2px 6px; font-size: 11px;">Analyze</span>
+                            {% if user.role == 'Admin' %}
+                            <button class="btn btn-destructive btn-small" style="padding: 2px 6px; font-size: 11px;"
+                                onclick="event.stopPropagation(); hardDeleteUser('{{ sk.id }}', '{{ sk.username }}')">Delete</button>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
         </div>
     </div>
 

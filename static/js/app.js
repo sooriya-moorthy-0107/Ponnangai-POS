@@ -1260,3 +1260,31 @@ function toggleMobileMenu() {
     if (controls) controls.classList.toggle("active");
     if (overlay) overlay.classList.toggle("active");
 }
+
+// Close modals when clicking outside or pressing ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const activeModals = document.querySelectorAll('.modal-overlay');
+        activeModals.forEach(m => {
+            // Some modals use 'display: flex', others use '.active' class
+            if (m.style.display === 'flex' || m.classList.contains('active')) {
+                if (m.id === 'printer-settings-modal' && typeof closePrinterModal === 'function') closePrinterModal();
+                else if (m.id === 'receipt-preview-modal' && typeof closeReceiptModal === 'function') closeReceiptModal();
+                else if (m.id === 'shop-selector-modal') m.classList.remove('active');
+                else m.style.display = 'none';
+                m.classList.remove('active');
+            }
+        });
+    }
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        const m = e.target;
+        if (m.id === 'printer-settings-modal' && typeof closePrinterModal === 'function') closePrinterModal();
+        else if (m.id === 'receipt-preview-modal' && typeof closeReceiptModal === 'function') closeReceiptModal();
+        else if (m.id === 'shop-selector-modal') m.classList.remove('active');
+        else m.style.display = 'none';
+        m.classList.remove('active');
+    }
+});

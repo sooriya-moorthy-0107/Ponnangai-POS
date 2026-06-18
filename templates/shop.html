@@ -227,7 +227,7 @@
         <div class="modal-container">
             <div class="modal-header">
                 <h3> Thermal Printer Setup</h3>
-                <button class="modal-close-btn" onclick="closePrinterModal()">&times;</button>
+                <button class="close-btn-red" onclick="closePrinterModal()">×</button>
             </div>
             <div class="modal-body">
                 <p style="font-size: 12px; color: #718096; margin-bottom: 16px;">
@@ -321,7 +321,7 @@
         <div class="modal-container" style="max-width: 400px;">
             <div class="modal-header" style="background-color: #E6FFFA;">
                 <h3 style="color: #319795;"> Bill Created Successfully!</h3>
-                <button class="modal-close-btn" onclick="closeReceiptModal()">&times;</button>
+                <button class="close-btn-red" onclick="closeReceiptModal()">×</button>
             </div>
             <div class="modal-body">
                 <div class="receipt-modal-preview-box">
@@ -362,7 +362,7 @@
         <div class="card" style="width: 100%; max-width: 400px; display: flex; flex-direction: column; background: white; z-index: 1001; padding: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 12px; margin-bottom: 20px;">
                 <h3 style="margin: 0; font-size: 18px; color: var(--primary);">Select Shop POS</h3>
-                <button class="btn btn-secondary btn-small" onclick="document.getElementById('shop-selector-modal').classList.remove('active')" style="padding: 4px 8px;">✕</button>
+                <button class="close-btn-red" onclick="document.getElementById('shop-selector-modal').classList.remove('active')">×</button>
             </div>
             <div style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto;">
                 {% for sk in shopkeepers %}
