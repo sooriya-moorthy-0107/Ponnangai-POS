@@ -10,6 +10,17 @@
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Global SweetAlert configuration for uniform close buttons
+        if (typeof Swal !== 'undefined') {
+            window.Swal = Swal.mixin({
+                showCloseButton: true,
+                customClass: {
+                    closeButton: 'close-btn-red'
+                }
+            });
+        }
+    </script>
 </head>
 
 <body>

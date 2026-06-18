@@ -932,6 +932,29 @@ select:focus {
     background-color: #C53030;
 }
 
+/* Uniform close button for SweetAlert */
+.swal2-popup .swal2-close.close-btn-red {
+    background-color: #E53E3E !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin-top: 12px !important;
+    margin-right: 12px !important;
+    transition: background-color 0.2s !important;
+}
+.swal2-popup .swal2-close.close-btn-red:hover {
+    background-color: #C53030 !important;
+    color: white !important;
+}
+
 .modal-body {
     padding: var(--spacing);
     overflow-y: auto;
