@@ -600,9 +600,9 @@
             </div>
             <ul style="list-style: none; padding: 0; margin-top: 16px;">
                 {% for sp in shop_performance_today %}
-                <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
-                    <span><strong>{{ sp.shopkeeper.username }}</strong></span>
-                    <span style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue) }}</span>
+                <li style="padding: 12px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
+                    <span style="font-weight: 500;">{{ sp.shopkeeper.username }}</span>
+                    <span style="color: #38A169; font-weight: 600;">₹{{ "%.2f"|format(sp.revenue) }}</span>
                 </li>
                 {% endfor %}
             </ul>
@@ -618,8 +618,8 @@
             </div>
             <ul style="list-style: none; padding: 0; margin-top: 16px;">
                 {% for sp in shop_performance_today %}
-                <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
-                    <span><strong>{{ sp.shopkeeper.username }}</strong></span>
+                <li style="padding: 12px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
+                    <span style="font-weight: 500;">{{ sp.shopkeeper.username }}</span>
                     <span style="font-weight: 600;">{{ sp.sales }} Bills</span>
                 </li>
                 {% endfor %}
@@ -649,14 +649,17 @@
             </div>
             <ul style="list-style: none; padding: 0; margin-top: 16px;">
                 {% for sp in shop_performance %}
-                <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;"
-                    onclick="viewShopAnalytics('{{sp.shopkeeper.id }}'); closeModal('shop-performance-modal');" 
-                    onmouseover="this.style.backgroundColor='#F7FAFC'"
-                    onmouseout="this.style.backgroundColor='transparent'">
-                    <span><strong>{{ sp.shopkeeper.username }}</strong></span>
-                    <span style="text-align: right;">{{ sp.sales }} Bills<br><span
-                            style="color: var(--primary); font-weight: 600;">₹{{ "%.2f"|format(sp.revenue)
-                            }}</span></span>
+                <li style="padding: 16px; border: 1px solid #E2E8F0; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">{{ sp.shopkeeper.username }}</div>
+                        <div style="font-size: 13px; color: #718096;">{{ sp.sales }} Sales Total</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: #38A169; font-weight: 700; font-size: 16px; margin-bottom: 8px;">₹{{ "%.2f"|format(sp.revenue) }}</div>
+                        <button class="btn btn-secondary btn-small" 
+                            onclick="viewShopAnalytics('{{sp.shopkeeper.id }}'); closeModal('shop-performance-modal');" 
+                            style="font-size: 12px; padding: 4px 8px;">View Analytics</button>
+                    </div>
                 </li>
                 {% endfor %}
             </ul>
