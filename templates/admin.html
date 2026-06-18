@@ -46,10 +46,10 @@
                 <div class="stat-value">{{ total_sales }} Bills</div>
             </div>
             <div class="card stat-card"
-                style="border-color: {% if low_stock_alerts|length > 0 %}var(--destructive){% else %}#E2E8F0{% endif %};">
+                {% if low_stock_alerts|length > 0 %}style="border-color: var(--destructive);"{% else %}style="border-color: #E2E8F0;"{% endif %}>
                 <div style="color: #718096; font-size: 14px; font-weight: 600;">Low Stock (&lt; 10)</div>
                 <div class="stat-value"
-                    style="color: {% if low_stock_alerts|length > 0 %}var(--destructive){% else %}var(--primary){% endif %};">
+                    {% if low_stock_alerts|length > 0 %}style="color: var(--destructive);"{% else %}style="color: var(--primary);"{% endif %}>
                     {{ low_stock_alerts|length }} Items
                 </div>
             </div>
@@ -66,7 +66,7 @@
                 <ul style="list-style: none; padding: 0;">
                     {% for sp in shop_performance %}
                     <li style="padding: 8px 0; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;"
-                        onclick="viewShopAnalytics({{ sp.shopkeeper.id }})"
+                        onclick="viewShopAnalytics('{{sp.shopkeeper.id }}')" 
                         onmouseover="this.style.backgroundColor='#F7FAFC'"
                         onmouseout="this.style.backgroundColor='transparent'">
                         <span><strong>{{ sp.shopkeeper.username }}</strong></span>
@@ -84,7 +84,7 @@
                     <ul style="list-style: none; padding: 0;">
                         {% for sk in archived_shopkeepers %}
                         <li style="padding: 6px 0; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; font-size: 13px;"
-                            onclick="viewShopAnalytics({{ sk.id }})" onmouseover="this.style.backgroundColor='#EDF2F7'"
+                            onclick="viewShopAnalytics('{{sk.id }}')"  onmouseover="this.style.backgroundColor='#EDF2F7'"
                             onmouseout="this.style.backgroundColor='transparent'">
                             <span style="color: #718096; max-width: 70%; word-break: break-word;"><strong>{{ sk.username
                                     }}</strong></span>
@@ -93,7 +93,7 @@
                                     style="padding: 2px 6px; font-size: 11px;">Analyze</span>
                                 {% if user.role == 'Admin' %}
                                 <button class="btn btn-destructive btn-small" style="padding: 2px 6px; font-size: 11px;"
-                                    onclick='event.stopPropagation(); hardDeleteUser({{ sk.id }}, {{ sk.username | tojson }})'>Delete</button>
+                                    onclick="event.stopPropagation(); hardDeleteUser('{{ sk.id }}', '{{ sk.username }}')">Delete</button>
                                 {% endif %}
                             </div>
                         </li>
@@ -155,11 +155,11 @@
                         {% if user.role == 'Admin' and u.id != user.id %}
                         <div style="display: flex; gap: 4px;">
                             <button class="btn btn-secondary btn-small"
-                                onclick='resetPassword({{ u.id }}, {{ u.username | tojson }})'>Pwd</button>
+                                onclick="resetPassword('{{ u.id }}', '{{ u.username }}')">Pwd</button>
                             <button class="btn btn-secondary btn-small"
-                                onclick='showEditUser({{ u.id }}, {{ u.username | tojson }}, {{ u.role | tojson }})'>Edit</button>
+                                onclick="showEditUser('{{ u.id }}', '{{ u.username }}', '{{ u.role }}')">Edit</button>
                             <button class="btn btn-destructive btn-small"
-                                onclick='deleteUser({{ u.id }}, {{ u.username | tojson }})'>Del</button>
+                                onclick="deleteUser('{{u.id }}', '{{u.username }}')">Del</button>
                         </div>
                         {% endif %}
                     </li>
@@ -291,7 +291,7 @@
                     <div style="overflow-x: auto;">
                         {% for sk in shopkeepers %}
                         <div id="inventory-table-wrapper-{{ sk.id }}" class="inventory-table-container"
-                            style="{% if loop.index != 1 %}display: none;{% endif %}">
+                            {% if loop.index != 1 %}style="display: none;"{% endif %}>
                             <table id="inventory-table-{{ sk.id }}" class="admin-table">
                                 <thead>
                                     <tr>
@@ -331,7 +331,7 @@
                                         <td>{{ "%.2f"|format(product.price) }}</td>
                                         <td>
                                             <span
-                                                style="{% if stk < 10 %}color: var(--destructive); font-weight: bold;{% endif %}">
+                                                {% if stk < 10 %}style="color: var(--destructive); font-weight: bold;"{% endif %}>
                                                 {{ stk }}
                                             </span>
                                         </td>
@@ -340,9 +340,9 @@
                                         <td>
                                             <div style="display: flex; gap: 8px; align-items: center;">
                                                 <button class="btn btn-secondary btn-small"
-                                                    onclick='openEditProductModal({{ product.id }}, {{ product.name | tojson }}, {{ stk }}, {{ sk.id }})'>Edit</button>
+                                                    onclick="openEditProductModal('{{ product.id }}', '{{ product.name }}', '{{ stk }}', '{{ sk.id }}')">Edit</button>
                                                 <button class="btn btn-destructive btn-small"
-                                                    onclick='deleteProduct({{ product.id }}, {{ product.name | tojson }})'>Delete</button>
+                                                    onclick="deleteProduct('{{ product.id }}', '{{ product.name }}')">Delete</button>
                                             </div>
                                         </td>
                                         {% endif %}
@@ -363,13 +363,13 @@
                             {% if user.role in ['Admin', 'Manager', 'Owner'] %}
                             <!-- Shopkeeper Action Controls -->
                             <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-                                <button class="btn btn-small" onclick="toggleAddProductForm({{ sk.id }})">➕ Add
+                                <button class="btn btn-small" onclick="toggleAddProductForm('{{ sk.id }}')" >➕ Add
                                     Product</button>
                                 <button class="btn btn-secondary btn-small"
-                                    onclick="toggleBulkUploadForm({{ sk.id }})">Bulk Add/Edit Products (CSV)</button>
+                                    onclick="toggleBulkUploadForm('{{ sk.id }}')" >Bulk Add/Edit Products (CSV)</button>
                                 {% if sk.role != 'Factory' %}
                                 <button class="btn btn-secondary btn-small"
-                                    onclick="toggleBulkStockForm({{ sk.id }})">📈 Bulk Update Stock (CSV)</button>
+                                    onclick="toggleBulkStockForm('{{ sk.id }}')" >📈 Bulk Update Stock (CSV)</button>
                                 {% endif %}
                             </div>
 
@@ -419,9 +419,9 @@
                                         value="{% if sk.role == 'Factory' %}Liters{% else %}Pcs{% endif %}"
                                         style="margin-bottom: 0;">
                                 </div>
-                                <button class="btn btn-small" onclick="addNewProductToShop({{ sk.id }})">Save</button>
+                                <button class="btn btn-small" onclick="addNewProductToShop('{{ sk.id }}')" >Save</button>
                                 <button class="btn btn-secondary btn-small"
-                                    onclick="toggleAddProductForm({{ sk.id }})">Cancel</button>
+                                    onclick="toggleAddProductForm('{{ sk.id }}')" >Cancel</button>
                             </div>
 
                             <!-- Inline Bulk CSV Upload Form -->
@@ -439,10 +439,10 @@
                                     style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
                                     <input type="file" id="product-csv-file-{{ sk.id }}" accept=".csv"
                                         style="font-size: 12px;">
-                                    <button class="btn btn-small" onclick="uploadBulkProductsToShop({{ sk.id }})"
+                                    <button class="btn btn-small" onclick="uploadBulkProductsToShop('{{ sk.id }}')" 
                                         style="background-color: var(--destructive); border-color: var(--destructive);">Upload</button>
                                     <button class="btn btn-secondary btn-small"
-                                        onclick="toggleBulkUploadForm({{ sk.id }})">Cancel</button>
+                                        onclick="toggleBulkUploadForm('{{ sk.id }}')" >Cancel</button>
                                 </div>
                                 <div>
                                     <button class="btn btn-secondary btn-small" onclick="downloadProductTemplate()"
@@ -464,14 +464,14 @@
                                     style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
                                     <input type="file" id="stock-csv-file-{{ sk.id }}" accept=".csv"
                                         style="font-size: 12px;">
-                                    <button class="btn btn-small" onclick="uploadBulkStockToShop({{ sk.id }})"
+                                    <button class="btn btn-small" onclick="uploadBulkStockToShop('{{ sk.id }}')" 
                                         style="background-color: #3182CE; border-color: #3182CE;">Upload</button>
                                     <button class="btn btn-secondary btn-small"
-                                        onclick="toggleBulkStockForm({{ sk.id }})">Cancel</button>
+                                        onclick="toggleBulkStockForm('{{ sk.id }}')" >Cancel</button>
                                 </div>
                                 <div>
                                     <button class="btn btn-secondary btn-small"
-                                        onclick="downloadStockTemplate({{ sk.id }})"
+                                        onclick="downloadStockTemplate('{{ sk.id }}')" 
                                         style="background-color: white; color: #2B6CB0; border: 1px solid #90CDF4; padding: 4px 8px; font-size: 11px;">📥
                                         Download Stock CSV Template</button>
                                 </div>
@@ -613,7 +613,7 @@
                     style="padding: 16px 8px; border-radius: 10px; border: 2px solid #E2E8F0; background: white; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
                     onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-2px)';"
                     onmouseout="this.style.borderColor='#E2E8F0'; this.style.transform='translateY(0)';">
-
+                    <span style="font-size: 28px; margin-bottom: 8px;">🏪</span>
                     <span style="font-size: 13px; font-weight: 700; color: #2D3748; word-break: break-word;">{{
                         sk.username }}</span>
                 </button>

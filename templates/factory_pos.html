@@ -74,7 +74,7 @@
             <div class="product-grid">
                 {% for p in liquid_products %}
                 <div class="product-card"
-                    onclick='addLiquid({{ p.id }}, {{ p.name | tojson }}, {{ p.price }})'
+                    onclick="addLiquid('{{ p.id }}', '{{ p.name }}', '{{ p.price }}')"
                     style="cursor: pointer;">
                     {% if p.image_filename %}
                     <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
@@ -91,7 +91,7 @@
 
                 {% for p in solid_products %}
                 <div class="product-card"
-                    onclick='addSolid({{ p.id }}, {{ p.name | tojson }}, {{ p.price }}, {{ p.unit | tojson }})'
+                    onclick="addSolid('{{ p.id }}', '{{ p.name }}', '{{ p.price }}', '{{ p.unit }}')"
                     style="cursor: pointer;">
                     {% if p.image_filename %}
                     <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
@@ -262,7 +262,7 @@
     <div id="receipt-container" class="no-print" style="display: none;"></div>
 
     <script>
-        const ACTIVE_CASHIER_ID = {{ target_cashier_id }};
+        const ACTIVE_CASHIER_ID = '{{ target_cashier_id }}';
     </script>
     <!-- Shop Selector Modal -->
     <div id="shop-selector-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
