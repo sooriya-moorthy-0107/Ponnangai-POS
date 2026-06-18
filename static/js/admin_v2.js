@@ -665,3 +665,101 @@ function toggleMobileMenu() {
     if (controls) controls.classList.toggle("active");
     if (overlay) overlay.classList.toggle("active");
 }
+
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+    }
+}
+
+async function viewShopExpensesToday(shopId, shopName) {
+    document.getElementById('expense-shop-name').innerText = shopName;
+    const container = document.getElementById('expense-list-container');
+    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #718096;">Loading...</div>';
+    
+    openModal('shop-expenses-modal');
+    
+    try {
+        const res = await fetch(`/api/admin/expenses/today/${shopId}`);
+        const data = await res.json();
+        
+        if (res.ok) {
+            if (data.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #718096;">No expenses found for today.</div>';
+                return;
+            }
+            
+            let html = '<ul style="list-style: none; padding: 0;">';
+            let total = 0;
+            data.forEach(exp => {
+                total += exp.amount;
+                html += `
+                    <li style="padding: 10px 0; border-bottom: 1px solid #EDF2F7; display: flex; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-weight: bold; color: #2D3748;">${escapeHTML(exp.reason)}</span>
+                            <span style="font-size: 11px; color: #A0AEC0;">${exp.timestamp}</span>
+                        </div>
+                        <span style="color: #E53E3E; font-weight: 600;">₹${exp.amount.toFixed(2)}</span>
+                    </li>
+                `;
+            });
+            html += `</ul>
+                <div style="margin-top: 16px; padding-top: 12px; border-top: 2px dashed #E2E8F0; text-align: right; font-size: 16px;">
+                    <strong>Total: <span style="color: #E53E3E;">₹${total.toFixed(2)}</span></strong>
+                </div>
+            `;
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = `<div style="text-align: center; padding: 20px; color: #E53E3E;">Failed to load expenses.</div>`;
+        }
+    } catch (err) {
+        container.innerHTML = `<div style="text-align: center; padding: 20px; color: #E53E3E;">Network error while fetching.</div>`;
+    }
+}
+
+// Close modals when clicking outside or pressing ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const activeModals = document.querySelectorAll('.modal-overlay');
+        activeModals.forEach(m => {
+            if (m.style.display === 'flex' || m.classList.contains('active')) {
+                closeModal(m.id);
+                m.classList.remove('active');
+            }
+        });
+        
+        // Handle specific modals that might not use standard open/close
+        const editModal = document.getElementById('edit-product-modal');
+        if (editModal && editModal.style.display === 'flex') {
+            closeEditProductModal();
+        }
+        
+        const shopSelector = document.getElementById('shop-selector-modal');
+        if (shopSelector && shopSelector.classList.contains('active')) {
+            shopSelector.classList.remove('active');
+        }
+    }
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        closeModal(e.target.id);
+        e.target.classList.remove('active');
+    }
+    
+    // For edit product modal which uses inline styles sometimes instead of classes
+    const editModal = document.getElementById('edit-product-modal');
+    if (editModal && e.target === editModal) {
+        closeEditProductModal();
+    }
+});
