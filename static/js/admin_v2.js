@@ -608,9 +608,11 @@ function escapeHTML(str) {
         }
     }
 
-function openEditProductModal(id, currentName, currentStock, shopkeeperId) {
+function openEditProductModal(id, currentName, currentStock, shopkeeperId, currentPrice, currentRateQty) {
     document.getElementById("edit-product-id").value = id;
     document.getElementById("edit-product-name").value = currentName;
+    document.getElementById("edit-product-price").value = currentPrice || "";
+    document.getElementById("edit-product-rate-qty").value = currentRateQty || "";
     document.getElementById("edit-product-stock").value = currentStock;
     document.getElementById("edit-shopkeeper-id").value = shopkeeperId;
     document.getElementById("edit-product-image").value = "";
@@ -624,6 +626,8 @@ function closeEditProductModal() {
 async function submitEditProduct() {
     const id = document.getElementById("edit-product-id").value;
     const name = document.getElementById("edit-product-name").value.trim();
+    const price = document.getElementById("edit-product-price").value;
+    const rateQty = document.getElementById("edit-product-rate-qty").value;
     const stock = document.getElementById("edit-product-stock").value || 0;
     const shopkeeperId = document.getElementById("edit-shopkeeper-id").value;
     const fileInput = document.getElementById("edit-product-image");
@@ -635,6 +639,8 @@ async function submitEditProduct() {
     
     const formData = new FormData();
     formData.append("name", name);
+    if (price) formData.append("price", parseFloat(price));
+    if (rateQty) formData.append("rate_qty", parseFloat(rateQty));
     formData.append("stock", stock);
     formData.append("shopkeeper_id", shopkeeperId);
     if (fileInput.files[0]) {

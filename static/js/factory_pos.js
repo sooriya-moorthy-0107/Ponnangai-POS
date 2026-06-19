@@ -175,14 +175,30 @@ function addSolid(id, name, price, unit) {
     renderCart();
 }
 
-function addLiquid(id, name, price) {
-    const existingInstances = cart.filter(i => i.id === id);
-    if (existingInstances.length === 0) {
-        cart.push({ uid: Date.now().toString() + Math.random().toString().slice(2, 6), id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: 'loose', bottle_type: 'Pharma Bottle', bottle_count: 0 });
-    } else if (existingInstances.length === 1) {
-        cart.push({ uid: Date.now().toString() + Math.random().toString().slice(2, 6), id, name, price, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: 'bottle', bottle_type: 'Pharma Bottle', bottle_count: 1 });
+function addLiquid(id, name, price, rate_qty) {
+    const existing1ltr = cart.find(i => i.id === id && i.packaging_type === '1ltr');
+    const existing5ltr = cart.find(i => i.id === id && i.packaging_type === '5ltr');
+    const existingLoose = cart.find(i => i.id === id && i.packaging_type === 'loose');
+    const existingHalf = cart.find(i => i.id === id && i.packaging_type === '1/2 ltr');
+
+    const base_rate = (rate_qty && rate_qty > 0 && price > 0) ? (price / rate_qty) : 0;
+    
+    const price1ltr = base_rate ? base_rate * 1 : 60;
+    const price5ltr = base_rate ? base_rate * 5 : 250;
+    const priceLoose = base_rate ? base_rate * 1 : 50;
+    const priceHalf = base_rate ? base_rate * 0.5 : 40;
+
+    if (!existing1ltr) {
+        cart.push({ uid: Date.now().toString() + Math.random().toString().slice(2, 6), id, name, price: price1ltr, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: '1ltr', bottle_type: 'Water Bottle', bottle_count: 1, base_rate: base_rate });
+    } else if (!existing5ltr) {
+        cart.push({ uid: Date.now().toString() + Math.random().toString().slice(2, 6), id, name, price: price5ltr, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: '5ltr', bottle_type: '5Ltr Can', bottle_count: 1, base_rate: base_rate });
+    } else if (!existingLoose) {
+        cart.push({ uid: Date.now().toString() + Math.random().toString().slice(2, 6), id, name, price: priceLoose, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: 'loose', bottle_type: '', bottle_count: 0, base_rate: base_rate });
+    } else if (!existingHalf) {
+        cart.push({ uid: Date.now().toString() + Math.random().toString().slice(2, 6), id, name, price: priceHalf, qty: 1, unit: 'Ltrs', type: 'liquid', packaging_type: '1/2 ltr', bottle_type: 'half Liter bottle', bottle_count: 1, base_rate: base_rate });
     } else {
-        existingInstances[0].qty += 1;
+        existing1ltr.qty += 1;
+        existing1ltr.bottle_count = Math.floor(existing1ltr.qty);
     }
     renderCart();
 }
@@ -213,11 +229,12 @@ function updateQty(uid, newQty) {
     item.qty = val;
 
     if (item.type === 'liquid') {
-        if (val % 1 !== 0) {
+        if (val % 1 !== 0 && item.packaging_type !== 'loose') {
             item.packaging_type = 'loose';
             item.bottle_count = 0;
-        } else if (item.packaging_type === 'bottle') {
-            item.bottle_count = val;
+            item.price = item.base_rate ? item.base_rate * 1 : 50;
+        } else if (item.packaging_type === '1ltr' || item.packaging_type === '5ltr' || item.packaging_type === '1/2 ltr') {
+            item.bottle_count = Math.floor(val);
         }
     }
 
@@ -229,12 +246,32 @@ function updateQty(uid, newQty) {
 function updatePackaging(uid, newPkg) {
     const item = cart.find(i => i.uid === uid);
     if (!item) return;
+    
     item.packaging_type = newPkg;
-    if (newPkg === 'bottle') {
+    const base_rate = item.base_rate || 0;
+
+    if (newPkg === '1ltr') {
         item.bottle_count = Math.floor(item.qty);
-    } else {
+        item.price = base_rate ? base_rate * 1 : 60;
+        if (!item.bottle_type || item.bottle_type === '5Ltr Can' || ['Harpic Bottle', 'Floorwash Bottle', 'Glass Cleaner Bottle', 'half Liter bottle'].includes(item.bottle_type)) {
+             item.bottle_type = 'Water Bottle';
+        }
+    } else if (newPkg === '1/2 ltr') {
+        item.bottle_count = Math.floor(item.qty);
+        item.price = base_rate ? base_rate * 0.5 : 40;
+        if (!item.bottle_type || !['Harpic Bottle', 'Floorwash Bottle', 'Glass Cleaner Bottle', 'half Liter bottle'].includes(item.bottle_type)) {
+            item.bottle_type = 'half Liter bottle';
+        }
+    } else if (newPkg === '5ltr') {
+        item.bottle_count = Math.floor(item.qty);
+        item.price = base_rate ? base_rate * 5 : 250;
+        item.bottle_type = '5Ltr Can';
+    } else if (newPkg === 'loose') {
         item.bottle_count = 0;
+        item.price = base_rate ? base_rate * 1 : 50;
     }
+    
+    calculateTotal();
     renderCart();
 }
 
@@ -291,18 +328,23 @@ function renderCart() {
                     ${item.type === 'liquid' ? `
                     <div style="display:flex; gap: 8px; align-items: center; margin-top: 4px;">
                         <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updatePackaging('${item.uid}', this.value)">
+                            <option value="1/2 ltr" ${item.packaging_type === '1/2 ltr' ? 'selected' : ''}>1/2 Ltr</option>
+                            <option value="1ltr" ${item.packaging_type === '1ltr' ? 'selected' : ''}>1Ltr</option>
+                            <option value="5ltr" ${item.packaging_type === '5ltr' ? 'selected' : ''}>5Ltr Can</option>
                             <option value="loose" ${item.packaging_type === 'loose' ? 'selected' : ''}>Loose</option>
-                            <option value="bottle" ${item.packaging_type === 'bottle' ? 'selected' : ''}>Bottle</option>
                         </select>
-                        ${item.packaging_type === 'bottle' ? `
+                        ${item.packaging_type === '1/2 ltr' ? `
                         <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updateBottleType('${item.uid}', this.value)">
-                            <option value="Pharma Bottle" ${item.bottle_type === 'Pharma Bottle' ? 'selected' : ''}>Pharma Bottle</option>
-                            <option value="Lotus Bottle" ${item.bottle_type === 'Lotus Bottle' ? 'selected' : ''}>Lotus Bottle</option>
-                            <option value="Water Bottle" ${item.bottle_type === 'Water Bottle' ? 'selected' : ''}>Water Bottle</option>
+                            <option value="half Liter bottle" ${item.bottle_type === 'half Liter bottle' ? 'selected' : ''}>Half Liter Bottle</option>
                             <option value="Harpic Bottle" ${item.bottle_type === 'Harpic Bottle' ? 'selected' : ''}>Harpic Bottle</option>
                             <option value="Floorwash Bottle" ${item.bottle_type === 'Floorwash Bottle' ? 'selected' : ''}>Floorwash Bottle</option>
-                            <option value="half Liter bottle" ${item.bottle_type === 'half Liter bottle' ? 'selected' : ''}>half Liter bottle</option>
                             <option value="Glass Cleaner Bottle" ${item.bottle_type === 'Glass Cleaner Bottle' ? 'selected' : ''}>Glass Cleaner Bottle</option>
+                        </select>` : ''}
+                        ${item.packaging_type === '1ltr' ? `
+                        <select style="padding: 6px; font-size: 14px; font-weight:600; border: 1px solid #CBD5E0; border-radius: 4px; height:36px;" onchange="updateBottleType('${item.uid}', this.value)">
+                            <option value="Water Bottle" ${item.bottle_type === 'Water Bottle' ? 'selected' : ''}>Water Bottle</option>
+                            <option value="Pharma Bottle" ${item.bottle_type === 'Pharma Bottle' ? 'selected' : ''}>Pharma Bottle</option>
+                            <option value="Lotus Bottle" ${item.bottle_type === 'Lotus Bottle' ? 'selected' : ''}>Lotus Bottle</option>
                         </select>` : ''}
                     </div>
                     ` : ''}

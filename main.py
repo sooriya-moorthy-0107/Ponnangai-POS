@@ -98,6 +98,7 @@ class Product(Base):
     is_deleted = Column(Boolean, default=False)
     product_type = Column(String, default="solid") # "solid" or "liquid"
     unit = Column(String, default="Pcs") # "Pcs", "Liters", etc.
+    rate_qty = Column(Float, nullable=True)
 
     shopkeeper = relationship("User")
 
@@ -162,6 +163,12 @@ db_init = SessionLocal()
 
 try:
     db_init.execute(text("DROP TABLE IF EXISTS factory_session_balances CASCADE"))
+    db_init.commit()
+except Exception:
+    db_init.rollback()
+    
+try:
+    db_init.execute(text("ALTER TABLE products ADD COLUMN rate_qty FLOAT DEFAULT NULL"))
     db_init.commit()
 except Exception:
     db_init.rollback()
@@ -889,6 +896,33 @@ async def get_daily_report(request: Request, shopkeeper_id: int, start_date: str
     if not user or user.role not in ["Admin", "Manager", "Owner"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
 
+@app.post("/api/products/{product_id}/edit")
+async def edit_product_info(
+    product_id: int, 
+    request: Request, 
+    name: str = Form(None), 
+    price: float = Form(None),
+    rate_qty: float = Form(None),
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Manager", "Owner"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+
+    product = db.query(Product).filter(Product.id == product_id, Product.is_deleted == False).first()
+    if not product:
+        return JSONResponse(status_code=404, content={"detail": "Product not found"})
+
+    if name:
+        product.name = name
+    if price is not None:
+        product.price = price
+    if rate_qty is not None:
+        product.rate_qty = rate_qty
+
+    db.commit()
+    return {"status": "success", "message": "Product updated"}
+
     try:
         t_start = datetime.strptime(start_date, '%Y-%m-%d').date()
         t_end = datetime.strptime(end_date, '%Y-%m-%d').date()
@@ -910,10 +944,10 @@ async def get_daily_report(request: Request, shopkeeper_id: int, start_date: str
     report_data = {}
     for bill in bills:
         for item in bill.items:
-            if item.packaging_type == "bottle" and item.bottle_type:
+            if item.packaging_type in ["bottle", "1ltr", "5ltr", "1/2 ltr"] and item.bottle_type:
                 if item.bottle_type not in bottle_counts:
                     bottle_counts[item.bottle_type] = 0
-                bottle_counts[item.bottle_type] += int(item.quantity)
+                bottle_counts[item.bottle_type] += int(item.bottle_count or item.quantity)
             product_name = item.product.name if item.product else "Unknown Product"
             pkg_type = item.packaging_type or "loose"
             btl_type = item.bottle_type or "N/A"
@@ -923,7 +957,7 @@ async def get_daily_report(request: Request, shopkeeper_id: int, start_date: str
                 report_data[key] = {
                     "product": product_name,
                     "packaging": pkg_type,
-                    "bottle_type": btl_type if pkg_type == "bottle" else "N/A",
+                    "bottle_type": btl_type if pkg_type in ["bottle", "1ltr", "5ltr", "1/2 ltr"] else "N/A",
                     "total_quantity": 0.0,
                     "total_revenue": 0.0,
                     "bottle_count": 0
@@ -931,7 +965,7 @@ async def get_daily_report(request: Request, shopkeeper_id: int, start_date: str
             
             report_data[key]["total_quantity"] += item.quantity
             report_data[key]["total_revenue"] += (item.quantity * item.price_at_sale)
-            if pkg_type == "bottle":
+            if pkg_type in ["bottle", "1ltr", "5ltr", "1/2 ltr"]:
                 report_data[key]["bottle_count"] += (item.bottle_count or 0)
 
     revenue_breakdown = {
@@ -1007,10 +1041,10 @@ async def export_daily_report(request: Request, shopkeeper_id: int, start_date: 
     bottle_counts = {}
     for bill in bills:
         for item in bill.items:
-            if item.packaging_type == "bottle" and item.bottle_type:
+            if item.packaging_type in ["bottle", "1ltr", "5ltr", "1/2 ltr"] and item.bottle_type:
                 if item.bottle_type not in bottle_counts:
                     bottle_counts[item.bottle_type] = 0
-                bottle_counts[item.bottle_type] += int(item.quantity)
+                bottle_counts[item.bottle_type] += int(item.bottle_count or item.quantity)
             product_name = item.product.name if item.product else "Unknown Product"
             pkg_type = item.packaging_type or "loose"
             btl_type = item.bottle_type or "N/A"
@@ -1020,7 +1054,7 @@ async def export_daily_report(request: Request, shopkeeper_id: int, start_date: 
                 report_data[key] = {
                     "product": product_name,
                     "packaging": pkg_type,
-                    "bottle_type": btl_type if pkg_type == "bottle" else "N/A",
+                    "bottle_type": btl_type if pkg_type in ["bottle", "1ltr", "5ltr", "1/2 ltr"] else "N/A",
                     "total_quantity": 0.0,
                     "total_revenue": 0.0,
                     "bottle_count": 0
@@ -1028,7 +1062,7 @@ async def export_daily_report(request: Request, shopkeeper_id: int, start_date: 
             
             report_data[key]["total_quantity"] += item.quantity
             report_data[key]["total_revenue"] += (item.quantity * item.price_at_sale)
-            if pkg_type == "bottle":
+            if pkg_type in ["bottle", "1ltr", "5ltr", "1/2 ltr"]:
                 report_data[key]["bottle_count"] += (item.bottle_count or 0)
             total_sales += (item.quantity * item.price_at_sale)
 
