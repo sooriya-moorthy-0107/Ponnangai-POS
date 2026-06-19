@@ -583,6 +583,40 @@ function escapeHTML(str) {
             }
         }
 
+        async function viewShopAnalyticsToday(shopId) {
+            try {
+                const response = await fetch(`/api/analytics/shop/${shopId}/today`);
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('analytics-shop-name').innerText = `${data.shop_name} - Analytics`;
+                    document.getElementById('analytics-total-sales').innerText = `${data.total_sales} Bills`;
+                    document.getElementById('analytics-total-revenue').innerText = `₹${data.total_revenue.toFixed(2)}`;
+
+                    const tbody = document.getElementById('analytics-breakdown-body');
+                    tbody.innerHTML = '';
+                    if (data.breakdown.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #718096;">No sales data available today.</td></tr>';
+                    } else {
+                        data.breakdown.forEach(item => {
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td>${escapeHTML(item.product_name)}</td>
+                                    <td style="text-align: center;">${item.qty}</td>
+                                    <td style="text-align: right;">₹${item.revenue.toFixed(2)}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+
+                    document.getElementById('analytics-modal').style.display = 'flex';
+                } else {
+                    await Swal.fire(data.detail || 'Failed to fetch analytics.');
+                }
+            } catch (err) {
+                await Swal.fire('Error fetching analytics.');
+            }
+        }
+
         async function hardDeleteUser(userId, username) {
             const _swalRes1 = await Swal.fire({ text: `DANGER: Are you absolutely sure you want to PERMANENTLY delete the archived account '${username}'? This will erase all their products, bills, and history. This CANNOT be undone.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
             if (!_swalRes1.isConfirmed) return;

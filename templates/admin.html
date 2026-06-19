@@ -624,9 +624,14 @@
             </div>
             <ul style="list-style: none; padding: 0; margin-top: 16px;">
                 {% for sp in shop_performance_today %}
-                <li style="padding: 12px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between;">
+                <li style="padding: 12px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-weight: 500;">{{ sp.shopkeeper.username }}</span>
-                    <span style="color: #38A169; font-weight: 600;">₹{{ "%.2f"|format(sp.revenue) }}</span>
+                    <div style="text-align: right;">
+                        <span style="color: #38A169; font-weight: 600; display: block; margin-bottom: 4px;">₹{{ "%.2f"|format(sp.revenue) }}</span>
+                        <button class="btn btn-secondary btn-small" 
+                            onclick="viewShopAnalyticsToday('{{sp.shopkeeper.id }}'); closeModal('today-revenue-modal');" 
+                            style="font-size: 11px; padding: 2px 6px;">View Analytics</button>
+                    </div>
                 </li>
                 {% endfor %}
             </ul>
@@ -711,7 +716,7 @@
         </div>
     </div>
 
-    <script src="/static/js/admin_v2.js?v=3"></script>
+    <script src="/static/js/admin_v2.js?v=4"></script>
 </body>
 
 </html>

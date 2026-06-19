@@ -1,7 +1,7 @@
 import os
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, time, date
 from fastapi import FastAPI, Depends, HTTPException, status, Form, Request, UploadFile, File, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -890,12 +890,6 @@ from fastapi.responses import StreamingResponse
 import io
 import csv
 
-@app.get("/api/reports/daily")
-async def get_daily_report(request: Request, shopkeeper_id: int, start_date: str, end_date: str, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
-    if not user or user.role not in ["Admin", "Manager", "Owner"]:
-        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
-
 @app.post("/api/products/{product_id}/edit")
 async def edit_product_info(
     product_id: int, 
@@ -922,6 +916,12 @@ async def edit_product_info(
 
     db.commit()
     return {"status": "success", "message": "Product updated"}
+
+@app.get("/api/reports/daily")
+async def get_daily_report(request: Request, shopkeeper_id: int, start_date: str, end_date: str, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Manager", "Owner"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
 
     try:
         t_start = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -1881,6 +1881,52 @@ async def get_shop_analytics(request: Request, shop_id: int, db: Session = Depen
     return {
         "status": "success",
         "shop_name": target_shop.username,
+        "total_sales": total_sales,
+        "total_revenue": total_revenue,
+        "breakdown": breakdown
+    }
+
+@app.get("/api/analytics/shop/{shop_id}/today")
+async def get_shop_analytics_today(request: Request, shop_id: int, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Manager", "Owner"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+        
+    target_shop = db.query(User).filter(User.id == shop_id).first()
+    if not target_shop:
+        return JSONResponse(status_code=404, content={"detail": "Shop not found"})
+        
+    today_start = datetime.combine(datetime.today(), time.min)
+    today_end = datetime.combine(datetime.today(), time.max)
+        
+    bills = db.query(Bill).filter(
+        Bill.cashier_id == shop_id, 
+        Bill.is_cancelled == False,
+        Bill.timestamp >= today_start,
+        Bill.timestamp <= today_end
+    ).all()
+    total_sales = len(bills)
+    total_revenue = sum(b.final_amount for b in bills)
+    
+    items_query = db.query(
+        Product.name,
+        func.sum(BillItem.quantity).label("total_qty"),
+        func.sum(BillItem.quantity * BillItem.price_at_sale).label("total_revenue")
+    ).join(BillItem, Product.id == BillItem.product_id)\
+     .join(Bill, Bill.id == BillItem.bill_id)\
+     .filter(
+        Bill.cashier_id == shop_id, 
+        Bill.is_cancelled == False,
+        Bill.timestamp >= today_start,
+        Bill.timestamp <= today_end
+     )\
+     .group_by(Product.name).all()
+     
+    breakdown = [{"product_name": row[0], "qty": row[1], "revenue": row[2]} for row in items_query]
+    
+    return {
+        "status": "success",
+        "shop_name": target_shop.username + " (Today)",
         "total_sales": total_sales,
         "total_revenue": total_revenue,
         "breakdown": breakdown
