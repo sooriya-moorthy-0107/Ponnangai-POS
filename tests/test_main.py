@@ -1,4 +1,9 @@
 import os
+import sys
+
+# Add the parent directory to sys.path so we can import 'main'
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 from fastapi.testclient import TestClient
 from main import app
