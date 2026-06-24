@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -51,20 +51,17 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production'
     steps:
+      - name: Deployment Message
+        run: echo "Deployment triggered for POS.ponnangai.com!"
+
       - name: Deploy to AWS EC2
-        run: |
-          echo "Deployment triggered for POS.ponnangai.com!"
-          # -----------------------------------------------------------------------------------------
-          # To enable automatic deployment to your AWS instance, uncomment and configure the following:
-          # -----------------------------------------------------------------------------------------
-          # - uses: appleboy/ssh-action@master
-          #   with:
-          #     host: ${{ secrets.AWS_HOST }}      # e.g., ec2-xx-xx-xx-xx.compute-1.amazonaws.com
-          #     username: ${{ secrets.AWS_USER }}  # e.g., ubuntu or ec2-user
-          #     key: ${{ secrets.AWS_PRIVATE_KEY }}
-          #     script: |
-          #       cd /path/to/Ponnangai-POS
-          #       git pull origin main
-          #       docker-compose up -d --build
-          # -----------------------------------------------------------------------------------------
-          echo "Please add AWS_HOST, AWS_USER, and AWS_PRIVATE_KEY to your GitHub Secrets."
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_PRIVATE_KEY }}
+          script: |
+            # NOTE: Update this path to where your code lives on the server
+            cd /home/ubuntu/Ponnangai-POS
+            git pull origin main
+            docker-compose up -d --build
