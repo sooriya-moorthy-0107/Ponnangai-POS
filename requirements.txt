@@ -8,3 +8,5 @@ psycopg2-binary
 passlib
 bcrypt==3.2.2
 python-dotenv
+pytest
+httpx

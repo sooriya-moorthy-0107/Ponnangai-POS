@@ -1,17 +1,15 @@
-name: Ponnangai POS Quality Check
+name: Ponnangai POS CI/CD Pipeline
 
-# This section fixes your "No event triggers" error
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "production" ]
   pull_request:
-    branches: [ "main" ]
-  workflow_dispatch: # Allows you to run this manually from the GitHub UI
+    branches: [ "main", "production" ]
+  workflow_dispatch:
 
 jobs:
   test-and-lint:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -24,20 +22,49 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          # We include the core libraries you are using on localhost
-          pip install flake8 fastapi uvicorn 
+          pip install -r requirements.txt
+          pip install flake8 pytest httpx
 
       - name: Syntax & Error Check (Linting)
         run: |
-          # Fails the build if there are critical Python errors
-          # E9, F63, F7, and F82 are "logic breakers"
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          
-          # This part shows warnings but won't stop the build (exit-zero)
-          # It helps you keep your code clean for your M.Tech review
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: FastAPI Import Test (Dry Run)
+      - name: Run Tests
         run: |
-          # Ensures your main.py is formatted correctly and can be loaded
-          python -c "import main; print('Backend Logic: OK')"
+          pytest
+
+  build-docker:
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Build Docker Image
+        run: |
+          docker build -t ponnangai-pos:latest .
+          # Note: To push to Docker Hub, you would add `docker login` and `docker push` here.
+
+  deploy:
+    needs: build-docker
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production'
+    steps:
+      - name: Deploy to AWS EC2
+        run: |
+          echo "Deployment triggered for POS.ponnangai.com!"
+          # -----------------------------------------------------------------------------------------
+          # To enable automatic deployment to your AWS instance, uncomment and configure the following:
+          # -----------------------------------------------------------------------------------------
+          # - uses: appleboy/ssh-action@master
+          #   with:
+          #     host: ${{ secrets.AWS_HOST }}      # e.g., ec2-xx-xx-xx-xx.compute-1.amazonaws.com
+          #     username: ${{ secrets.AWS_USER }}  # e.g., ubuntu or ec2-user
+          #     key: ${{ secrets.AWS_PRIVATE_KEY }}
+          #     script: |
+          #       cd /path/to/Ponnangai-POS
+          #       git pull origin main
+          #       docker-compose up -d --build
+          # -----------------------------------------------------------------------------------------
+          echo "Please add AWS_HOST, AWS_USER, and AWS_PRIVATE_KEY to your GitHub Secrets."
