@@ -61,7 +61,7 @@ jobs:
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_PRIVATE_KEY }}
           script: |
-            # NOTE: Update this path to where your code lives on the server
             cd /home/ubuntu/Ponnangai-POS
-            git pull origin main
-            docker-compose up -d --build
+            git pull origin production
+            ./venv/bin/pip install -r requirements.txt
+            sudo systemctl restart ponnangai-pos
