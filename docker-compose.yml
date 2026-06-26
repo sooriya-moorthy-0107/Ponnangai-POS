@@ -6,6 +6,7 @@ services:
       - POSTGRES_USER=pos_user
       - POSTGRES_PASSWORD=pos_password
       - POSTGRES_DB=ponnangai_pos
+      - TZ=Asia/Kolkata
     ports:
       - "5433:5432"
     volumes:
