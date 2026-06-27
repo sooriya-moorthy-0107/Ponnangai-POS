@@ -1004,6 +1004,156 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
+// Modal state for Product Confirmation
+let pendingProductData = null;
+
+function openRecentBillsModal() {
+    const modal = document.getElementById('recent-bills-modal');
+    modal.classList.add('active');
+    loadBillHistory(); // To ensure it's up to date when opened
+}
+
+function closeRecentBillsModal() {
+    document.getElementById('recent-bills-modal').classList.remove('active');
+}
+
+function openSolidPopup(id, name, price, unit) {
+    pendingProductData = { type: 'solid', id, name, price, unit };
+    document.getElementById('popup-product-name').textContent = name;
+    
+    document.getElementById('popup-liquid-options').style.display = 'none';
+    
+    document.getElementById('popup-qty').value = 1;
+    document.getElementById('popup-qty').step = "1";
+    document.getElementById('popup-rate').value = price;
+    updatePopupTotal();
+
+    document.getElementById('product-add-modal').classList.add('active');
+}
+
+function openLiquidPopup(id, name, price, rate_qty) {
+    pendingProductData = { type: 'liquid', id, name, base_price: price, rate_qty: rate_qty };
+    document.getElementById('popup-product-name').textContent = name;
+    
+    document.getElementById('popup-liquid-options').style.display = 'flex';
+    document.getElementById('popup-qty').value = 1;
+    document.getElementById('popup-qty').step = "any";
+    
+    document.getElementById('popup-packaging').value = '1ltr';
+    popupPackagingChanged();
+
+    document.getElementById('product-add-modal').classList.add('active');
+}
+
+function popupPackagingChanged() {
+    if (!pendingProductData || pendingProductData.type !== 'liquid') return;
+    
+    const pkg = document.getElementById('popup-packaging').value;
+    const bottleSelect = document.getElementById('popup-bottle-type');
+    const bottleContainer = document.getElementById('popup-bottle-type-container');
+    
+    const base_rate = (pendingProductData.rate_qty && pendingProductData.base_price) 
+        ? (pendingProductData.base_price / pendingProductData.rate_qty) 
+        : 0;
+        
+    let newRate = 0;
+    bottleSelect.innerHTML = '';
+    bottleContainer.style.display = 'flex';
+    
+    if (pkg === '1ltr') {
+        newRate = base_rate ? base_rate * 1 : 60;
+        bottleSelect.innerHTML = `
+            <option value="Water Bottle">Water Bottle</option>
+            <option value="Pharma Bottle">Pharma Bottle</option>
+            <option value="Lotus Bottle">Lotus Bottle</option>
+        `;
+    } else if (pkg === '1/2 ltr') {
+        newRate = base_rate ? base_rate * 0.5 : 40;
+        bottleSelect.innerHTML = `
+            <option value="half Liter bottle">Half Liter Bottle</option>
+            <option value="Harpic Bottle">Harpic Bottle</option>
+            <option value="Floorwash Bottle">Floorwash Bottle</option>
+            <option value="Glass Cleaner Bottle">Glass Cleaner Bottle</option>
+        `;
+    } else if (pkg === '5ltr') {
+        newRate = base_rate ? base_rate * 5 : 250;
+        bottleSelect.innerHTML = `<option value="5Ltr Can">5Ltr Can</option>`;
+    } else if (pkg === 'loose') {
+        newRate = base_rate ? base_rate * 1 : 50;
+        bottleContainer.style.display = 'none';
+    }
+    
+    document.getElementById('popup-rate').value = newRate;
+    updatePopupTotal();
+}
+
+function updatePopupTotal() {
+    const qty = parseFloat(document.getElementById('popup-qty').value) || 0;
+    const rate = parseFloat(document.getElementById('popup-rate').value) || 0;
+    document.getElementById('popup-total').textContent = `₹${(qty * rate).toFixed(2)}`;
+}
+
+function closeProductPopup() {
+    document.getElementById('product-add-modal').classList.remove('active');
+    pendingProductData = null;
+}
+
+function confirmAddToCart() {
+    if (!pendingProductData) return;
+    
+    const qty = parseFloat(document.getElementById('popup-qty').value) || 1;
+    const rate = parseFloat(document.getElementById('popup-rate').value) || 0;
+    
+    if (pendingProductData.type === 'solid') {
+        const existing = cart.find(i => i.id === pendingProductData.id);
+        if (existing) {
+            existing.qty += qty;
+            existing.price = rate;
+        } else {
+            cart.push({ 
+                uid: Date.now().toString() + Math.random().toString().slice(2, 6), 
+                id: pendingProductData.id, 
+                name: pendingProductData.name, 
+                price: rate, 
+                qty: qty, 
+                unit: pendingProductData.unit, 
+                type: 'solid' 
+            });
+        }
+    } else if (pendingProductData.type === 'liquid') {
+        const pkg = document.getElementById('popup-packaging').value;
+        const bottle = document.getElementById('popup-bottle-type').value;
+        const bottle_count = pkg === 'loose' ? 0 : Math.floor(qty);
+        const base_rate = (pendingProductData.rate_qty && pendingProductData.base_price) ? (pendingProductData.base_price / pendingProductData.rate_qty) : 0;
+        
+        const existing = cart.find(i => i.id === pendingProductData.id && i.packaging_type === pkg);
+        if (existing) {
+            existing.qty += qty;
+            existing.price = rate; 
+            existing.bottle_count += bottle_count;
+            if (pkg !== 'loose' && bottle) existing.bottle_type = bottle;
+        } else {
+            cart.push({ 
+                uid: Date.now().toString() + Math.random().toString().slice(2, 6), 
+                id: pendingProductData.id, 
+                name: pendingProductData.name, 
+                price: rate, 
+                qty: qty, 
+                unit: 'Ltrs', 
+                type: 'liquid', 
+                packaging_type: pkg, 
+                bottle_type: bottle || '', 
+                bottle_count: bottle_count, 
+                base_rate: base_rate 
+            });
+        }
+    }
+    
+    renderCart();
+    closeProductPopup();
+}
+
+
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         const activeModals = document.querySelectorAll('.modal-overlay');

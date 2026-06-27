@@ -37,10 +37,7 @@
             <!-- Mobile Close Button -->
             <button class="mobile-close-btn" onclick="toggleMobileMenu()" style="display: none;">✕</button>
 
-            {% if user.role not in ['Admin', 'Owner', 'Manager'] %}
-            <span class="header-user-area" style="font-size: 14px; font-weight: 600;">‍ Cashier: {{ user.username
-                }}</span>
-            {% endif %}
+            
 
             <button id="printer-status-btn" class="btn btn-secondary btn-small header-printer-btn"
                 style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; width: auto;"
@@ -48,14 +45,14 @@
                 <span id="header-printer-status">Disconnected</span>
             </button>
 
-            {% if user.role in ['Admin', 'Owner', 'Manager'] %}
+            
             <a href="/admin" class="btn btn-secondary btn-small header-dashboard-btn"
                 style="text-decoration: none;">Dashboard</a>
             <button class="btn btn-secondary btn-small header-dashboard-btn"
                 onclick="document.getElementById('shop-selector-modal').classList.add('active')">Shop-POS</button>
             <a href="/factory" class="btn btn-secondary btn-small header-dashboard-btn"
                 style="text-decoration: none;">Factory-POS</a>
-            {% endif %}
+            
 
             <a href="/logout" class="btn btn-destructive btn-small header-logout-btn"
                 style="text-decoration: none;">Logout</a>
@@ -87,44 +84,36 @@
 
                     <!-- Product Grid -->
                     <div class="product-grid">
-                        {% for p in liquid_products %}
-                        <div class="product-card" onclick="openLiquidPopup({{ p.id }}, '{{ p.name }}', {{ p.price }}, {{ p.rate_qty or 0 }})"
+                        
+                        <div class="product-card" onclick="openLiquidPopup(1, 'liq', 10.5, 1)"
                             style="cursor: pointer;">
-                            {% if p.image_filename %}
-                            <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
-                            {% else %}
+                            
                             <div class="product-image"
                                 style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
                                 No Image</div>
-                            {% endif %}
-                            <div class="product-name">{{ p.name }}</div>
+                            
+                            <div class="product-name">liq</div>
 
                             <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
                         </div>
-                        {% endfor %}
+                        
 
-                        {% for p in solid_products %}
+                        
                         <div class="product-card"
-                            onclick="openSolidPopup({{ p.id }}, '{{ p.name }}', {{ p.price }}, '{{ p.unit }}')"
+                            onclick="openSolidPopup(2, 'sol', 20, 'pcs')"
                             style="cursor: pointer;">
-                            {% if p.image_filename %}
-                            <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
-                            {% else %}
+                            
                             <div class="product-image"
                                 style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
                                 No Image</div>
-                            {% endif %}
-                            <div class="product-name">{{ p.name }}</div>
+                            
+                            <div class="product-name">sol</div>
 
                             <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
                         </div>
-                        {% endfor %}
+                        
 
-                        {% if not liquid_products and not solid_products %}
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
-                            No products found. Please ask the Manager to add some inventory.
-                        </div>
-                        {% endif %}
+                        
                     </div>
 
                     <!-- Cart Section -->
@@ -306,7 +295,7 @@
         <div id="receipt-container" class="no-print" style="display: none;"></div>
 
         <script>
-            const ACTIVE_CASHIER_ID = '{{ target_cashier_id }}';
+            const ACTIVE_CASHIER_ID = '';
         </script>
         <!-- Shop Selector Modal -->
         <div id="shop-selector-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
@@ -320,18 +309,7 @@
                 </div>
                 <div
                     style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto;">
-                    {% for sk in shopkeepers %}
-                    {% if sk.role == 'Shopkeeper' %}
-                    <button onclick="window.location.href='/shop?shopkeeper_id={{ sk.id }}';"
-                        style="padding: 16px 8px; border-radius: 10px; border: 2px solid #E2E8F0; background: white; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);"
-                        onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-2px)';"
-                        onmouseout="this.style.borderColor='#E2E8F0'; this.style.transform='translateY(0)';">
-                        <span style="font-size: 28px; margin-bottom: 8px;">🏪</span>
-                        <span style="font-size: 13px; font-weight: 700; color: #2D3748; word-break: break-word;">{{
-                            sk.username }}</span>
-                    </button>
-                    {% endif %}
-                    {% endfor %}
+                    
                 </div>
                 <button class="btn" style="width: 100%;"
                     onclick="document.getElementById('shop-selector-modal').classList.remove('active')">Close</button>
@@ -363,45 +341,14 @@
                     <h3 style="color: #2B6CB0;">Confirm Item</h3>
                     <button class="close-btn-red" onclick="closeProductPopup()">×</button>
                 </div>
-                <div class="modal-body" style="padding: 20px;">
-                    <h4 id="popup-product-name" style="font-size: 20px; margin-bottom: 16px; color: #2D3748; text-align: center;">Product Name</h4>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-                        <!-- Liquid specific options -->
-                        <div id="popup-liquid-options" style="display: none; flex-direction: column; gap: 12px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <label style="font-weight: 600; color: #4A5568;">Packaging:</label>
-                                <select id="popup-packaging" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; width: 60%; font-weight: 600; font-size: 14px;" onchange="popupPackagingChanged()">
-                                    <option value="1/2 ltr">1/2 Ltr</option>
-                                    <option value="1ltr" selected>1 Ltr</option>
-                                    <option value="5ltr">5 Ltr Can</option>
-                                    <option value="loose">Loose</option>
-                                </select>
-                            </div>
-                            <div id="popup-bottle-type-container" style="display: flex; justify-content: space-between; align-items: center;">
-                                <label style="font-weight: 600; color: #4A5568;">Bottle Type:</label>
-                                <select id="popup-bottle-type" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; width: 60%; font-weight: 600; font-size: 14px;">
-                                    <!-- Options populated dynamically -->
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Common inputs -->
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <label style="font-weight: 600; color: #4A5568;">Quantity:</label>
-                            <input type="number" id="popup-qty" step="any" min="0.01" value="1" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; width: 60%; text-align: right; font-weight: 600; font-size: 16px;" oninput="updatePopupTotal()">
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <label style="font-weight: 600; color: #4A5568;">Rate (₹):</label>
-                            <input type="number" id="popup-rate" step="any" min="0" value="0" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; width: 60%; text-align: right; font-weight: 600; font-size: 16px;" oninput="updatePopupTotal()">
-                        </div>
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 12px; border-top: 1px dashed #E2E8F0;">
-                            <label style="font-weight: bold; color: #2D3748; font-size: 16px;">Total:</label>
-                            <span id="popup-total" style="font-weight: bold; color: var(--primary); font-size: 18px;">₹0.00</span>
-                        </div>
+                <div class="modal-body" style="text-align: center; padding: 20px;">
+                    <h4 id="popup-product-name" style="font-size: 20px; margin-bottom: 8px; color: #2D3748;">Product Name</h4>
+                    <div style="color: #4A5568; margin-bottom: 16px;">
+                        Price: <span id="popup-product-price" style="font-weight: bold; color: #38A169;">₹0.00</span>
                     </div>
+                    <p style="font-size: 14px; color: #718096; margin-bottom: 20px;">
+                        This item will be added to the current bill.
+                    </p>
                     
                     <button id="popup-add-btn" class="btn" style="width: 100%; font-size: 16px; padding: 12px; background-color: #3182CE;" onclick="confirmAddToCart()">
                         Add to Cart
@@ -410,7 +357,7 @@
             </div>
         </div>
 
-        <script src="/static/js/factory_pos.js?v=15"></script>
+        <script src="/static/js/factory_pos.js?v=13"></script>
 </body>
 
 </html>
