@@ -232,9 +232,11 @@ function updateQty(uid, newQty) {
         if (val % 1 !== 0 && item.packaging_type !== 'loose') {
             item.packaging_type = 'loose';
             item.bottle_count = 0;
+            item.unit = 'Ltrs';
             item.price = item.base_rate ? item.base_rate * 1 : 50;
         } else if (item.packaging_type === '1ltr' || item.packaging_type === '5ltr' || item.packaging_type === '1/2 ltr') {
             item.bottle_count = Math.floor(val);
+            item.unit = 'Btls';
         }
     }
 
@@ -253,22 +255,26 @@ function updatePackaging(uid, newPkg) {
     if (newPkg === '1ltr') {
         item.bottle_count = Math.floor(item.qty);
         item.price = base_rate ? base_rate * 1 : 60;
+        item.unit = 'Btls';
         if (!item.bottle_type || item.bottle_type === '5Ltr Can' || ['Harpic Bottle', 'Floorwash Bottle', 'Glass Cleaner Bottle', 'half Liter bottle'].includes(item.bottle_type)) {
              item.bottle_type = 'Water Bottle';
         }
     } else if (newPkg === '1/2 ltr') {
         item.bottle_count = Math.floor(item.qty);
         item.price = base_rate ? base_rate * 0.5 : 40;
+        item.unit = 'Btls';
         if (!item.bottle_type || !['Harpic Bottle', 'Floorwash Bottle', 'Glass Cleaner Bottle', 'half Liter bottle'].includes(item.bottle_type)) {
             item.bottle_type = 'half Liter bottle';
         }
     } else if (newPkg === '5ltr') {
         item.bottle_count = Math.floor(item.qty);
         item.price = base_rate ? base_rate * 5 : 250;
+        item.unit = 'Btls';
         item.bottle_type = '5Ltr Can';
     } else if (newPkg === 'loose') {
         item.bottle_count = 0;
         item.price = base_rate ? base_rate * 1 : 50;
+        item.unit = 'Ltrs';
     }
     
     calculateTotal();
@@ -363,7 +369,7 @@ function calculateTotal() {
     subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
     discount = parseFloat(document.getElementById('discount-input').value) || 0;
     const rawFinal = Math.max(0, subtotal - discount);
-    finalTotal = Math.floor(rawFinal);
+    finalTotal = Math.round(rawFinal);
     const roundOff = finalTotal - rawFinal;
 
     document.getElementById('cart-subtotal').innerText = `₹${subtotal.toFixed(2)}`;
@@ -386,7 +392,14 @@ async function submitBill() {
     const paymentMode = document.getElementById('payment-mode').value;
     const payload = {
         shopkeeper_id: ACTIVE_CASHIER_ID,
-        items: cart.map(i => ({ id: i.id, qty: i.qty, price: i.price, packaging_type: i.packaging_type, bottle_type: i.bottle_type, bottle_count: i.bottle_count || 0 })),
+        items: cart.map(i => ({ 
+            id: i.id, 
+            qty: i.qty, 
+            price: i.price, 
+            packaging_type: i.type === 'solid' ? 'other' : (i.packaging_type || 'loose'), 
+            bottle_type: i.bottle_type || '', 
+            bottle_count: i.bottle_count || 0 
+        })),
         discount: discount,
         payment_mode: paymentMode
     };
@@ -428,6 +441,7 @@ async function loadBillHistory() {
             data.bills.forEach(bill => {
                 const card = document.createElement('div');
                 card.className = 'history-card';
+                // No longer making the whole card clickable, since it contains the table and buttons directly
                 if (bill.is_cancelled) {
                     card.style.opacity = '0.65';
                     card.style.borderLeft = '4px solid #E53E3E';
@@ -441,36 +455,73 @@ async function loadBillHistory() {
                 const priceStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #A0AEC0;' : '';
                 const titleStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #718096;' : '';
 
+                let itemsHtml = '';
+                if (bill.items && bill.items.length > 0) {
+                    itemsHtml = `
+                        <div style="margin-top: 8px; border: 1px solid #E2E8F0; border-radius: 4px; overflow: hidden;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                <thead style="background-color: #EDF2F7; color: #4A5568;">
+                                    <tr>
+                                        <th style="padding: 4px 6px; text-align: left; border-bottom: 1px solid #E2E8F0;">Items</th>
+                                        <th style="padding: 4px 6px; text-align: center; border-bottom: 1px solid #E2E8F0;">Qty</th>
+                                        <th style="padding: 4px 6px; text-align: right; border-bottom: 1px solid #E2E8F0;">Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    bill.items.forEach(item => {
+                        let itemName = escapeHTML(item.name);
+                        if (item.packaging_type && item.packaging_type !== 'loose') {
+                            itemName += ` (${item.packaging_type})`;
+                        } else if (item.packaging_type === 'loose') {
+                            itemName += ` (loose)`;
+                        }
+                        itemsHtml += `
+                                    <tr>
+                                        <td style="padding: 4px 6px; border-bottom: 1px solid #E2E8F0;">${itemName}</td>
+                                        <td style="padding: 4px 6px; text-align: center; border-bottom: 1px solid #E2E8F0;">${item.quantity}</td>
+                                        <td style="padding: 4px 6px; text-align: right; border-bottom: 1px solid #E2E8F0;">${item.price.toFixed(2)}</td>
+                                    </tr>
+                        `;
+                    });
+                    itemsHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
                 const actionButtonsHtml = bill.is_cancelled ? `
                             <button class="btn btn-small" style="background-color: #718096; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="loadBillForReceipt(${bill.id})">
                                  Print Void Receipt
                             </button>
                         ` : `
-                            <button class="btn btn-small" style="background-color: var(--primary); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="loadBillForReceipt(${bill.id})">
-                                 Print Receipt
-                            </button>
                             <div style="display: flex; gap: 6px; width: 100%;">
-                                <button class="btn btn-secondary btn-small" style="flex: 1;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
+                                <button class="btn btn-secondary btn-small" style="flex: 1; padding: 6px;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
                                     ↩ Edit
                                 </button>
-                                <button class="btn btn-destructive btn-small" style="flex: 1;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
+                                <button class="btn btn-destructive btn-small" style="flex: 1; padding: 6px;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
                                      Cancel
+                                </button>
+                                <button class="btn btn-small" style="background-color: var(--primary); color: white; flex: 1; padding: 6px; display: flex; align-items: center; justify-content: center;" onclick="loadBillForReceipt(${bill.id})">
+                                     Preview
                                 </button>
                             </div>
                         `;
 
                 card.innerHTML = `
                             <div class="history-card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; flex-wrap: wrap;">
-                                <span style="${titleStyle}">Bill #${bill.bill_number || bill.id}</span>
+                                <span style="${titleStyle}; font-size: 14px; font-weight: bold; color: #2D3748;">Bill #${bill.bill_number || bill.id}</span>
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     ${badgeHtml}
-                                    <span style="${priceStyle}">₹${bill.final_amount.toFixed(2)}</span>
+                                    <span style="${priceStyle}; font-weight: bold; color: #38A169;">₹${bill.final_amount.toFixed(2)}</span>
                                 </div>
                             </div>
-                            <div class="history-card-details">
+                            <div class="history-card-details" style="margin-bottom: 6px;">
                                 ${bill.timestamp} | ${bill.payment_mode}
                             </div>
-                            <div style="display: flex; gap: 6px; flex-direction: column;">
+                            ${itemsHtml}
+                            <div style="display: flex; gap: 6px; flex-direction: column; margin-top: 10px;">
                                 ${actionButtonsHtml}
                             </div>
                         `;
@@ -508,6 +559,8 @@ async function revertBillFromHistory(billId, displayNo) {
             }
             renderCart();
             loadBillHistory();
+            closeReceiptModal();
+            closeRecentBillsModal();
         } else {
             await Swal.fire(data.detail || "Failed to revert bill");
         }
@@ -527,8 +580,9 @@ async function cancelBillFromHistory(billId, displayNo) {
         const data = await response.json();
 
         if (response.ok) {
-            await Swal.fire(`Bill ${label} has been cancelled and stock restored.`);
             loadBillHistory();
+            closeReceiptModal();
+            closeRecentBillsModal();
         } else {
             await Swal.fire(data.detail || "Failed to cancel bill");
         }
@@ -537,13 +591,39 @@ async function cancelBillFromHistory(billId, displayNo) {
         console.error(err);
     }
 }
+
 async function loadBillForReceipt(billId) {
     try {
         const res = await fetch(`/api/bills/${billId}`);
         const data = await res.json();
-        if (res.ok && data.bill) {
+        
+        if (res.ok) {
             activeBillData = data.bill;
             renderReceiptHTML(data.bill);
+            
+            const actionsContainer = document.getElementById('receipt-modal-actions');
+            if (actionsContainer) {
+                let actionsHtml = '';
+                if (data.bill.is_cancelled) {
+                    actionsHtml = `
+                        <button class="btn" style="background-color: #718096; color: white; width: 100%; padding: 10px;" onclick="printActiveBillBrowser()"> Print Void Receipt (Browser)</button>
+                    `;
+                } else {
+                    actionsHtml = `
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button class="btn" style="flex: 1; background-color: #2B6CB0; color: white; padding: 10px; font-size: 14px;" onclick="printActiveBillBluetooth()"> Print (BT)</button>
+                            <button class="btn btn-secondary" style="flex: 1; background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748; padding: 10px; font-size: 14px;" onclick="printActiveBillBrowser()"> Print (Web)</button>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 14px;" onclick="revertBillFromHistory(${data.bill.id}, ${data.bill.bill_number || data.bill.id})"> ↩ Edit</button>
+                            <button class="btn btn-destructive" style="flex: 1; padding: 10px; font-size: 14px; background: #E53E3E; color: white; border: none;" onclick="cancelBillFromHistory(${data.bill.id}, ${data.bill.bill_number || data.bill.id})"> Cancel</button>
+                        </div>
+                    `;
+                }
+                actionsContainer.innerHTML = actionsHtml;
+            }
+            
+            closeRecentBillsModal();
             document.getElementById('receipt-preview-modal').classList.add('active');
         }
     } catch (e) {
@@ -556,8 +636,10 @@ function renderReceiptHTML(bill) {
     let itemsHtml = '';
     bill.items.forEach(item => {
         let pkgInfo = '';
-        if (item.packaging_type && item.packaging_type !== 'loose') {
+        if (item.packaging_type && item.packaging_type !== 'loose' && item.packaging_type !== 'other') {
             pkgInfo = `(${item.packaging_type}${item.bottle_type ? ' - ' + item.bottle_type : ''})`;
+        } else if (item.packaging_type === 'other') {
+            pkgInfo = `(other)`;
         } else {
             pkgInfo = `(loose)`;
         }
@@ -992,40 +1074,185 @@ document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         const activeModals = document.querySelectorAll('.modal-overlay');
         activeModals.forEach(m => {
-            // Some modals use 'display: flex', others use '.active' class
-            if (m.style.display === 'flex' || m.classList.contains('active')) {
+            if (m.classList.contains('active')) {
                 if (m.id === 'printer-settings-modal' && typeof closePrinterModal === 'function') closePrinterModal();
                 else if (m.id === 'receipt-preview-modal' && typeof closeReceiptModal === 'function') closeReceiptModal();
-                else if (m.id === 'shop-selector-modal') m.classList.remove('active');
-                else m.style.display = 'none';
-                m.classList.remove('active');
+                else if (m.id === 'product-add-modal' && typeof closeProductPopup === 'function') closeProductPopup();
+                else if (m.id === 'recent-bills-modal' && typeof closeRecentBillsModal === 'function') closeRecentBillsModal();
+                else m.classList.remove('active');
             }
         });
     }
 });
 
-document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-        const activeModals = document.querySelectorAll('.modal-overlay');
-        activeModals.forEach(m => {
-            if (m.style.display === 'flex' || m.classList.contains('active')) {
-                if (m.id === 'printer-settings-modal' && typeof closePrinterModal === 'function') closePrinterModal();
-                else if (m.id === 'receipt-preview-modal' && typeof closeReceiptModal === 'function') closeReceiptModal();
-                else if (m.id === 'shop-selector-modal') m.classList.remove('active');
-                else m.style.display = 'none';
-                m.classList.remove('active');
-            }
-        });
+// Modal state for Product Confirmation
+let pendingProductData = null;
+
+function openRecentBillsModal() {
+    const modal = document.getElementById('recent-bills-modal');
+    modal.classList.add('active');
+    loadBillHistory(); // To ensure it's up to date when opened
+}
+
+function closeRecentBillsModal() {
+    document.getElementById('recent-bills-modal').classList.remove('active');
+}
+
+function openSolidPopup(id, name, price, unit) {
+    pendingProductData = { type: 'solid', id, name, price, unit };
+    document.getElementById('popup-product-name').textContent = name;
+    
+    document.getElementById('popup-liquid-options').style.display = 'none';
+    
+    document.getElementById('popup-qty').value = 1;
+    document.getElementById('popup-qty').step = "1";
+    document.getElementById('popup-rate').value = price;
+    updatePopupTotal();
+
+    document.getElementById('product-add-modal').classList.add('active');
+}
+
+function openLiquidPopup(id, name, price, rate_qty) {
+    pendingProductData = { type: 'liquid', id, name, base_price: price, rate_qty: rate_qty };
+    document.getElementById('popup-product-name').textContent = name;
+    
+    document.getElementById('popup-liquid-options').style.display = 'flex';
+    document.getElementById('popup-qty').value = 1;
+    document.getElementById('popup-qty').step = "any";
+    
+    document.getElementById('popup-packaging').value = '1ltr';
+    popupPackagingChanged();
+
+    document.getElementById('product-add-modal').classList.add('active');
+}
+
+function popupPackagingChanged() {
+    if (!pendingProductData || pendingProductData.type !== 'liquid') return;
+    
+    const pkg = document.getElementById('popup-packaging').value;
+    const bottleSelect = document.getElementById('popup-bottle-type');
+    const bottleContainer = document.getElementById('popup-bottle-type-container');
+    
+    const base_rate = (pendingProductData.rate_qty && pendingProductData.base_price) 
+        ? (pendingProductData.base_price / pendingProductData.rate_qty) 
+        : 0;
+        
+    let newRate = 0;
+    bottleSelect.innerHTML = '';
+    bottleContainer.style.display = 'flex';
+    
+    const qtyInput = document.getElementById('popup-qty');
+
+    if (pkg === '1ltr') {
+        newRate = base_rate ? base_rate * 1 : 60;
+        qtyInput.step = "1";
+        qtyInput.value = Math.floor(qtyInput.value || 1);
+        bottleSelect.innerHTML = `
+            <option value="Water Bottle">Water Bottle</option>
+            <option value="Pharma Bottle">Pharma Bottle</option>
+            <option value="Lotus Bottle">Lotus Bottle</option>
+        `;
+    } else if (pkg === '1/2 ltr') {
+        newRate = base_rate ? base_rate * 0.5 : 40;
+        qtyInput.step = "1";
+        qtyInput.value = Math.floor(qtyInput.value || 1);
+        bottleSelect.innerHTML = `
+            <option value="half Liter bottle">Half Liter Bottle</option>
+            <option value="Harpic Bottle">Harpic Bottle</option>
+            <option value="Floorwash Bottle">Floorwash Bottle</option>
+            <option value="Glass Cleaner Bottle">Glass Cleaner Bottle</option>
+        `;
+    } else if (pkg === '5ltr') {
+        newRate = base_rate ? base_rate * 5 : 250;
+        qtyInput.step = "1";
+        qtyInput.value = Math.floor(qtyInput.value || 1);
+        bottleSelect.innerHTML = `<option value="5Ltr Can">5Ltr Can</option>`;
+    } else if (pkg === 'loose') {
+        newRate = base_rate ? base_rate * 1 : 50;
+        qtyInput.step = "any";
+        bottleContainer.style.display = 'none';
     }
-});
+    
+    document.getElementById('popup-rate').value = newRate;
+    updatePopupTotal();
+}
+
+function updatePopupTotal() {
+    const qty = parseFloat(document.getElementById('popup-qty').value) || 0;
+    const rate = parseFloat(document.getElementById('popup-rate').value) || 0;
+    document.getElementById('popup-total').textContent = `₹${(qty * rate).toFixed(2)}`;
+}
+
+function closeProductPopup() {
+    document.getElementById('product-add-modal').classList.remove('active');
+    pendingProductData = null;
+}
+
+function confirmAddToCart() {
+    if (!pendingProductData) return;
+    
+    const qty = parseFloat(document.getElementById('popup-qty').value) || 1;
+    const rate = parseFloat(document.getElementById('popup-rate').value) || 0;
+    
+    if (pendingProductData.type === 'solid') {
+        const existing = cart.find(i => i.id === pendingProductData.id);
+        if (existing) {
+            existing.qty += qty;
+            existing.price = rate;
+        } else {
+            cart.push({ 
+                uid: Date.now().toString() + Math.random().toString().slice(2, 6), 
+                id: pendingProductData.id, 
+                name: pendingProductData.name, 
+                price: rate, 
+                qty: qty, 
+                unit: pendingProductData.unit, 
+                type: 'solid' 
+            });
+        }
+    } else if (pendingProductData.type === 'liquid') {
+        const pkg = document.getElementById('popup-packaging').value;
+        const bottle = document.getElementById('popup-bottle-type').value;
+        const bottle_count = pkg === 'loose' ? 0 : Math.floor(qty);
+        const base_rate = (pendingProductData.rate_qty && pendingProductData.base_price) ? (pendingProductData.base_price / pendingProductData.rate_qty) : 0;
+        
+        const existing = cart.find(i => i.id === pendingProductData.id && i.packaging_type === pkg);
+        if (existing) {
+            existing.qty += qty;
+            existing.price = rate; 
+            existing.bottle_count += bottle_count;
+            if (pkg !== 'loose' && bottle) existing.bottle_type = bottle;
+        } else {
+            cart.push({ 
+                uid: Date.now().toString() + Math.random().toString().slice(2, 6), 
+                id: pendingProductData.id, 
+                name: pendingProductData.name, 
+                price: rate, 
+                qty: qty, 
+                unit: pkg === 'loose' ? 'Ltrs' : 'Btls', 
+                type: 'liquid', 
+                packaging_type: pkg, 
+                bottle_type: bottle || '', 
+                bottle_count: bottle_count, 
+                base_rate: base_rate 
+            });
+        }
+    }
+    
+    renderCart();
+    closeProductPopup();
+}
+
+
+
 
 document.addEventListener('click', function (e) {
     if (e.target.classList.contains('modal-overlay')) {
         const m = e.target;
         if (m.id === 'printer-settings-modal' && typeof closePrinterModal === 'function') closePrinterModal();
         else if (m.id === 'receipt-preview-modal' && typeof closeReceiptModal === 'function') closeReceiptModal();
-        else if (m.id === 'shop-selector-modal') m.classList.remove('active');
-        else m.style.display = 'none';
-        m.classList.remove('active');
+        else if (m.id === 'product-add-modal' && typeof closeProductPopup === 'function') closeProductPopup();
+        else if (m.id === 'recent-bills-modal' && typeof closeRecentBillsModal === 'function') closeRecentBillsModal();
+        else m.classList.remove('active');
     }
 });
