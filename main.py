@@ -628,6 +628,18 @@ async def get_bill_history(request: Request, shopkeeper_id: int = None, db: Sess
             Bill.cashier_id == b.cashier_id,
             Bill.id <= b.id
         ).count()
+        items = []
+        for item in b.items:
+            items.append({
+                "product_id": item.product_id,
+                "name": item.product.name if item.product else "Deleted Item",
+                "quantity": item.quantity,
+                "price": item.price_at_sale,
+                "total": item.price_at_sale * item.quantity,
+                "packaging_type": item.packaging_type,
+                "bottle_type": item.bottle_type
+            })
+            
         result.append({
             "id": b.id,
             "bill_number": bill_number,
@@ -637,7 +649,8 @@ async def get_bill_history(request: Request, shopkeeper_id: int = None, db: Sess
             "payment_mode": b.payment_mode,
             "timestamp": b.timestamp.strftime('%Y-%m-%d %H:%M'),
             "cashier_name": b.cashier_name,
-            "is_cancelled": b.is_cancelled
+            "is_cancelled": b.is_cancelled,
+            "items": items
         })
         
     return {"status": "success", "bills": result}
@@ -753,7 +766,7 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
         
     discount = float(data.get("discount", 0.0))
     raw_final = max(0.0, total_amount - discount)
-    final_amount = float(int(raw_final))
+    final_amount = float(round(raw_final))
     round_off = final_amount - raw_final
     
     cashier_name = sk_user.username

@@ -288,12 +288,7 @@
                         <div class="receipt-preview-card" id="receipt-container-preview"
                             style="box-shadow: none; border: none; margin-bottom: 0;"></div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
-                        <button id="modal-bt-print-btn" class="btn" style="background-color: #2B6CB0; color: white;"
-                            onclick="printActiveBillBluetooth()"> Print via Bluetooth</button>
-                        <button class="btn btn-secondary"
-                            style="background-color: #EDF2F7; border: 1px solid #CBD5E0; color: #2D3748;"
-                            onclick="printActiveBillBrowser()"> Print via Browser Dialog</button>
+                    <div id="receipt-modal-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
                     </div>
                 </div>
                 <div class="modal-footer" style="background-color: #E6FFFA;">
@@ -360,7 +355,7 @@
         <div id="product-add-modal" class="modal-overlay" style="align-items: center; justify-content: center; z-index: 1002;">
             <div class="modal-container" style="max-width: 400px; width: 90%;">
                 <div class="modal-header" style="background-color: #EBF8FF;">
-                    <h3 style="color: #2B6CB0;">Confirm Item</h3>
+                    <h3 style="color: #2B6CB0;">Add to cart</h3>
                     <button class="close-btn-red" onclick="closeProductPopup()">×</button>
                 </div>
                 <div class="modal-body" style="padding: 20px;">
@@ -410,7 +405,7 @@
             </div>
         </div>
 
-        <script src="/static/js/factory_pos.js?v=15"></script>
+        <script src="/static/js/factory_pos.js?v=21"></script>
 </body>
 
 </html>
