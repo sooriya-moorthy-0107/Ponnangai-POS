@@ -191,6 +191,6 @@ __marimo__/
 
 # POS local data and media uploads
 data/
-photos/
+# photos/ (un-ignored so images can sync via git)
 pgdata/
 .playwright-mcp/
