@@ -1946,8 +1946,11 @@ async def get_shop_analytics_today(request: Request, shop_id: int, db: Session =
     }
 
 @app.post("/api/products/{product_id}/image")
-async def upload_product_image(request: Request, product_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_product_image(request: Request, product_id: int, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
+    
+    form_data = await request.form()
+    file = form_data.get("file")
     if not user or user.role not in ["Admin", "Manager", "Owner"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
         
@@ -1974,10 +1977,15 @@ async def upload_product_image(request: Request, product_id: int, file: UploadFi
         f.write(content)
         
     # Update DB
+    # Update DB
     product.image_filename = new_filename
     db.commit()
     
-    return {"status": "success", "detail": "Photo updated successfully!", "image_filename": new_filename}
+    debug_msg = f"File present: {file is not None}"
+    if file:
+        debug_msg += f", filename: {getattr(file, 'filename', None)}"
+        
+    return {"status": "success", "detail": f"Photo updated successfully! Debug: {debug_msg}", "image_filename": new_filename}
 
 @app.post("/api/products/{product_id}/edit")
 async def edit_product_info(request: Request, product_id: int, name: str = Form(...), price: float = Form(None), rate_qty: float = Form(None), stock: int = Form(None), shopkeeper_id: int = Form(None), db: Session = Depends(get_db)):
