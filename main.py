@@ -2046,17 +2046,50 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
 async def debug_photos(db: Session = Depends(get_db)):
     try:
         import os
-        files = os.listdir("photos")
+        files = os.listdir("photos") if os.path.exists("photos") else []
     except Exception as e:
         files = str(e)
-        
-    products = db.query(Product.id, Product.name, Product.image_filename).all()
-    product_list = [{"id": p.id, "name": p.name, "image": p.image_filename} for p in products]
+    
+    db_products = db.query(Product.id, Product.name, Product.image_filename).all()
     
     return {
         "photos_directory_contents": files,
-        "database_products": product_list
+        "database_products": [{"id": p.id, "name": p.name, "image": p.image_filename} for p in db_products]
     }
+
+@app.get("/api/system/fix_photos")
+async def fix_all_photos(db: Session = Depends(get_db)):
+    import os
+    import re
+    
+    results = {"fixed_links": 0, "cleared_links": 0, "logs": []}
+    
+    try:
+        files_on_disk = os.listdir("photos") if os.path.exists("photos") else []
+    except Exception as e:
+        return {"error": str(e)}
+        
+    # Step 1: Re-link any existing product_ID images
+    for file in files_on_disk:
+        match = re.match(r'^product_(\d+)(?:_.*)?\.(?:png|jpg|jpeg|gif)$', file, re.IGNORECASE)
+        if match:
+            product_id = int(match.group(1))
+            product = db.query(Product).filter(Product.id == product_id).first()
+            if product and product.image_filename != file:
+                product.image_filename = file
+                results["fixed_links"] += 1
+                results["logs"].append(f"Linked Product {product_id} to file {file}")
+                
+    # Step 2: Clear missing images
+    all_products = db.query(Product).all()
+    for product in all_products:
+        if product.image_filename and product.image_filename not in files_on_disk:
+            results["logs"].append(f"Cleared missing image {product.image_filename} from Product {product.id}")
+            product.image_filename = None
+            results["cleared_links"] += 1
+            
+    db.commit()
+    return {"status": "success", "results": results}
 
 if __name__ == "__main__":
     import uvicorn
