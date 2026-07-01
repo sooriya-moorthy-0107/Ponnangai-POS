@@ -1980,7 +1980,7 @@ async def upload_product_image(request: Request, product_id: int, file: UploadFi
     return {"status": "success", "detail": "Photo updated successfully!", "image_filename": new_filename}
 
 @app.post("/api/products/{product_id}/edit")
-async def edit_product_info(request: Request, product_id: int, name: str = Form(...), stock: int = Form(None), shopkeeper_id: int = Form(None), file: UploadFile | None = File(None), db: Session = Depends(get_db)):
+async def edit_product_info(request: Request, product_id: int, name: str = Form(...), price: float = Form(None), rate_qty: float = Form(None), stock: int = Form(None), shopkeeper_id: int = Form(None), file: UploadFile = File(None), db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user or user.role not in ["Admin", "Manager", "Owner"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
@@ -1990,6 +1990,10 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
         return JSONResponse(status_code=404, content={"detail": "Product not found"})
         
     product.name = name.strip()
+    if price is not None:
+        product.price = price
+    if rate_qty is not None:
+        product.rate_qty = rate_qty
     
     if stock is not None and shopkeeper_id is not None:
         shop_inv = db.query(ShopInventory).filter(

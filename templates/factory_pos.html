@@ -88,7 +88,7 @@
                     <!-- Product Grid -->
                     <div class="product-grid">
                         {% for p in liquid_products %}
-                        <div class="product-card" onclick="openLiquidPopup({{ p.id }}, '{{ p.name }}', {{ p.price }}, {{ p.rate_qty or 0 }})"
+                        <div class="product-card" onclick="openLiquidPopup({{ p.id }}, '{{ p.name }}', {{ p.price }}, {{ p.rate_qty or 0 }}, '{{ p.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if p.image_filename %}
                             <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
@@ -105,7 +105,7 @@
 
                         {% for p in solid_products %}
                         <div class="product-card"
-                            onclick="openSolidPopup({{ p.id }}, '{{ p.name }}', {{ p.price }}, '{{ p.unit }}')"
+                            onclick="openSolidPopup({{ p.id }}, '{{ p.name }}', {{ p.price }}, '{{ p.unit }}', '{{ p.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if p.image_filename %}
                             <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
@@ -359,6 +359,9 @@
                     <button class="close-btn-red" onclick="closeProductPopup()">×</button>
                 </div>
                 <div class="modal-body" style="padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 12px;">
+                        <img id="popup-product-image" src="" alt="Product Image" style="max-height: 120px; max-width: 100%; border-radius: 8px; display: none; margin: 0 auto; object-fit: contain;">
+                    </div>
                     <h4 id="popup-product-name" style="font-size: 20px; margin-bottom: 16px; color: #2D3748; text-align: center;">Product Name</h4>
                     
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">

@@ -1098,28 +1098,47 @@ function closeRecentBillsModal() {
     document.getElementById('recent-bills-modal').classList.remove('active');
 }
 
-function openSolidPopup(id, name, price, unit) {
-    pendingProductData = { type: 'solid', id, name, price, unit };
+function openSolidPopup(id, name, price, unit, imagePath) {
+    pendingProductData = { type: 'solid', id, name, base_price: price, unit: unit };
     document.getElementById('popup-product-name').textContent = name;
-    
     document.getElementById('popup-liquid-options').style.display = 'none';
-    
     document.getElementById('popup-qty').value = 1;
     document.getElementById('popup-qty').step = "1";
     document.getElementById('popup-rate').value = price;
+    
+    const imgEl = document.getElementById('popup-product-image');
+    if (imgEl) {
+        if (imagePath && imagePath.trim() !== '') {
+            imgEl.src = "/photos/" + imagePath;
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+        }
+    }
     updatePopupTotal();
 
     document.getElementById('product-add-modal').classList.add('active');
 }
 
-function openLiquidPopup(id, name, price, rate_qty) {
+function openLiquidPopup(id, name, price, rate_qty, imagePath) {
     pendingProductData = { type: 'liquid', id, name, base_price: price, rate_qty: rate_qty };
     document.getElementById('popup-product-name').textContent = name;
     
     document.getElementById('popup-liquid-options').style.display = 'flex';
+    document.getElementById('popup-bottle-type-container').style.display = 'flex';
     document.getElementById('popup-qty').value = 1;
     document.getElementById('popup-qty').step = "any";
     
+    const imgEl = document.getElementById('popup-product-image');
+    if (imgEl) {
+        if (imagePath && imagePath.trim() !== '') {
+            imgEl.src = "/photos/" + imagePath;
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+        }
+    }
+
     document.getElementById('popup-packaging').value = '1ltr';
     popupPackagingChanged();
 
