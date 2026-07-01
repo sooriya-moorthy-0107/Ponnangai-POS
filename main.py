@@ -2027,7 +2027,12 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
         product.image_filename = new_filename
         
     db.commit()
-    return {"status": "success", "detail": "Product updated successfully!"}
+    
+    debug_msg = f"File present: {file is not None}"
+    if file:
+        debug_msg += f", filename: {getattr(file, 'filename', None)}"
+        
+    return {"status": "success", "detail": f"Product updated successfully! Debug: {debug_msg}"}
 
 @app.get("/api/debug/photos")
 async def debug_photos(db: Session = Depends(get_db)):
