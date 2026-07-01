@@ -76,14 +76,14 @@ def map_files():
         
         if name in custom:
             if custom[name] in files:
-                mapping[p["id"]] = custom[name]
+                mapping[name] = custom[name]
         else:
             # Try fuzzy match
             norm_name = name.lower().replace(" ", "").replace("_", "")
             matches = difflib.get_close_matches(norm_name, [f.lower().replace(" ", "").replace("_", "").replace(".png", "").replace(".jpg", "") for f in files], n=1, cutoff=0.5)
             if matches:
                 matched_idx = [f.lower().replace(" ", "").replace("_", "").replace(".png", "").replace(".jpg", "") for f in files].index(matches[0])
-                mapping[p["id"]] = files[matched_idx]
+                mapping[name] = files[matched_idx]
 
     print(json.dumps(mapping, indent=2))
 
