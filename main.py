@@ -1980,13 +1980,11 @@ async def upload_product_image(request: Request, product_id: int, file: UploadFi
     return {"status": "success", "detail": "Photo updated successfully!", "image_filename": new_filename}
 
 @app.post("/api/products/{product_id}/edit")
-async def edit_product_info(request: Request, product_id: int, name: str = Form(...), price: float = Form(None), rate_qty: float = Form(None), stock: int = Form(None), shopkeeper_id: int = Form(None), file: UploadFile = File(None), db: Session = Depends(get_db)):
+async def edit_product_info(request: Request, product_id: int, name: str = Form(...), price: float = Form(None), rate_qty: float = Form(None), stock: int = Form(None), shopkeeper_id: int = Form(None), db: Session = Depends(get_db)):
     
-    with open("upload_debug.log", "a") as debug_file:
-        debug_file.write(f"EDIT CALLED for product {product_id}. Name: {name}, File present: {file is not None}\n")
-        if file:
-            debug_file.write(f"  File name: {file.filename}, Content type: {file.content_type}\n")
-
+    form_data = await request.form()
+    file = form_data.get("file")
+    
     user = get_current_user(request, db)
     if not user or user.role not in ["Admin", "Manager", "Owner"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
@@ -2012,7 +2010,7 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
             new_inv = ShopInventory(shopkeeper_id=shopkeeper_id, product_id=product_id, stock=stock)
             db.add(new_inv)
     
-    if file and file.filename:
+    if file and hasattr(file, "filename") and file.filename:
         if not file.content_type or not file.content_type.startswith("image/"):
             return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only image files are allowed."})
             
