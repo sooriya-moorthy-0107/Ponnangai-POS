@@ -197,7 +197,11 @@ function escapeHTML(str) {
             const _swalRes15831 = await Swal.fire({ text: "Are you absolutely sure? This will permanently delete ALL products, shop inventories, bills, and sales history. This CANNOT be undone.", icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
             if (_swalRes15831.isConfirmed) {
                 const { value: check } = await Swal.fire({ title: "Type RESET to confirm:", input: 'text', showCancelButton: true });
-                if (check !== "RESET") return;
+                if (!check) return; // User cancelled
+                if (check.trim().toUpperCase() !== "RESET") {
+                    await Swal.fire("Verification failed", "You didn't type RESET correctly.", "error");
+                    return;
+                }
 
                 try {
                     const response = await fetch('/api/system/reset', {

@@ -1459,7 +1459,7 @@ async def reset_system(request: Request, db: Session = Depends(get_db)):
         return JSONResponse(status_code=403, content={"detail": "Unauthorized. Only Admin can reset the system."})
         
     # Delete all operational data (preserving users) and reset auto-increment IDs
-    db.execute(text("TRUNCATE TABLE bill_items, bills, shop_inventories, products RESTART IDENTITY CASCADE"))
+    db.execute(text("TRUNCATE TABLE bill_items, bills, shop_inventories, products, cash_transactions RESTART IDENTITY CASCADE"))
     db.query(User).filter(User.is_deleted == True).delete()
     
     # Also clean up any uploaded product image files starting with "product_" to free disk space
