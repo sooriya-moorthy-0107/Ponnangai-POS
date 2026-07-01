@@ -2028,6 +2028,23 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
         
     db.commit()
     return {"status": "success", "detail": "Product updated successfully!"}
+
+@app.get("/api/debug/photos")
+async def debug_photos(db: Session = Depends(get_db)):
+    try:
+        import os
+        files = os.listdir("photos")
+    except Exception as e:
+        files = str(e)
+        
+    products = db.query(Product.id, Product.name, Product.image_filename).all()
+    product_list = [{"id": p.id, "name": p.name, "image": p.image_filename} for p in products]
+    
+    return {
+        "photos_directory_contents": files,
+        "database_products": product_list
+    }
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
