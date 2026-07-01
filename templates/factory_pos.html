@@ -91,7 +91,7 @@
                         <div class="product-card" onclick="openLiquidPopup({{ p.id }}, '{{ p.name }}', {{ p.price }}, {{ p.rate_qty or 0 }}, '{{ p.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if p.image_filename %}
-                            <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
+                            <img src="/photos/{{ p.image_filename }}?v=2" alt="{{ p.name }}" class="product-image">
                             {% else %}
                             <div class="product-image"
                                 style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
@@ -108,7 +108,7 @@
                             onclick="openSolidPopup({{ p.id }}, '{{ p.name }}', {{ p.price }}, '{{ p.unit }}', '{{ p.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if p.image_filename %}
-                            <img src="/photos/{{ p.image_filename }}" alt="{{ p.name }}" class="product-image">
+                            <img src="/photos/{{ p.image_filename }}?v=2" alt="{{ p.name }}" class="product-image">
                             {% else %}
                             <div class="product-image"
                                 style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">

@@ -100,7 +100,7 @@
                             onclick="addToCart({{ product.id }}, '{{ product.name }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}')"
                             style="cursor: pointer;">
                             {% if product.image_filename %}
-                            <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}"
+                            <img src="/photos/{{ product.image_filename }}?v=2" alt="{{ product.name }}"
                                 class="product-image">
                             {% else %}
                             <div class="product-image"
@@ -127,7 +127,7 @@
                             style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">
                             OUT OF STOCK</div>
                         {% if product.image_filename %}
-                        <img src="/photos/{{ product.image_filename }}" alt="{{ product.name }}" class="product-image"
+                        <img src="/photos/{{ product.image_filename }}?v=2" alt="{{ product.name }}" class="product-image"
                             style="filter: grayscale(100%);">
                         {% else %}
                         <div class="product-image"
