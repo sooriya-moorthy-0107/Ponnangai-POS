@@ -2088,290 +2088,42 @@ async def fix_all_photos(db: Session = Depends(get_db)):
             product.image_filename = None
             results["cleared_links"] += 1
             
-        "shop_name": target_shop.username,
-        "total_sales": total_sales,
-        "total_revenue": total_revenue,
-        "breakdown": breakdown
-    }
-
-@app.get("/api/analytics/shop/{shop_id}/today")
-async def get_shop_analytics_today(request: Request, shop_id: int, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
-    if not user or user.role not in ["Admin", "Manager", "Owner"]:
-        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
-        
-    target_shop = db.query(User).filter(User.id == shop_id).first()
-    if not target_shop:
-        return JSONResponse(status_code=404, content={"detail": "Shop not found"})
-        
-    today_start = datetime.combine(datetime.today(), time.min)
-    today_end = datetime.combine(datetime.today(), time.max)
-        
-    bills = db.query(Bill).filter(
-        Bill.cashier_id == shop_id, 
-        Bill.is_cancelled == False,
-        Bill.timestamp >= today_start,
-        Bill.timestamp <= today_end
-    ).all()
-    total_sales = len(bills)
-    total_revenue = sum(b.final_amount for b in bills)
-    
-    items_query = db.query(
-        Product.name,
-        func.sum(BillItem.quantity).label("total_qty"),
-        func.sum(BillItem.quantity * BillItem.price_at_sale).label("total_revenue")
-    ).join(BillItem, Product.id == BillItem.product_id)\
-     .join(Bill, Bill.id == BillItem.bill_id)\
-     .filter(
-        Bill.cashier_id == shop_id, 
-        Bill.is_cancelled == False,
-        Bill.timestamp >= today_start,
-        Bill.timestamp <= today_end
-     )\
-     .group_by(Product.name).all()
-     
-    breakdown = [{"product_name": row[0], "qty": row[1], "revenue": row[2]} for row in items_query]
-    
-    return {
-        "status": "success",
-        "shop_name": target_shop.username + " (Today)",
-        "total_sales": total_sales,
-        "total_revenue": total_revenue,
-        "breakdown": breakdown
-    }
-
-@app.post("/api/products/{product_id}/image")
-async def upload_product_image(request: Request, product_id: int, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
-    
-    form_data = await request.form()
-    file = form_data.get("file")
-    if not user or user.role not in ["Admin", "Manager", "Owner"]:
-        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
-        
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        return JSONResponse(status_code=404, content={"detail": "Product not found"})
-        
-    if not file.filename:
-        return JSONResponse(status_code=400, content={"detail": "No file uploaded"})
-        
-    if not file.content_type or not file.content_type.startswith("image/"):
-        return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only image files are allowed."})
-        
-    # Generate clean filename based on product ID
-    ext = os.path.splitext(file.filename)[1].lower()
-    if not ext:
-        ext = ".jpg"
-    new_filename = f"product_{product_id}_{uuid.uuid4().hex}{ext}"
-    file_path = os.path.join("photos", new_filename)
-    
-    # Save the file
-    content = await file.read()
-    with open(file_path, "wb") as f:
-        f.write(content)
-        
-    # Update DB
-    # Update DB
-    product.image_filename = new_filename
-    db.commit()
-    
-    debug_msg = f"File present: {file is not None}"
-    if file:
-        debug_msg += f", filename: {getattr(file, 'filename', None)}"
-        
-    return {"status": "success", "detail": f"Photo updated successfully! Debug: {debug_msg}", "image_filename": new_filename}
-
-@app.post("/api/products/{product_id}/edit")
-async def edit_product_info(request: Request, product_id: int, name: str = Form(...), price: float = Form(None), rate_qty: float = Form(None), stock: int = Form(None), shopkeeper_id: int = Form(None), db: Session = Depends(get_db)):
-    
-    form_data = await request.form()
-    file = form_data.get("file")
-    
-    user = get_current_user(request, db)
-    if not user or user.role not in ["Admin", "Manager", "Owner"]:
-        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
-        
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        return JSONResponse(status_code=404, content={"detail": "Product not found"})
-        
-    product.name = name.strip()
-    if price is not None:
-        product.price = price
-    if rate_qty is not None:
-        product.rate_qty = rate_qty
-    
-    if stock is not None and shopkeeper_id is not None:
-        shop_inv = db.query(ShopInventory).filter(
-            ShopInventory.product_id == product_id,
-            ShopInventory.shopkeeper_id == shopkeeper_id
-        ).first()
-        if shop_inv:
-            shop_inv.stock = stock
-        else:
-            new_inv = ShopInventory(shopkeeper_id=shopkeeper_id, product_id=product_id, stock=stock)
-            db.add(new_inv)
-    
-    if file and hasattr(file, "filename") and file.filename:
-        if not file.content_type or not file.content_type.startswith("image/"):
-            return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only image files are allowed."})
-            
-        ext = os.path.splitext(file.filename)[1].lower()
-        if not ext:
-            ext = ".jpg"
-        new_filename = f"product_{product_id}_{uuid.uuid4().hex}{ext}"
-        file_path = os.path.join("photos", new_filename)
-        
-        content = await file.read()
-        with open(file_path, "wb") as f:
-            f.write(content)
-            
-        product.image_filename = new_filename
-        
-    db.commit()
-    
-    debug_msg = f"File present: {file is not None}"
-    if file:
-        debug_msg += f", filename: {getattr(file, 'filename', None)}"
-        
-    return {"status": "success", "detail": f"Product updated successfully! Debug: {debug_msg}"}
-
-@app.get("/api/debug/photos")
-async def debug_photos(db: Session = Depends(get_db)):
-    try:
-        import os
-        files = os.listdir("photos") if os.path.exists("photos") else []
-    except Exception as e:
-        files = str(e)
-    
-    db_products = db.query(Product.id, Product.name, Product.image_filename).all()
-    
-    return {
-        "photos_directory_contents": files,
-        "database_products": [{"id": p.id, "name": p.name, "image": p.image_filename} for p in db_products]
-    }
-
-@app.get("/api/system/fix_photos")
-async def fix_all_photos(db: Session = Depends(get_db)):
-    import os
-    import re
-    
-    results = {"fixed_links": 0, "cleared_links": 0, "logs": []}
-    
-    try:
-        files_on_disk = os.listdir("photos") if os.path.exists("photos") else []
-    except Exception as e:
-        return {"error": str(e)}
-        
-    # Step 1: Re-link any existing product_ID images
-    for file in files_on_disk:
-        match = re.match(r'^product_(\d+)(?:_.*)?\.(?:png|jpg|jpeg|gif)$', file, re.IGNORECASE)
-        if match:
-            product_id = int(match.group(1))
-            product = db.query(Product).filter(Product.id == product_id).first()
-            if product and product.image_filename != file:
-                product.image_filename = file
-                results["fixed_links"] += 1
-                results["logs"].append(f"Linked Product {product_id} to file {file}")
-                
-    # Step 2: Clear missing images
-    all_products = db.query(Product).all()
-    for product in all_products:
-        if product.image_filename and product.image_filename not in files_on_disk:
-            results["logs"].append(f"Cleared missing image {product.image_filename} from Product {product.id}")
-            product.image_filename = None
-            results["cleared_links"] += 1
-            
     db.commit()
     return {"status": "success", "results": results}
 
 @app.get("/api/system/map_photos")
 async def map_all_wobg_photos(db: Session = Depends(get_db)):
     mapping = {
-      "Mop base": "o_Mop_base.png",
-      "Mat": "o_Mat.png",
-      "Toilet brush double side": "o_Toiletbrush.png",
-      "Napthelene balls pkt": "o_Napthelene balls.png",
-      "Green Scrubber": "o_Greenscrubber.png",
-      "Steel Scrubber": "o_Steelscrubber.png",
-      "Bleaching powder": "o_Bleaching.png",
-      "Ant chalk": "o_Antchalk.png",
-      "Soft broom": "o_Softbroom.png",
-      "Tissue pkt": "o_Tissuepacket.png",
-      "Box Room Spray": "o_RoomSpray_box.png",
-      "Bathing Soap": "o_Bathsoap.png",
-      "Sambrani pcs": "o_sambrani_pcs.png",
-      "Eytex Zipper": "o_eyetex_zipper.png",
-      "Eytex Cake": "o_eyetex_zipper.png",
-      "Comfort 5 ltr can": "5L_Comfort_blue.png",
-      "Dish wash 5 ltr can": "5L_Dishwash.png",
-      "Toilet cleaner  5 ltr can": "5L_Toiletcleaner.png",
-      "Floor Cleaner 5 ltr can": "5L_Floorcleaner_yellow.png",
-      "Cloth wash  5 ltr can": "5L_Clothwash.png",
-      "Tiles Cleaner  5 ltr can": "5L_Tilescleaner.png",
-      "Glass cleaner  5 ltr can": "5L_Glasscleaner.png",
-      "Hand wash 5 ltr can": "S_Handwash_green.png",
-      "Phenoyl  5 ltr can": "5L_Phenyol.png",
-      "Comfort STICKER": "S_Comfort_blue.png",
-      "Cloth wash  STICKER": "S_Clothwash.png",
-      "Tiles Cleaner STICKER": "S_Tilescleaner.png",
-      "Sanitizer STICKER": "o_Silvershine.png",
-      "Phenoyl compound STICKER": "o_MopStick.png",
-      "Soapoil": "o_Rat_poison.png",
-      "Multi purpose": "o_multicake.png",
-      "Comfort": "S_Comfort_pink.png",
-      "Dish wash": "S_Dishwash.png",
-      "Toilet cleaner": "S_Toiletcleaner.png",
-      "Floor Cleaner": "5L_Floorcleaner_yellow.png",
-      "Cloth wash": "S_Clothwash.png",
-      "Tiles Cleaner": "S_Tilescleaner.png",
-      "Glass cleaner": "S_Glasscleaner.png",
-      "Hand wash": "S_Handwash_pink.png",
-      "Phenoyl": "S_Phenyol.png",
-      "Phenoyl compound": "S_Phenyol.png",
-      "Peethambari": "o_Sambrani.png",
-      "Odonil zipper": "o_odonil_zipper.png",
-      "Checked cloth": "o_checked_cloth.png",
-      "Odonil cake": "o_odonil_Airfreshner.png",
-      "Dustbin cover small": "o_Garbage_cover_Small.png",
-      "Dustbin cover medium": "o_Garbage_cover_Medium.png",
-      "Dustbin cover large": "o_Garbage_cover_Large.png",
-      "Dustbin cover Extra large": "o_Garbage_cover_Extra_large.png",
-      "Silver polish": "o_Silvershine.png",
-      "Mini scent": "o_MiniScent.png",
-      "Dish wash soap": "o_Dishsoap.png",
-      "Multi cake": "o_multicake.png",
-      "Sambrani Box": "o_Sambrani.png",
-      "Agarbatthi": "o_oodubathi1.png",
-      "Sink cleaner drainex powder": "o_Drain_cleaner.png",
-      "Mop stick": "o_MopStick.png",
-      "Hand wash 1/2 Ltr STICKER": "S_Handwash_pink.png",
-      "Dish wash  1/2 ltr  STICKER": "S_Dishwash.png",
-      "Floor cleaner 1/2 ltr  STICKER": "S_Floorwash_pink.png",
-      "Toilet cleaner 1/2 ltr STICKER": "S_Toiletcleaner.png",
-      "Glass Cleaner (colin) 1/2 ltr STICKER": "S_Glasscleaner.png",
-      "Black Phenoyl 1/2 Ltr STICKER": "S_Blackphenyol.png",
-      "Floor cleaner WATER BOTTLE": "WOS_Floorwash_pink.png",
-      "Dish wash WATER BOTTLE": "WOS_Dishwash.png",
-      "Ala  WATER BOTTLE": "WOS_Ala.png",
-      "Phenoyl  WATER BOTTLE": "S_Phenyol.png",
-      "Comfort  WATER BOTTLE": "WOS_Comfort_blue.png",
-      "Cloth wash  WATER BOTTLE": "WOS_Clothwash.png",
-      "Toilet Cleaner  WATER BOTTLE": "WOS_Toiletcleaner.png",
-      "Dustbin vover Extra large": "o_Garbage_cover_Extra_large.png",
-      "Sambrani pkt": "o_Sambrani.png"
+      "99": "o_Rat_poison.png", "100": "o_multicake.png", "1": "S_Comfort_pink.png", "2": "S_Dishwash.png", "3": "S_Toiletcleaner.png",
+      "4": "5L_Floorcleaner_yellow.png", "5": "S_Clothwash.png", "6": "S_Tilescleaner.png", "7": "S_Glasscleaner.png", "8": "S_Handwash_pink.png",
+      "9": "S_Phenyol.png", "10": "S_Phenyol.png", "11": "o_Sambrani.png", "12": "o_odonil_zipper.png", "13": "o_checked_cloth.png",
+      "14": "o_odonil_Airfreshner.png", "15": "o_Garbage_cover_Small.png", "16": "o_Garbage_cover_Medium.png", "17": "o_Garbage_cover_Large.png",
+      "18": "o_Garbage_cover_Extra_large.png", "19": "o_Silvershine.png", "20": "o_MiniScent.png", "21": "o_Dishsoap.png", "22": "o_multicake.png",
+      "23": "o_Sambrani.png", "24": "o_oodubathi1.png", "25": "o_Drain_cleaner.png", "26": "o_MopStick.png", "27": "o_Mop_base.png",
+      "28": "o_Mat.png", "29": "o_Toiletbrush.png", "30": "o_Napthelene balls.png", "31": "o_Greenscrubber.png", "32": "o_Steelscrubber.png",
+      "33": "o_Bleaching.png", "34": "o_Antchalk.png", "35": "o_Softbroom.png", "36": "o_Tissuepacket.png", "37": "o_RoomSpray_box.png",
+      "38": "o_Bathsoap.png", "39": "o_sambrani_pcs.png", "40": "o_eyetex_zipper.png", "41": "o_eyetex_zipper.png", "42": "5L_Comfort_blue.png",
+      "43": "5L_Dishwash.png", "44": "5L_Toiletcleaner.png", "45": "5L_Floorcleaner_yellow.png", "46": "5L_Clothwash.png", "47": "5L_Tilescleaner.png",
+      "48": "5L_Glasscleaner.png", "49": "S_Handwash_green.png", "50": "5L_Phenyol.png", "52": "S_Comfort_blue.png", "53": "S_Clothwash.png",
+      "54": "S_Tilescleaner.png", "55": "o_Silvershine.png", "56": "o_MopStick.png", "57": "S_Handwash_pink.png", "58": "S_Dishwash.png",
+      "59": "S_Floorwash_pink.png", "60": "S_Toiletcleaner.png", "61": "S_Glasscleaner.png", "62": "S_Blackphenyol.png", "63": "WOS_Floorwash_pink.png",
+      "64": "WOS_Dishwash.png", "65": "WOS_Ala.png", "66": "S_Phenyol.png", "67": "WOS_Comfort_blue.png", "68": "WOS_Clothwash.png",
+      "69": "WOS_Toiletcleaner.png", "70": "o_Sambrani.png", "71": "o_odonil_zipper.png", "72": "o_checked_cloth.png", "73": "o_odonil_Airfreshner.png",
+      "74": "o_Garbage_cover_Small.png", "75": "o_Garbage_cover_Medium.png", "76": "o_Garbage_cover_Large.png", "77": "o_Garbage_cover_Extra_large.png",
+      "78": "o_Silvershine.png", "79": "o_MiniScent.png", "80": "o_Dishsoap.png", "81": "o_multicake.png", "82": "o_Sambrani.png",
+      "83": "o_oodubathi1.png", "84": "o_Drain_cleaner.png", "85": "o_MopStick.png", "86": "o_Mop_base.png", "87": "o_Mat.png",
+      "88": "o_Toiletbrush.png", "89": "o_Napthelene balls.png", "90": "o_Greenscrubber.png", "91": "o_Steelscrubber.png", "92": "o_Bleaching.png",
+      "93": "o_Antchalk.png", "94": "o_Softbroom.png", "95": "o_Tissuepacket.png", "96": "o_RoomSpray_box.png", "97": "o_Bathsoap.png", "98": "o_sambrani_pcs.png"
     }
     
     logs = []
     mapped = 0
-    # Map by product name, so it automatically works for new shops too!
-    for product_name, filename in mapping.items():
-        products = db.query(Product).filter(Product.name == product_name).all()
-        for product in products:
+    for pid_str, filename in mapping.items():
+        product = db.query(Product).filter(Product.id == int(pid_str)).first()
+        if product:
             product.image_filename = filename
             mapped += 1
-            logs.append(f"Mapped {product.name} (Shop {product.shopkeeper_id}) to {filename}")
+            logs.append(f"Mapped {product.name} to {filename}")
             
     db.commit()
     return {"status": "success", "mapped_count": mapped, "logs": logs}
