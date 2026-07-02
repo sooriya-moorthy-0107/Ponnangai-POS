@@ -31,6 +31,40 @@ if DATABASE_URL.startswith("postgres://"):
 engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_product_sort_key(product_name):
+    name_lower = product_name.lower().strip()
+    base_order = [
+        "Cloth wash", "Comfort", "Dish wash", "Floor Cleaner", "Toilet cleaner",
+        "Tiles Cleaner", "Glass cleaner", "Hand wash", "Phenoyl", "Phenoyl compound",
+        "Peethambari", "Odonil zipper", "Checked cloth", "Odonil cake",
+        "Dustbin cover small", "Dustbin cover medium", "Dustbin cover large",
+        "Dustbin cover Extra large", "Silver polish", "Mini scent", "Dish wash soap",
+        "Multi cake", "Sambrani Box", "Agarbatthi", "Sink cleaner drainex powder",
+        "Mop stick", "Mop base", "Mat", "Toilet brush double side", "Napthelene balls pkt",
+        "Green Scrubber", "Steel Scrubber", "Bleaching powder", "Ant chalk",
+        "Soft broom", "Tissue pkt", "Box Room Spray", "Bathing Soap", "Sambrani pcs",
+        "Eytex Zipper", "Eytex Cake", "Soapoil", "Multi purpose"
+    ]
+    base_idx = 999
+    matched_base = ""
+    for i, base in enumerate(base_order):
+        if base.lower() in name_lower:
+            if len(base) > len(matched_base):
+                base_idx = i
+                matched_base = base.lower()
+                
+    if base_idx == 999:
+        return (999, 999, product_name)
+        
+    variant_idx = 1
+    if "wos" in name_lower or "water bottle" in name_lower or "1/2 ltr" in name_lower:
+        variant_idx = 2
+    elif "5 ltr" in name_lower or "5l" in name_lower or "5 l" in name_lower:
+        variant_idx = 3
+        
+    return (base_idx, variant_idx, product_name)
+
 Base = declarative_base()
 
 app = FastAPI(title="Ponnangai POS")
@@ -416,6 +450,7 @@ async def shop_page(request: Request, shopkeeper_id: int = None, db: Session = D
         Product.shopkeeper_id == target_shopkeeper_id,
         Product.is_deleted == False
     ).all()
+    products.sort(key=lambda p: get_product_sort_key(p.name))
     
     shop_invs = db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == target_shopkeeper_id).all()
     inv_map = {inv.product_id: inv.stock for inv in shop_invs}
@@ -454,6 +489,7 @@ async def factory_pos_page(request: Request, db: Session = Depends(get_db)):
         Product.shopkeeper_id == target_cashier_id,
         Product.is_deleted == False
     ).all()
+    products.sort(key=lambda p: get_product_sort_key(p.name))
     
     liquid_products = []
     solid_products = []
@@ -490,6 +526,7 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     products = db.query(Product).filter(Product.is_deleted == False).all()
+    products.sort(key=lambda p: get_product_sort_key(p.name))
     # Filter out soft-deleted users/staff from active views
     users = db.query(User).filter(User.is_deleted == False).all()
     shopkeepers = [u for u in users if u.role in ["Shopkeeper", "Factory"]]
@@ -1275,6 +1312,7 @@ async def get_shopkeeper_inventory_data(request: Request, shopkeeper_id: int, db
         Product.shopkeeper_id == shopkeeper_id,
         Product.is_deleted == False
     ).all()
+    products.sort(key=lambda p: get_product_sort_key(p.name))
     
     shop_invs = db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == shopkeeper_id).all()
     inv_map = {inv.product_id: inv.stock for inv in shop_invs}
@@ -1305,6 +1343,7 @@ async def get_inventory_template(request: Request, shopkeeper_id: int, db: Sessi
         Product.shopkeeper_id == shopkeeper_id,
         Product.is_deleted == False
     ).all()
+    products.sort(key=lambda p: get_product_sort_key(p.name))
     shop_invs = db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == shopkeeper_id).all()
     inv_map = {inv.product_id: inv.stock for inv in shop_invs}
     
