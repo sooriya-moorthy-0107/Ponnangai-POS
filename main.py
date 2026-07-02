@@ -2161,7 +2161,7 @@ async def map_all_wobg_photos(db: Session = Depends(get_db)):
         "Cloth wash  STICKER": "S_Clothwash.png",
         "Tiles Cleaner STICKER": "S_Tilescleaner.png",
         "Sanitizer STICKER": "o_Silvershine.png",
-        "Phenoyl compound STICKER": "o_MopStick.png",
+        "Phenoyl compound STICKER": "S_Phenyol.png",
         "Soapoil": "o_Rat_poison.png",
         "Multi purpose": "o_multicake.png",
         "Comfort": "S_Comfort_pink.png",
