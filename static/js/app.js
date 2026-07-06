@@ -244,13 +244,49 @@ async function fetchBillHistory() {
                 const priceStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #A0AEC0;' : '';
                 const titleStyle = bill.is_cancelled ? 'text-decoration: line-through; color: #718096;' : '';
 
+                let itemsHtml = '';
+                if (bill.items && bill.items.length > 0) {
+                    itemsHtml = `
+                        <div style="margin-top: 8px; border: 1px solid #E2E8F0; border-radius: 4px; overflow: hidden;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                <thead style="background-color: #EDF2F7; color: #4A5568;">
+                                    <tr>
+                                        <th style="padding: 4px 6px; text-align: left; border-bottom: 1px solid #E2E8F0;">Items</th>
+                                        <th style="padding: 4px 6px; text-align: center; border-bottom: 1px solid #E2E8F0;">Qty</th>
+                                        <th style="padding: 4px 6px; text-align: right; border-bottom: 1px solid #E2E8F0;">Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    bill.items.forEach(item => {
+                        let itemName = escapeHTML(item.name);
+                        if (item.packaging_type && item.packaging_type !== 'loose') {
+                            itemName += ` (${item.packaging_type})`;
+                        } else if (item.packaging_type === 'loose') {
+                            itemName += ` (loose)`;
+                        }
+                        itemsHtml += `
+                                    <tr>
+                                        <td style="padding: 4px 6px; border-bottom: 1px solid #E2E8F0;">${itemName}</td>
+                                        <td style="padding: 4px 6px; text-align: center; border-bottom: 1px solid #E2E8F0;">${item.quantity}</td>
+                                        <td style="padding: 4px 6px; text-align: right; border-bottom: 1px solid #E2E8F0;">${item.price.toFixed(2)}</td>
+                                    </tr>
+                        `;
+                    });
+                    itemsHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
                 const actionButtonsHtml = bill.is_cancelled ? `
                     <button class="btn btn-small" style="background-color: #718096; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="handlePrintFlow(${bill.id})">
-                         Print Void Receipt
+                         Preview Void
                     </button>
                 ` : `
                     <button class="btn btn-small" style="background-color: var(--primary); color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="handlePrintFlow(${bill.id})">
-                         Print Receipt
+                         Preview
                     </button>
                     <div style="display: flex; gap: 6px; width: 100%;">
                         <button class="btn btn-secondary btn-small" style="flex: 1;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">
@@ -273,7 +309,8 @@ async function fetchBillHistory() {
                     <div class="history-card-details">
                         ${bill.timestamp} | ${bill.payment_mode}
                     </div>
-                    <div style="display: flex; gap: 6px; flex-direction: column;">
+                    ${itemsHtml}
+                    <div style="display: flex; gap: 6px; flex-direction: column; margin-top: 12px;">
                         ${actionButtonsHtml}
                     </div>
                 `;
@@ -963,6 +1000,11 @@ async function handlePrintFlow(billId) {
                 printBox.innerHTML = receiptHtml;
             }
 
+            // Close recent bills modal if it's open
+            if (typeof closeRecentBillsModal === 'function') {
+                closeRecentBillsModal();
+            }
+
             // Pop open the Receipt Preview modal
             openReceiptModal();
 
@@ -1293,3 +1335,113 @@ document.addEventListener('click', function (e) {
         e.target.classList.remove('active');
     }
 });
+// === Modals Logic (Recent Bills & Product Add) ===
+
+function openRecentBillsModal() {
+    const modal = document.getElementById('recent-bills-modal');
+    if (modal) {
+        modal.classList.add('active');
+        fetchBillHistory(); // Fetch and populate history
+    }
+}
+
+function closeRecentBillsModal() {
+    const modal = document.getElementById('recent-bills-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+let pendingProductData = null;
+
+function openProductPopup(id, name, price, maxStock, productType, unit, imagePath) {
+    pendingProductData = { id, name, price, maxStock, productType, unit };
+    
+    document.getElementById('popup-product-name').textContent = name;
+    document.getElementById('popup-product-price').textContent = `₹${price.toFixed(2)}`;
+    document.getElementById('popup-qty').value = 1;
+    document.getElementById('popup-qty').max = maxStock;
+    
+    const imgEl = document.getElementById('popup-product-image');
+    if (imgEl) {
+        if (imagePath && imagePath.trim() !== '') {
+            imgEl.src = "/photos/" + imagePath;
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+        }
+    }
+
+    const modal = document.getElementById('product-add-modal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closeProductPopup() {
+    const modal = document.getElementById('product-add-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    pendingProductData = null;
+}
+
+function adjustPopupQty(amount) {
+    const qtyInput = document.getElementById('popup-qty');
+    if (!qtyInput) return;
+    
+    let currentQty = parseFloat(qtyInput.value) || 0;
+    let newQty = currentQty + amount;
+    
+    // Ensure we don't go below 1 (or 0.01 depending on step, but 1 is safe for +/-, users can type decimals if needed)
+    if (newQty < 1) newQty = 1;
+    
+    if (pendingProductData && pendingProductData.maxStock) {
+        if (newQty > pendingProductData.maxStock) {
+            newQty = pendingProductData.maxStock;
+        }
+    }
+    
+    qtyInput.value = newQty;
+}
+
+function confirmAddToCart() {
+    if (!pendingProductData) return;
+    
+    let qty = parseFloat(document.getElementById('popup-qty').value);
+    if (isNaN(qty) || qty <= 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Quantity',
+            text: 'Please enter a valid quantity.'
+        });
+        return;
+    }
+
+    // Call the existing addToCart method
+    // Note: The existing addToCart usually adds 1, but we need to support adding 'qty'.
+    // Let's modify cart directly or call addToCart multiple times. Actually, addToCart adds 1 or updates quantity.
+    // Let's add it directly to cart array to be precise with exact quantity.
+    
+    const { id, name, price, maxStock, productType, unit } = pendingProductData;
+    const existingItem = cart.find(i => i.id === id);
+    let newQty = existingItem ? existingItem.qty + qty : qty;
+    
+    if (newQty > maxStock) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Out of Stock',
+            text: `Cannot add more. Only ${maxStock} available.`
+        });
+        return;
+    }
+
+    if (existingItem) {
+        existingItem.qty = newQty;
+    } else {
+        cart.push({ id, name, price, qty, maxStock, productType, unit });
+    }
+
+    renderCart();
+    closeProductPopup();
+}

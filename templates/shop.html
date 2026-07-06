@@ -75,17 +75,10 @@
                     style="background-color: #EDF2F7; color: #2D3748; width: 100%; justify-content: flex-start; border: 1px solid #CBD5E0;">Cash
                     / Expense</button>
 
-                <!-- Bill History Sidebar -->
-                <div class="bill-history-section card">
-                    <h2
-                        style="font-size: 16px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; display: inline-block; width: 100%;">
-                        Recent Bills
-                    </h2>
-                    <div id="bill-history-container">
-                        <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...
-                        </div>
-                    </div>
-                </div>
+                <button class="btn btn-secondary btn-small" onclick="openRecentBillsModal()"
+                    style="background-color: #EDF2F7; color: #2D3748; width: 100%; justify-content: flex-start; border: 1px solid #CBD5E0;">
+                    Recent Bills
+                </button>
             </div>
 
             <!-- Content Area -->
@@ -97,7 +90,7 @@
                         {% for product in products %}
                         {% if product.stock > 0 %}
                         <div class="product-card"
-                            onclick="addToCart({{ product.id }}, '{{ product.name }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}')"
+                            onclick="openProductPopup({{ product.id }}, '{{ product.name }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}', '{{ product.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if product.image_filename %}
                             <img src="/photos/{{ product.image_filename }}?v=2" alt="{{ product.name }}"
@@ -441,6 +434,54 @@
                 onclick="document.getElementById('shop-selector-modal').classList.remove('active')">Close</button>
         </div>
     </div>
-</body>
+    <!-- Recent Bills Modal -->
+    <div id="recent-bills-modal" class="modal-overlay" style="align-items: center; justify-content: center; z-index: 1002;">
+        <div class="modal-container" style="max-width: 500px; width: 90%; background: #F7FAFC;">
+            <div class="modal-header">
+                <h3>Recent Bills</h3>
+                <button class="close-btn-red" onclick="closeRecentBillsModal()">×</button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div id="bill-history-container">
+                    <div style="text-align: center; color: #A0AEC0; margin-top: 20px; font-size: 14px;">Loading...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-small" onclick="closeRecentBillsModal()">Close</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- Add Item Modal -->
+    <div id="product-add-modal" class="modal-overlay" style="align-items: center; justify-content: center; z-index: 1002;">
+        <div class="modal-container" style="max-width: 400px; width: 90%;">
+            <div class="modal-header" style="background-color: #EBF8FF;">
+                <h3 style="color: #2B6CB0;">Confirm Item</h3>
+                <button class="close-btn-red" onclick="closeProductPopup()">×</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 20px;">
+                <h4 id="popup-product-name" style="font-size: 20px; margin-bottom: 8px; color: #2D3748;">Product Name</h4>
+                <div style="color: #4A5568; margin-bottom: 16px;">
+                    Price: <span id="popup-product-price" style="font-weight: bold; color: #38A169;">₹0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <label style="font-weight: 600; color: #4A5568;">Quantity:</label>
+                    <div style="display: flex; align-items: center; gap: 8px; width: 60%; justify-content: flex-end;">
+                        <button class="btn btn-secondary btn-small" style="padding: 4px 12px; font-size: 18px;" onclick="adjustPopupQty(-1)">-</button>
+                        <input type="number" id="popup-qty" step="any" min="0.01" value="1" style="padding: 8px; border: 1px solid #CBD5E0; border-radius: 4px; width: 70px; text-align: center; font-weight: 600; font-size: 16px;">
+                        <button class="btn btn-secondary btn-small" style="padding: 4px 12px; font-size: 18px;" onclick="adjustPopupQty(1)">+</button>
+                    </div>
+                </div>
+                <p style="font-size: 14px; color: #718096; margin-bottom: 20px;">
+                    This item will be added to the current bill.
+                </p>
+                
+                <button id="popup-add-btn" class="btn" style="width: 100%; font-size: 16px; padding: 12px; background-color: #3182CE;" onclick="confirmAddToCart()">
+                    Add to Cart
+                </button>
+            </div>
+        </div>
+    </div>
+
+</body>
 </html>
