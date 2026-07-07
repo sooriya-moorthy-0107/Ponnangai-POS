@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, UploadFile, File, Response, status
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
@@ -330,4 +330,5 @@ async def get_shop_analytics_today(request: Request, shop_id: int, db: Session =
         "total_revenue": total_revenue,
         "breakdown": breakdown
     }
+
 

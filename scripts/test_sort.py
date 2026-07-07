@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # Add local path to import main
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.models.domain import Base, Product, User, ShopInventory
 
 # Connect to the local SQLite database used for development/testing if needed, or point to production DB
@@ -102,4 +102,5 @@ products.sort(key=lambda p: get_product_sort_key(p.name))
 
 for p in products:
     print(f"{get_product_sort_key(p.name)} - {p.name}")
+
 

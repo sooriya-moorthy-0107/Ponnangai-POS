@@ -7,7 +7,7 @@ from datetime import datetime, date, time
 from typing import List, Optional
 import os, csv, io, uuid, secrets
 
-from app.models.database import get_db
+from app.models.database import get_db, SessionLocal
 from app.models.domain import User, Product, ShopInventory, Bill, BillItem, CashTransaction
 from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int
 from app.core.config import SECRET_KEY
@@ -202,4 +202,5 @@ async def map_all_wobg_photos(db: Session = Depends(get_db)):
             
     db.commit()
     return {"status": "success", "mapped_count": mapped, "logs": logs}
+
 
