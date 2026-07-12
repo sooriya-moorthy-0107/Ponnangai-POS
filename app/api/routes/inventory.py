@@ -70,7 +70,9 @@ async def get_shopkeeper_inventory_data(request: Request, shopkeeper_id: int, db
             "name": p.name,
             "price": p.price,
             "stock": inv_map.get(p.id, 0),
-            "image_filename": p.image_filename
+            "image_filename": p.image_filename,
+            "product_type": p.product_type,
+            "unit": p.unit
         })
         
     return {"status": "success", "products": data}

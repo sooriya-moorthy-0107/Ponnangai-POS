@@ -408,7 +408,7 @@ function renderProducts(productsList) {
         if (product.stock > 0) {
             card.className = 'product-card';
             card.style.cursor = 'pointer';
-            card.setAttribute('onclick', `addToCart(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}')`);
+            card.setAttribute('onclick', `openProductPopup(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}', '${product.image_filename || ''}')`);
 
             const imageHtml = product.image_filename
                 ? `<img src="/photos/${product.image_filename}" alt="${escapeHTML(product.name)}" class="product-image">`
