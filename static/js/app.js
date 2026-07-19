@@ -1257,6 +1257,52 @@ async function submitCashTransaction() {
     }
 }
 
+async function promptOpeningBalance() {
+    const { value: amount } = await Swal.fire({
+        title: 'Enter Opening Balance',
+        input: 'number',
+        inputLabel: 'Amount (₹)',
+        inputPlaceholder: 'Enter opening amount in drawer',
+        showCancelButton: true,
+        inputValidator: (value) => {
+            if (!value || value <= 0) {
+                return 'You need to write a positive amount!'
+            }
+        }
+    });
+
+    if (amount) {
+        const shopkeeperId = typeof ACTIVE_SHOPKEEPER_ID !== 'undefined' ? ACTIVE_SHOPKEEPER_ID : '';
+        const payload = {
+            amount: parseFloat(amount),
+            type: 'IN',
+            description: 'Opening Balance',
+            shopkeeper_id: shopkeeperId
+        };
+
+        try {
+            const response = await fetch('/api/cash-transactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                await Swal.fire('Saved!', 'Opening balance has been added.', 'success');
+                if (typeof fetchCashData === 'function') {
+                    fetchCashData();
+                }
+            } else {
+                const data = await response.json();
+                await Swal.fire('Error', data.detail || 'Failed to save', 'error');
+            }
+        } catch (err) {
+            console.error("Error saving opening balance", err);
+            await Swal.fire('Error', 'Network error', 'error');
+        }
+    }
+}
+
 async function revertCashTransaction(txId) {
     const _swalRes47195 = await Swal.fire({ text: "Are you sure you want to revert this transaction?", icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
     if (!_swalRes47195.isConfirmed) return;
