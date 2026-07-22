@@ -170,16 +170,23 @@ async def bulk_upload_inventory(request: Request, shopkeeper_id: int = Form(...)
                 prod_name = norm_row[key]
                 break
                 
-        # Find New Stock / Qty
+        # Find New Stock / Qty to add
         new_stock = None
-        for key in ["newstock", "stock", "currentstock", "newqty", "newquantity", "qty", "quantity", "stockcount", "count"]:
-            if key in norm_row and norm_row[key] is not None and str(norm_row[key]).strip() != "":
-                new_stock = norm_row[key]
+        stock_keys = ["newstock", "newqty", "newquantity", "addstock", "addedstock", "stock", "qty", "quantity", "stockcount", "count"]
+        stock_col = None
+        for key in stock_keys:
+            if key in norm_row:
+                stock_col = key
                 break
+                
+        if stock_col is not None:
+            raw_val = norm_row[stock_col]
+            if raw_val is not None and str(raw_val).strip() != "":
+                new_stock = raw_val
                 
         if (prod_id or prod_name) and new_stock is not None:
             nstock = parse_csv_int(new_stock, None)
-            if nstock is not None:
+            if nstock is not None and nstock != 0:
                 product = None
                 
                 # Compatibility fallback: match by ID if ID column is present and valid

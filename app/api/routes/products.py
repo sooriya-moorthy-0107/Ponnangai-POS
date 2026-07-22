@@ -187,10 +187,16 @@ async def bulk_upload_products(request: Request, shopkeeper_id: int = Form(...),
                 break
 
         stock_val = None
-        for key in ["initialstock", "stock", "newstock", "qty", "quantity", "initialqty", "currentstock", "count"]:
+        stock_keys = ["initialstock", "stock", "newstock", "qty", "quantity", "initialqty", "count"]
+        stock_col = None
+        for key in stock_keys:
             if key in norm_row:
-                stock_val = norm_row[key]
+                stock_col = key
                 break
+        if stock_col is not None:
+            raw_val = norm_row[stock_col]
+            if raw_val is not None and str(raw_val).strip() != "":
+                stock_val = raw_val
 
         product_type_val = None
         for key in ["producttype", "type", "category"]:
