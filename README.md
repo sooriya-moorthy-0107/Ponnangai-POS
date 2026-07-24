@@ -15,12 +15,51 @@ Ponnangai POS is a high-performance, mobile-first Point of Sale (POS) and retail
 
 ---
 
-## 🛠️ Tech Stack & Architecture
+## 🛠️ Tech Stack & Technologies Used
 
-*   **Backend:** Python 3.x, FastAPI (Asynchronous Web Framework)
-*   **Frontend:** HTML5, CSS3 (Modern Flat Design), Vanilla ES6 JavaScript, Jinja2 Templates
-*   **Database:** PostgreSQL (via SQLAlchemy ORM & Alembic migrations)
-*   **Infrastructure:** Nginx (Reverse Proxy), Systemd (Process Supervisor), Let's Encrypt (SSL/TLS Encryption)
+### 🐍 Backend & Core Infrastructure
+*   **Python (v3.11+)**: Primary backend programming language.
+*   **FastAPI**: Asynchronous web framework for high-performance RESTful APIs & server-side rendering.
+*   **Uvicorn**: ASGI server implementation for serving the FastAPI application.
+*   **Jinja2**: Server-side templating engine for dynamic HTML views.
+*   **Python-Dotenv**: Environment variable configuration management (`.env`).
+
+### 🗄️ Database & Data Layer
+*   **PostgreSQL (v15)**: Relational database management system for production deployments.
+*   **SQLite**: Lightweight database for local development and test automation (`test.db`).
+*   **SQLAlchemy**: Object-Relational Mapping (ORM) for data modeling and session management.
+*   **psycopg2-binary**: PostgreSQL database adapter for Python.
+
+### 🔐 Security & Authentication
+*   **Passlib & Bcrypt**: Password hashing and verification algorithms (`bcrypt==3.2.2`).
+*   **ItsDangerous**: Cryptographic signature library for secure session token management.
+*   **Role-Based Access Control (RBAC)**: Permission enforcement across Owner, Admin, Manager, Factory, and Shop roles.
+
+### 🎨 Frontend & UI/UX
+*   **HTML5 & CSS3**: Modern responsive layout using CSS Grid, Flexbox, Custom Properties (Variables), and Glassmorphism design elements.
+*   **Vanilla JavaScript (ES6+)**: Client-side interactive logic with standard Fetch API and DOM manipulation (no heavy frameworks).
+*   **SweetAlert2**: Interactive custom notification modals and action confirmation dialogs.
+
+### 🖨️ Hardware & Web APIs
+*   **Web Bluetooth API**: Direct browser-to-hardware communication with 58mm/80mm Bluetooth thermal printers.
+*   **ESC/POS Command Protocol**: Binary formatting for thermal receipt printing (text alignment, font styling, cutter control).
+*   **Web Storage API**: Browser LocalStorage for persisting printer configurations and local app settings.
+
+### 📦 Data Handling & Import/Export
+*   **Python-Multipart**: Form data parsing for file uploads (product photos, inventory sheets).
+*   **CSV Processing**: Automated bulk catalog import/export processing.
+
+### 🧪 Testing & Quality Assurance
+*   **Pytest**: Automated testing framework for backend unit and API endpoint testing.
+*   **HTTPX**: Asynchronous HTTP client for testing FastAPI endpoints.
+
+### 🐳 DevOps, Containerization & Server Deployment
+*   **Docker & Docker Compose**: Containerized multi-service setup (`python:3.11-slim` app & `postgres:15-alpine` DB).
+*   **Nginx**: High-performance reverse proxy web server with HTTP/HTTPS reverse proxy configuration.
+*   **Systemd**: Linux process supervisor for background service lifecycle management (`ponnangai-pos.service`).
+*   **Certbot & Let's Encrypt**: SSL/TLS encryption for HTTPS.
+*   **Bash Scripting**: Automated deployment script ([deploy.sh](file:///d:/Ponnangai/retail%20billing%20software/Ponnangai-POS/deploy.sh)) for Ubuntu servers.
+
 
 ---
 
