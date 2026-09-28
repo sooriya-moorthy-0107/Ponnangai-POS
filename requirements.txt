@@ -4,6 +4,7 @@ sqlalchemy
 jinja2
 python-multipart
 itsdangerous
+psycopg[binary]
 psycopg2-binary
 passlib
 bcrypt==3.2.2
