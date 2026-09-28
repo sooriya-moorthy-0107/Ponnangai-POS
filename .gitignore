@@ -194,3 +194,6 @@ data/
 # photos/ (un-ignored so images can sync via git)
 pgdata/
 .playwright-mcp/
+
+
+docs/

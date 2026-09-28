@@ -9,3 +9,9 @@ PRODUCTION = os.getenv("PRODUCTION", "False").lower() == "true"
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+if DATABASE_URL.startswith("postgresql://") and "+" not in DATABASE_URL.split("://")[0]:
+    try:
+        import psycopg
+    except ImportError:
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
