@@ -131,32 +131,8 @@ async def map_all_wobg_photos(db: Session = Depends(get_db)):
         "Sambrani pcs": "o_sambrani_pcs.png",
         "Eytex Zipper": "o_eyetex_zipper.png",
         "Eytex Cake": "o_eyetex_zipper.png",
-        "Comfort 5 ltr can": "5L_Comfort_blue.png",
-        "Dish wash 5 ltr can": "5L_Dishwash.png",
-        "Toilet cleaner  5 ltr can": "5L_Toiletcleaner.png",
-        "Floor Cleaner 5 ltr can": "5L_Floorcleaner_yellow.png",
-        "Cloth wash  5 ltr can": "5L_Clothwash.png",
-        "Tiles Cleaner  5 ltr can": "5L_Tilescleaner.png",
-        "Glass cleaner  5 ltr can": "5L_Glasscleaner.png",
-        "Hand wash 5 ltr can": "S_Handwash_green.png",
-        "Phenoyl  5 ltr can": "5L_Phenyol.png",
-        "Comfort STICKER": "S_Comfort_blue.png",
-        "Cloth wash  STICKER": "S_Clothwash.png",
-        "Tiles Cleaner STICKER": "S_Tilescleaner.png",
-        "Sanitizer STICKER": "o_Silvershine.png",
-        "Phenoyl compound STICKER": "S_Phenyol.png",
         "Soapoil": "o_Rat_poison.png",
         "Multi purpose": "o_multicake.png",
-        "Comfort": "S_Comfort_pink.png",
-        "Dish wash": "S_Dishwash.png",
-        "Toilet cleaner": "S_Toiletcleaner.png",
-        "Floor Cleaner": "5L_Floorcleaner_yellow.png",
-        "Cloth wash": "S_Clothwash.png",
-        "Tiles Cleaner": "S_Tilescleaner.png",
-        "Glass cleaner": "S_Glasscleaner.png",
-        "Hand wash": "S_Handwash_pink.png",
-        "Phenoyl": "S_Phenyol.png",
-        "Phenoyl compound": "S_Phenyol.png",
         "Peethambari": "o_Sambrani.png",
         "Odonil zipper": "o_odonil_zipper.png",
         "Checked cloth": "o_checked_cloth.png",
@@ -173,33 +149,98 @@ async def map_all_wobg_photos(db: Session = Depends(get_db)):
         "Agarbatthi": "o_oodubathi1.png",
         "Sink cleaner drainex powder": "o_Drain_cleaner.png",
         "Mop stick": "o_MopStick.png",
-        "Hand wash 1/2 Ltr STICKER": "S_Handwash_pink.png",
-        "Dish wash  1/2 ltr  STICKER": "S_Dishwash.png",
-        "Floor cleaner 1/2 ltr  STICKER": "S_Floorwash_pink.png",
-        "Toilet cleaner 1/2 ltr STICKER": "S_Toiletcleaner.png",
-        "Glass Cleaner (colin) 1/2 ltr STICKER": "S_Glasscleaner.png",
-        "Black Phenoyl 1/2 Ltr STICKER": "S_Blackphenyol.png",
-        "Floor cleaner WATER BOTTLE": "WOS_Floorwash_pink.png",
-        "Dish wash WATER BOTTLE": "WOS_Dishwash.png",
-        "Ala  WATER BOTTLE": "WOS_Ala.png",
-        "Phenoyl  WATER BOTTLE": "S_Phenyol.png",
-        "Comfort  WATER BOTTLE": "WOS_Comfort_blue.png",
-        "Cloth wash  WATER BOTTLE": "WOS_Clothwash.png",
-        "Toilet Cleaner  WATER BOTTLE": "WOS_Toiletcleaner.png",
-        "Dustbin vover Extra large": "o_Garbage_cover_Extra_large.png",
-        "Sambrani pkt": "o_Sambrani.png"
+        "Sambrani pkt": "o_Sambrani.png",
+        "Naphthalene balls pkt": "o_Napthelene balls.png",
+        "Multi Loose": "o_multicake.png",
+        "Soap oil Loose": "o_Rat_poison.png"
     }
-    
+
+    group_map = {
+        'clothwash': 'Clothwash',
+        'comfort': 'Comfort_pink',
+        'dishwash': 'Dishwash',
+        'floorwash': 'Floorwash_pink',
+        'toilet cleaner': 'Toiletcleaner',
+        'tiles cleaner': 'Tilescleaner',
+        'handwash': 'Handwash_pink',
+        'phenoyl': 'Phenyol',
+        'phenoyl compound': 'Phenyol_Compund',
+        'glass cleaner': 'Glasscleaner'
+    }
+
     logs = []
     mapped = 0
-    # Map by product name, so it automatically works for new shops too!
-    for product_name, filename in mapping.items():
-        products = db.query(Product).filter(Product.name == product_name).all()
-        for product in products:
+    import os
+    files = os.listdir("photos") if os.path.exists("photos") else []
+    
+    products = db.query(Product).all()
+    
+    for product in products:
+        name_exact = product.name.strip()
+        name_lower = name_exact.lower()
+        
+        # 1. Exact custom overrides
+        if name_exact in mapping:
+            product.image_filename = mapping[name_exact]
+            mapped += 1
+            logs.append(f"Mapped exact {name_exact} to {mapping[name_exact]}")
+            continue
+            
+        # 2. Dynamic Parsing logic
+        prefix = None
+        group_name = name_lower
+        
+        if name_lower.endswith(' 5 ltr') or name_lower.endswith(' 5 ltr can'):
+            prefix = '5L_'
+            group_name = name_lower.replace(' 5 ltr can', '').replace(' 5 ltr', '').strip()
+        elif name_lower.endswith(' sticker'):
+            prefix = 'S_'
+            group_name = name_lower.replace(' sticker', '').strip()
+        elif name_lower.endswith(' 1 ltr'):
+            prefix = 'WOS_'
+            group_name = name_lower.replace(' 1 ltr', '').strip()
+        elif name_lower.endswith(' water bottle'):
+            prefix = 'WOS_'
+            group_name = name_lower.replace(' water bottle', '').strip()
+        elif name_lower.endswith(' loose'):
+            prefix = 'WOS_'
+            group_name = name_lower.replace(' loose', '').strip()
+
+        if prefix:
+            mapped_group = group_map.get(group_name, group_name.capitalize().replace(' ', ''))
+            
+            # Exceptional hardcodes
+            if group_name == 'floorwash' and prefix == '5L_':
+                filename = '5L_Floorcleaner_yellow.png'
+            elif group_name == 'glass cleaner' and prefix == 'WOS_':
+                filename = 'S_Glasscleaner.png'
+            elif group_name == 'handwash' and prefix == 'WOS_':
+                filename = 'S_Handwash_pink.png'
+            elif group_name == 'phenoyl compound' and prefix == 'WOS_':
+                filename = '5L_Phenyol_Compund.png'
+            elif group_name == 'phenoyl compound' and prefix == 'S_':
+                filename = '5L_Phenyol_Compund.png'
+            elif group_name == 'phenoyl compound' and prefix == '5L_':
+                filename = '5L_Phenyol_Compund.png'
+            elif group_name == 'phenoyl' and prefix == 'WOS_':
+                filename = 'C_Phenyol.png'
+            elif group_name == 'tiles cleaner' and prefix == 'WOS_':
+                filename = 'C_Tilescleaner.png'
+            else:
+                filename = f'{prefix}{mapped_group}.png'
+
+            if filename not in files and files:
+                if prefix == 'WOS_' and f'C_{mapped_group}.png' in files:
+                    filename = f'C_{mapped_group}.png'
+                elif prefix == 'WOS_' and f'S_{mapped_group}.png' in files:
+                    filename = f'S_{mapped_group}.png'
+                elif prefix == 'S_' and f'C_{mapped_group}.png' in files:
+                    filename = f'C_{mapped_group}.png'
+                
             product.image_filename = filename
             mapped += 1
-            logs.append(f"Mapped {product.name} (Shop {product.shopkeeper_id}) to {filename}")
-            
+            logs.append(f"Mapped parsed {name_exact} to {filename}")
+
     db.commit()
     return {"status": "success", "mapped_count": mapped, "logs": logs}
 
