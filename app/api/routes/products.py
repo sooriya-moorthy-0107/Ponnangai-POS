@@ -62,7 +62,9 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
         with open(file_path, "wb") as f:
             f.write(content)
             
-        product.image_filename = new_filename
+        db.query(Product).filter(
+            func.lower(func.trim(Product.name)) == product.name.lower().strip()
+        ).update({"image_filename": new_filename}, synchronize_session=False)
         
     db.commit()
     
@@ -88,13 +90,22 @@ async def add_product(request: Request, data: dict, db: Session = Depends(get_db
     if not name or price is None or not shopkeeper_id:
         return JSONResponse(status_code=400, content={"detail": "Missing name, price, or shopkeeper_id"})
         
+    # Find existing image if another shop has the same product
+    existing_img = db.query(Product).filter(
+        func.lower(func.trim(Product.name)) == name.lower().strip(),
+        Product.image_filename != None,
+        Product.image_filename != ""
+    ).first()
+    img_filename = existing_img.image_filename if existing_img else None
+
     new_product = Product(
         name=name,
         price=float(price),
         shopkeeper_id=int(shopkeeper_id),
         is_deleted=False,
         product_type=product_type,
-        unit=unit
+        unit=unit,
+        image_filename=img_filename
     )
     db.add(new_product)
     db.commit()
@@ -362,9 +373,10 @@ async def upload_product_image(request: Request, product_id: int, db: Session = 
     with open(file_path, "wb") as f:
         f.write(content)
         
-    # Update DB
-    # Update DB
-    product.image_filename = new_filename
+    # Update DB for this product and all products with the exact same name
+    db.query(Product).filter(
+        func.lower(func.trim(Product.name)) == product.name.lower().strip()
+    ).update({"image_filename": new_filename}, synchronize_session=False)
     db.commit()
     
     debug_msg = f"File present: {file is not None}"
