@@ -18,7 +18,8 @@ python3 -m venv venv
 ./venv/bin/pip install wheel
 ./venv/bin/pip install -r requirements.txt
 
-# Note: Make sure to manually create a .env file with DATABASE_URL, SECRET_KEY, and PRODUCTION=True before starting the service.
+# Note: Ensure .env is populated with Supabase DATABASE_URL, SECRET_KEY, and PRODUCTION=True.
+# You can also run `./venv/bin/python scripts/init_supabase.py` to initialize tables and admin.
 
 cat << 'EOF' | sudo tee /etc/systemd/system/ponnangai-pos.service
 [Unit]

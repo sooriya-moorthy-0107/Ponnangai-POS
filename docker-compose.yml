@@ -20,11 +20,13 @@ services:
     container_name: ponnangai_pos_app
     ports:
       - "1745:8000"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - DATABASE_URL=postgresql://pos_user:pos_password@db:5432/ponnangai_pos
+      - DATABASE_URL=${DATABASE_URL:-postgresql://pos_user:pos_password@db:5432/ponnangai_pos}
       - TZ=Asia/Kolkata
-    depends_on:
-      - db
+
     volumes:
       # Bind mount the photos directory to keep uploaded product images safe
       - ./photos:/app/photos

@@ -25,10 +25,10 @@ Ponnangai POS is a high-performance, mobile-first Point of Sale (POS) and retail
 *   **Python-Dotenv**: Environment variable configuration management (`.env`).
 
 ### 🗄️ Database & Data Layer
-*   **PostgreSQL (v15)**: Relational database management system for production deployments.
-*   **SQLite**: Lightweight database for local development and test automation (`test.db`).
-*   **SQLAlchemy**: Object-Relational Mapping (ORM) for data modeling and session management.
-*   **psycopg2-binary**: PostgreSQL database adapter for Python.
+*   **Supabase (PostgreSQL v15+)**: Cloud relational database service with built-in connection pooling (Supavisor) and SSL encryption.
+*   **SQLite**: Lightweight database for local offline development and test automation (`test.db`).
+*   **SQLAlchemy (v2.0+)**: Object-Relational Mapping (ORM) with automated table creation, connection health pinging (`pool_pre_ping`), and connection recycling.
+*   **psycopg2-binary / psycopg**: Robust PostgreSQL database adapters for Python.
 
 ### 🔐 Security & Authentication
 *   **Passlib & Bcrypt**: Password hashing and verification algorithms (`bcrypt==3.2.2`).
@@ -90,6 +90,50 @@ pip install -r requirements.txt
 # Run application
 python main.py
 ```
+
+---
+
+## ⚡ Supabase Setup & Migration Guide
+
+Ponnangai POS uses **Supabase** as its high-availability PostgreSQL cloud database.
+
+### 1. Create Supabase Project
+1. Go to [Supabase](https://supabase.com) and create or log in to your account.
+2. Click **New Project**, choose an organization, give it a name (e.g. `Ponnangai-POS`), and set a strong database password.
+3. Select the region closest to your operations (e.g., `South Asia (Mumbai)`).
+
+### 2. Obtain Connection String
+1. In your Supabase dashboard, navigate to **Project Settings** -> **Database**.
+2. Scroll to **Connection string** and select the **URI** tab.
+3. Choose **Connection Pooler** in **Session mode** (`port 5432`) — this provides IPv4 compatibility and handles connection limits cleanly:
+   ```text
+   postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres?sslmode=require
+   ```
+   > ⚠️ **Note**: If your password contains special characters (such as `@`, `#`, or `%`), URL-encode them (e.g. `@` -> `%40`).
+
+### 3. Configure `.env`
+Set your Supabase URL in your `.env` file:
+```env
+DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres?sslmode=require"
+SECRET_KEY="your-secret-key-here"
+PRODUCTION=True
+```
+
+### 4. Initialize Database Schema & Admin Account
+Run the automated initialization helper:
+```bash
+python scripts/init_supabase.py --admin-user admin --admin-pass yourAdminPassword
+```
+This script validates network reachability, automatically constructs all database tables (`users`, `products`, `shop_inventories`, `bills`, `bill_items`, `cash_transactions`), and seeds your initial Admin account.
+
+### 5. Migrate Data from AWS RDS (Optional)
+If you have existing sales, inventory, and product data in your previous AWS RDS database:
+```bash
+python scripts/migrate_data.py \
+  --source "postgresql://postgres:<RDS_PASSWORD>@<RDS_HOST>:5432/postgres" \
+  --target "postgresql://postgres.<REF>:<PASS>@aws-0-<REGION>.pooler.supabase.com:5432/postgres?sslmode=require"
+```
+The migration script automatically respects foreign keys, transfers all records, and resynchronizes PostgreSQL auto-increment sequences.
 
 ---
 

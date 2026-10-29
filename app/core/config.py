@@ -15,3 +15,9 @@ if DATABASE_URL.startswith("postgresql://") and "+" not in DATABASE_URL.split(":
         import psycopg
     except ImportError:
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+# Supabase requires an SSL connection; enforce sslmode=require for Supabase hosts
+if ("supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL) and "sslmode" not in DATABASE_URL:
+    delimiter = "&" if "?" in DATABASE_URL else "?"
+    DATABASE_URL = f"{DATABASE_URL}{delimiter}sslmode=require"
+

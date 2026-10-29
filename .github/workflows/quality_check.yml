@@ -54,12 +54,12 @@ jobs:
       - name: Deployment Message
         run: echo "Deployment triggered for POS.ponnangai.com!"
 
-      - name: Deploy to AWS EC2
+      - name: Deploy to Production Server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.AWS_HOST }}
-          username: ${{ secrets.AWS_USER }}
-          key: ${{ secrets.AWS_PRIVATE_KEY }}
+          host: ${{ secrets.SERVER_HOST || secrets.AWS_HOST }}
+          username: ${{ secrets.SERVER_USER || secrets.AWS_USER }}
+          key: ${{ secrets.SERVER_PRIVATE_KEY || secrets.AWS_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/Ponnangai-POS
             git pull origin production
