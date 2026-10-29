@@ -1,4 +1,16 @@
 import os
+import sys
+
+# Ensure base directory is in sys.path and set as current working directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+try:
+    if os.getcwd() != BASE_DIR:
+        os.chdir(BASE_DIR)
+except Exception:
+    pass
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
