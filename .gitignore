@@ -197,3 +197,6 @@ pgdata/
 
 
 docs/
+
+# Backup photos
+photos_backup/

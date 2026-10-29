@@ -13,6 +13,7 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        window.STORAGE_URL = "{{ storage_url }}";
         // Global SweetAlert configuration for uniform close buttons
         if (typeof Swal !== 'undefined') {
             window.Swal = Swal.mixin({
@@ -91,7 +92,10 @@
                         <div class="product-card" onclick="openLiquidPopup(Number('{{ p.id }}'), '{{ p.name }}', Number('{{ p.price }}'), Number('{{ p.rate_qty or 0 }}'), '{{ p.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if p.image_filename %}
-                            <img src="/photos/{{ p.image_filename }}?v=2" alt="{{ p.name }}" class="product-image">
+                            <img src="{% if storage_url %}{{ storage_url }}/{{ p.image_filename }}{% else %}/photos/{{ p.image_filename }}{% endif %}"
+                                loading="lazy" decoding="async"
+                                onerror="this.onerror=null;this.src='/static/images/no-image.png'"
+                                alt="{{ p.name }}" class="product-image">
                             {% else %}
                             <div class="product-image"
                                 style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
@@ -108,7 +112,10 @@
                             onclick="openSolidPopup(Number('{{ p.id }}'), '{{ p.name }}', Number('{{ p.price }}'), '{{ p.unit }}', '{{ p.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if p.image_filename %}
-                            <img src="/photos/{{ p.image_filename }}?v=2" alt="{{ p.name }}" class="product-image">
+                            <img src="{% if storage_url %}{{ storage_url }}/{{ p.image_filename }}{% else %}/photos/{{ p.image_filename }}{% endif %}"
+                                loading="lazy" decoding="async"
+                                onerror="this.onerror=null;this.src='/static/images/no-image.png'"
+                                alt="{{ p.name }}" class="product-image">
                             {% else %}
                             <div class="product-image"
                                 style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
@@ -169,7 +176,7 @@
                             </div>
                         </div>
 
-                        <button class="btn" style="margin-top: 24px; font-size: 18px; padding: 16px;"
+                        <button id="submit-bill-btn" class="btn" style="margin-top: 24px; font-size: 18px; padding: 16px;"
                             onclick="submitBill()">
                             Confirm & Print Bill
                         </button>

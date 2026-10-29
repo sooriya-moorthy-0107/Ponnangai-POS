@@ -81,7 +81,8 @@ async def get_photo(filename: str):
     if SUPABASE_STORAGE_URL:
         return RedirectResponse(
             url=f"{SUPABASE_STORAGE_URL}/{filename}",
-            status_code=302
+            status_code=301,
+            headers={"Cache-Control": "public, max-age=31536000, immutable"}
         )
 
     # 4. Fallback placeholder if not found

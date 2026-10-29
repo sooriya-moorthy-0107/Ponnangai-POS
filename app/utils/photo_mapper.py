@@ -133,3 +133,4 @@ def auto_map_product_photo(product_name: str, requested_image: str = None) -> st
     # 3. Normalized slug (e.g. "Floor Cleaner 1L" -> "floor_cleaner_1l.jpg")
     slug = re.sub(r'[^a-z0-9]+', '_', name_clean).strip('_')
     return f"{slug}.jpg"
+

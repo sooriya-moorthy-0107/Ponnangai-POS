@@ -10,7 +10,7 @@ import os, csv, io, uuid, secrets
 from app.models.database import get_db
 from app.models.domain import User, Product, ShopInventory, Bill, BillItem, CashTransaction
 from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int
-from app.core.config import SECRET_KEY
+from app.core.config import SECRET_KEY, SUPABASE_STORAGE_URL
 from app.core.security import pwd_context
 from app.api.dependencies import get_current_user
 
@@ -50,18 +50,24 @@ async def shop_page(request: Request, shopkeeper_id: int = None, db: Session = D
         else:
             target_shopkeeper_id = user.id
 
-    # Fetch active products for targeted shopkeeper (even if out of stock)
-    products = db.query(Product).filter(
-        Product.shopkeeper_id == target_shopkeeper_id,
-        Product.is_deleted == False
-    ).all()
+    # Fetch active products with their shop inventory in a single joined query
+    rows = (
+        db.query(Product, func.coalesce(ShopInventory.stock, 0).label("stock"))
+        .outerjoin(
+            ShopInventory,
+            (ShopInventory.product_id == Product.id) & (ShopInventory.shopkeeper_id == target_shopkeeper_id)
+        )
+        .filter(
+            Product.shopkeeper_id == target_shopkeeper_id,
+            Product.is_deleted == False
+        )
+        .all()
+    )
+    products = []
+    for prod, stock_qty in rows:
+        prod.stock = stock_qty
+        products.append(prod)
     products.sort(key=lambda p: get_product_sort_key(p.name))
-    
-    shop_invs = db.query(ShopInventory).filter(ShopInventory.shopkeeper_id == target_shopkeeper_id).all()
-    inv_map = {inv.product_id: inv.stock for inv in shop_invs}
-    
-    for p in products:
-        p.stock = inv_map.get(p.id, 0)
         
     target_sk = db.query(User).filter(User.id == target_shopkeeper_id).first()
     target_sk_name = target_sk.username if target_sk else "Unknown Shop"
@@ -72,7 +78,8 @@ async def shop_page(request: Request, shopkeeper_id: int = None, db: Session = D
         "products": products,
         "shopkeepers": shopkeepers,
         "target_shopkeeper_id": target_shopkeeper_id,
-        "target_sk_name": target_sk_name
+        "target_sk_name": target_sk_name,
+        "storage_url": SUPABASE_STORAGE_URL
     })
 
 @router.get("/factory", response_class=HTMLResponse)
@@ -116,7 +123,8 @@ async def factory_pos_page(request: Request, db: Session = Depends(get_db)):
         "target_shopkeeper_id": target_cashier_id,
         "target_cashier_id": target_cashier_id,
         "cashier_name": cashier_name,
-        "shopkeepers": shopkeepers
+        "shopkeepers": shopkeepers,
+        "storage_url": SUPABASE_STORAGE_URL
     })
 
 @router.get("/admin", response_class=HTMLResponse)
@@ -197,7 +205,8 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
         "low_stock_alerts": low_stock_alerts,
         "shop_performance": shop_performance,
         "shop_performance_today": shop_performance_today,
-        "archived_shopkeepers": archived_shopkeepers
+        "archived_shopkeepers": archived_shopkeepers,
+        "storage_url": SUPABASE_STORAGE_URL
     })
 
 @router.get("/receipt/{bill_id}", response_class=HTMLResponse)
@@ -215,5 +224,14 @@ async def receipt_page(request: Request, bill_id: int, db: Session = Depends(get
         Bill.id <= bill.id
     ).count()
         
-    return templates.TemplateResponse(request=request, name="receipt.html", context={"request": request, "bill": bill, "bill_number": bill_number, "user": user})
-
+    return templates.TemplateResponse(
+        request=request, 
+        name="receipt.html", 
+        context={
+            "request": request, 
+            "bill": bill, 
+            "bill_number": bill_number, 
+            "user": user,
+            "storage_url": SUPABASE_STORAGE_URL
+        }
+    )

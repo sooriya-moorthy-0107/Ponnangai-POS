@@ -76,3 +76,4 @@ if __name__ == "__main__":
         api_key = sys.argv[1].strip()
 
     upload_all_photos(api_key)
+

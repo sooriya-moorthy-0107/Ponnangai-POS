@@ -11,6 +11,7 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        window.STORAGE_URL = "{{ storage_url }}";
         // Global SweetAlert configuration for uniform close buttons
         if (typeof Swal !== 'undefined') {
             window.Swal = Swal.mixin({
@@ -93,7 +94,10 @@
                             onclick="openProductPopup({{ product.id }}, '{{ product.name }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}', '{{ product.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if product.image_filename %}
-                            <img src="/photos/{{ product.image_filename }}?v=2" alt="{{ product.name }}"
+                            <img src="{% if storage_url %}{{ storage_url }}/{{ product.image_filename }}{% else %}/photos/{{ product.image_filename }}{% endif %}"
+                                loading="lazy" decoding="async"
+                                onerror="this.onerror=null;this.src='/static/images/no-image.png'"
+                                alt="{{ product.name }}"
                                 class="product-image">
                             {% else %}
                             <div class="product-image"
@@ -120,7 +124,10 @@
                             style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">
                             OUT OF STOCK</div>
                         {% if product.image_filename %}
-                        <img src="/photos/{{ product.image_filename }}?v=2" alt="{{ product.name }}" class="product-image"
+                        <img src="{% if storage_url %}{{ storage_url }}/{{ product.image_filename }}{% else %}/photos/{{ product.image_filename }}{% endif %}"
+                            loading="lazy" decoding="async"
+                            onerror="this.onerror=null;this.src='/static/images/no-image.png'"
+                            alt="{{ product.name }}" class="product-image"
                             style="filter: grayscale(100%);">
                         {% else %}
                         <div class="product-image"
@@ -181,7 +188,7 @@
                         </div>
                     </div>
 
-                    <button class="btn" style="margin-top: 24px; font-size: 18px; padding: 16px;"
+                    <button id="submit-bill-btn" class="btn" style="margin-top: 24px; font-size: 18px; padding: 16px;"
                         onclick="submitBill()">
                         Confirm & Print Bill
                     </button>

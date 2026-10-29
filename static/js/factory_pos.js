@@ -429,11 +429,15 @@ function calculateTotal() {
     }
 }
 
+let isSubmittingBill = false;
 async function submitBill() {
+    if (isSubmittingBill) return;
     if (cart.length === 0) {
         await Swal.fire('Cart is empty.');
         return;
     }
+    const submitBtn = document.getElementById('submit-bill-btn');
+    const originalText = submitBtn ? submitBtn.innerHTML : '';
     const paymentMode = document.getElementById('payment-mode').value;
     const payload = {
         shopkeeper_id: ACTIVE_CASHIER_ID,
@@ -450,6 +454,12 @@ async function submitBill() {
     };
 
     try {
+        isSubmittingBill = true;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+            submitBtn.innerHTML = '⏳ Processing Bill...';
+        }
         const res = await fetch('/api/bills', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -467,6 +477,13 @@ async function submitBill() {
         }
     } catch (err) {
         await Swal.fire('Network/Server error during checkout.');
+    } finally {
+        isSubmittingBill = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.innerHTML = originalText || 'Confirm & Print Bill';
+        }
     }
 }
 
@@ -1154,7 +1171,8 @@ function openSolidPopup(id, name, price, unit, imagePath) {
     const imgEl = document.getElementById('popup-product-image');
     if (imgEl) {
         if (imagePath && imagePath.trim() !== '') {
-            imgEl.src = "/photos/" + imagePath;
+            const imgBase = (window.STORAGE_URL && window.STORAGE_URL.trim() !== '') ? window.STORAGE_URL : '/photos';
+            imgEl.src = imgBase + "/" + encodeURIComponent(imagePath);
             imgEl.style.display = 'block';
         } else {
             imgEl.style.display = 'none';
@@ -1177,7 +1195,8 @@ function openLiquidPopup(id, name, price, rate_qty, imagePath) {
     const imgEl = document.getElementById('popup-product-image');
     if (imgEl) {
         if (imagePath && imagePath.trim() !== '') {
-            imgEl.src = "/photos/" + imagePath;
+            const imgBase = (window.STORAGE_URL && window.STORAGE_URL.trim() !== '') ? window.STORAGE_URL : '/photos';
+            imgEl.src = imgBase + "/" + encodeURIComponent(imagePath);
             imgEl.style.display = 'block';
         } else {
             imgEl.style.display = 'none';

@@ -160,11 +160,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+let isSubmittingBill = false;
 async function submitBill() {
+    if (isSubmittingBill) return;
     if (cart.length === 0) {
         await Swal.fire("Cart is empty!");
         return;
     }
+
+    const submitBtn = document.getElementById('submit-bill-btn');
+    const originalText = submitBtn ? submitBtn.innerHTML : '';
 
     const discount = parseFloat(document.getElementById('discount-input').value) || 0;
     const paymentMode = document.getElementById('payment-mode').value;
@@ -177,6 +182,13 @@ async function submitBill() {
     };
 
     try {
+        isSubmittingBill = true;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+            submitBtn.innerHTML = '⏳ Processing Bill...';
+        }
+
         const response = await fetch('/api/bills', {
             method: 'POST',
             headers: {
@@ -208,6 +220,13 @@ async function submitBill() {
     } catch (err) {
         await Swal.fire("Error connecting to server.");
         console.error(err);
+    } finally {
+        isSubmittingBill = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.innerHTML = originalText || 'Confirm & Print Bill';
+        }
     }
 }
 
@@ -404,6 +423,7 @@ function renderProducts(productsList) {
 
         // Escape quotes & backslashes for safe function argument passing in onclick
         const escapedName = product.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+        const imgBase = (window.STORAGE_URL && window.STORAGE_URL.trim() !== '') ? window.STORAGE_URL : '/photos';
 
         if (product.stock > 0) {
             card.className = 'product-card';
@@ -411,7 +431,7 @@ function renderProducts(productsList) {
             card.setAttribute('onclick', `openProductPopup(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}', '${product.image_filename || ''}')`);
 
             const imageHtml = product.image_filename
-                ? `<img src="/photos/${product.image_filename}" alt="${escapeHTML(product.name)}" class="product-image">`
+                ? `<img src="${imgBase}/${encodeURIComponent(product.image_filename)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/static/images/no-image.png'" alt="${escapeHTML(product.name)}" class="product-image">`
                 : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
 
             const stockHtml = product.stock <= 5
@@ -432,7 +452,7 @@ function renderProducts(productsList) {
             card.style.position = 'relative';
 
             const imageHtml = product.image_filename
-                ? `<img src="/photos/${product.image_filename}" alt="${escapeHTML(product.name)}" class="product-image" style="filter: grayscale(100%);">`
+                ? `<img src="${imgBase}/${encodeURIComponent(product.image_filename)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/static/images/no-image.png'" alt="${escapeHTML(product.name)}" class="product-image" style="filter: grayscale(100%);">`
                 : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
 
             card.innerHTML = `
@@ -1399,6 +1419,7 @@ function closeRecentBillsModal() {
 }
 
 let pendingProductData = null;
+let isConfirmingAdd = false;
 
 function openProductPopup(id, name, price, maxStock, productType, unit, imagePath) {
     pendingProductData = { id, name, price, maxStock, productType, unit };
@@ -1411,7 +1432,8 @@ function openProductPopup(id, name, price, maxStock, productType, unit, imagePat
     const imgEl = document.getElementById('popup-product-image');
     if (imgEl) {
         if (imagePath && imagePath.trim() !== '') {
-            imgEl.src = "/photos/" + imagePath;
+            const imgBase = (window.STORAGE_URL && window.STORAGE_URL.trim() !== '') ? window.STORAGE_URL : '/photos';
+            imgEl.src = imgBase + "/" + encodeURIComponent(imagePath);
             imgEl.style.display = 'block';
         } else {
             imgEl.style.display = 'none';
@@ -1452,7 +1474,7 @@ function adjustPopupQty(amount) {
 }
 
 function confirmAddToCart() {
-    if (!pendingProductData) return;
+    if (isConfirmingAdd || !pendingProductData) return;
     
     let qty = parseFloat(document.getElementById('popup-qty').value);
     if (isNaN(qty) || qty <= 0) {
@@ -1464,11 +1486,6 @@ function confirmAddToCart() {
         return;
     }
 
-    // Call the existing addToCart method
-    // Note: The existing addToCart usually adds 1, but we need to support adding 'qty'.
-    // Let's modify cart directly or call addToCart multiple times. Actually, addToCart adds 1 or updates quantity.
-    // Let's add it directly to cart array to be precise with exact quantity.
-    
     const { id, name, price, maxStock, productType, unit } = pendingProductData;
     const existingItem = cart.find(i => i.id === id);
     let newQty = existingItem ? existingItem.qty + qty : qty;
@@ -1482,12 +1499,20 @@ function confirmAddToCart() {
         return;
     }
 
-    if (existingItem) {
-        existingItem.qty = newQty;
-    } else {
-        cart.push({ id, name, price, qty, maxStock, productType, unit });
-    }
+    isConfirmingAdd = true;
+    const addBtn = document.getElementById('popup-add-btn');
+    if (addBtn) addBtn.disabled = true;
 
-    renderCart();
-    closeProductPopup();
+    try {
+        if (existingItem) {
+            existingItem.qty = newQty;
+        } else {
+            cart.push({ id, name, price, qty, maxStock, productType, unit });
+        }
+        renderCart();
+        closeProductPopup();
+    } finally {
+        isConfirmingAdd = false;
+        if (addBtn) addBtn.disabled = false;
+    }
 }

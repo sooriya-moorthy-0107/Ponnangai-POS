@@ -18,8 +18,8 @@ class Product(Base):
     name = Column(String, index=True, nullable=False)
     price = Column(Float, nullable=False)
     image_filename = Column(String, nullable=True)
-    shopkeeper_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    is_deleted = Column(Boolean, default=False)
+    shopkeeper_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    is_deleted = Column(Boolean, default=False, index=True)
     product_type = Column(String, default="solid") # "solid" or "liquid"
     unit = Column(String, default="Pcs") # "Pcs", "Liters", etc.
     rate_qty = Column(Float, nullable=True)
@@ -29,8 +29,8 @@ class Product(Base):
 class ShopInventory(Base):
     __tablename__ = "shop_inventories"
     id = Column(Integer, primary_key=True, index=True)
-    shopkeeper_id = Column(Integer, ForeignKey("users.id"))
-    product_id = Column(Integer, ForeignKey("products.id"))
+    shopkeeper_id = Column(Integer, ForeignKey("users.id"), index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), index=True)
     stock = Column(Integer, default=0)
 
     shopkeeper = relationship("User")
@@ -44,10 +44,10 @@ class Bill(Base):
     final_amount = Column(Float, nullable=False)
     round_off = Column(Float, default=0.0)
     payment_mode = Column(String, default="Cash") # Cash/UPI
-    timestamp = Column(DateTime, default=datetime.now)
-    cashier_id = Column(Integer, ForeignKey("users.id"))
+    timestamp = Column(DateTime, default=datetime.now, index=True)
+    cashier_id = Column(Integer, ForeignKey("users.id"), index=True)
     cashier_name = Column(String, nullable=True)
-    is_cancelled = Column(Boolean, default=False)
+    is_cancelled = Column(Boolean, default=False, index=True)
 
     cashier = relationship("User")
     items = relationship("BillItem", back_populates="bill")
@@ -55,8 +55,8 @@ class Bill(Base):
 class BillItem(Base):
     __tablename__ = "bill_items"
     id = Column(Integer, primary_key=True, index=True)
-    bill_id = Column(Integer, ForeignKey("bills.id"))
-    product_id = Column(Integer, ForeignKey("products.id"))
+    bill_id = Column(Integer, ForeignKey("bills.id"), index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), index=True)
     quantity = Column(Float, nullable=False) # Changed from Integer to Float for loose quantity sales
     price_at_sale = Column(Float, nullable=False)
     packaging_type = Column(String, default="loose") # loose, bottle
@@ -69,11 +69,10 @@ class BillItem(Base):
 class CashTransaction(Base):
     __tablename__ = "cash_transactions"
     id = Column(Integer, primary_key=True, index=True)
-    shopkeeper_id = Column(Integer, ForeignKey("users.id"))
+    shopkeeper_id = Column(Integer, ForeignKey("users.id"), index=True)
     amount = Column(Float, nullable=False)
     transaction_type = Column(String, nullable=False) # "IN" or "OUT"
     description = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=datetime.now)
+    timestamp = Column(DateTime, default=datetime.now, index=True)
 
     shopkeeper = relationship("User")
-
