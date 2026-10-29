@@ -14,11 +14,11 @@ except Exception:
     pass
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.core.config import SECRET_KEY, PRODUCTION
+from app.core.config import SECRET_KEY, PRODUCTION, SUPABASE_STORAGE_URL
 from app.core.security import CSRFMiddleware
 from app.models.database import Base, engine
 import app.models.domain  # noqa: F401 - ensure models are registered
@@ -63,8 +63,32 @@ except Exception:
     pass
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-if os.path.exists("photos"):
-    app.mount("/photos", StaticFiles(directory="photos"), name="photos")
+
+# Photo Handler: Serves local files if present; otherwise redirects to Supabase Cloud Storage
+@app.get("/photos/{filename:path}")
+async def get_photo(filename: str):
+    # 1. Local disk file check (for local development or Docker)
+    local_path = os.path.join("photos", filename)
+    if os.path.isfile(local_path):
+        return FileResponse(local_path)
+    
+    # 2. Check in photos/wobg/
+    wobg_path = os.path.join("photos", "wobg", filename)
+    if os.path.isfile(wobg_path):
+        return FileResponse(wobg_path)
+
+    # 3. Supabase Cloud Storage Public Bucket
+    if SUPABASE_STORAGE_URL:
+        return RedirectResponse(
+            url=f"{SUPABASE_STORAGE_URL}/{filename}",
+            status_code=302
+        )
+
+    # 4. Fallback placeholder if not found
+    placeholder = os.path.join("static", "images", "no-image.png")
+    if os.path.isfile(placeholder):
+        return FileResponse(placeholder)
+    return Response(status_code=404)
 
 # Include Routers
 app.include_router(auth.router)

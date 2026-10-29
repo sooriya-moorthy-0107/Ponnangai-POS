@@ -52,22 +52,3 @@ jobs:
       - name: Build Docker Image
         run: |
           docker build -t ponnangai-pos:latest .
-
-  deploy-legacy-server:
-    needs: [test-and-lint, build-docker]
-    runs-on: ubuntu-latest
-    # Only run this step if SSH credentials are explicitly configured in GitHub Secrets
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production') && (secrets.SERVER_HOST != '' || secrets.AWS_HOST != '')
-    steps:
-      - name: Deploy to Legacy Server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST || secrets.AWS_HOST }}
-          username: ${{ secrets.SERVER_USER || secrets.AWS_USER }}
-          key: ${{ secrets.SERVER_PRIVATE_KEY || secrets.AWS_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/Ponnangai-POS
-            git pull origin production
-            ./venv/bin/pip install -r requirements.txt
-            grep -qxF 'TZ=Asia/Kolkata' .env || echo 'TZ=Asia/Kolkata' >> .env
-            sudo systemctl restart ponnangai-pos

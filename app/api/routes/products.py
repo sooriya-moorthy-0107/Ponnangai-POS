@@ -10,6 +10,7 @@ import os, csv, io, uuid, secrets
 from app.models.database import get_db
 from app.models.domain import User, Product, ShopInventory, Bill, BillItem, CashTransaction
 from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int
+from app.utils.photo_mapper import auto_map_product_photo
 from app.core.config import SECRET_KEY
 from app.core.security import pwd_context
 from app.api.dependencies import get_current_user
@@ -96,7 +97,7 @@ async def add_product(request: Request, data: dict, db: Session = Depends(get_db
         Product.image_filename != None,
         Product.image_filename != ""
     ).first()
-    img_filename = existing_img.image_filename if existing_img else None
+    img_filename = existing_img.image_filename if (existing_img and existing_img.image_filename) else auto_map_product_photo(name)
 
     new_product = Product(
         name=name,
@@ -263,13 +264,7 @@ async def bulk_upload_products(request: Request, shopkeeper_id: int = Form(...),
                     existing.is_deleted = False
                     existing.product_type = p_type
                     existing.unit = p_unit
-                    cleaned_image = clean_csv_val(image_val)
-                    if cleaned_image:
-                        raw_img = cleaned_image
-                        image_filename = raw_img.lower().replace(" ", "_").replace("-", "")
-                        if not image_filename.endswith(".jpg"):
-                            image_filename += ".jpg"
-                        existing.image_filename = image_filename
+                    existing.image_filename = auto_map_product_photo(p_name, image_val)
                     db.commit()
                     
                     # Update or create ShopInventory record
@@ -286,14 +281,7 @@ async def bulk_upload_products(request: Request, shopkeeper_id: int = Form(...),
                     updated_count += 1
                 else:
                     # Create new shopkeeper-specific product
-                    cleaned_image = clean_csv_val(image_val)
-                    if cleaned_image:
-                        raw_img = cleaned_image
-                        image_filename = raw_img.lower().replace(" ", "_").replace("-", "")
-                        if not image_filename.endswith(".jpg"):
-                            image_filename += ".jpg"
-                    else:
-                        image_filename = p_name.lower().replace(" ", "_").replace("-", "") + ".jpg"
+                    image_filename = auto_map_product_photo(p_name, image_val)
                     
                     new_product = Product(
                         name=p_name,

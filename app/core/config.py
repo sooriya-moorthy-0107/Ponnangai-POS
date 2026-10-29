@@ -1,4 +1,5 @@
 import os
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,3 +32,14 @@ if "pooler.supabase.com:5432" in DATABASE_URL:
 if ("supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL) and "sslmode" not in DATABASE_URL:
     delimiter = "&" if "?" in DATABASE_URL else "?"
     DATABASE_URL = f"{DATABASE_URL}{delimiter}sslmode=require"
+
+# Supabase Cloud Storage Configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+if not SUPABASE_URL:
+    # Automatically extract project ref from DATABASE_URL (e.g. postgres.cugatwvlzgvxdoozgaab:...)
+    m = re.search(r"postgres\.([a-z0-9]+):", DATABASE_URL)
+    if m:
+        SUPABASE_URL = f"https://{m.group(1)}.supabase.co"
+
+SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "products")
+SUPABASE_STORAGE_URL = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_STORAGE_BUCKET}" if SUPABASE_URL else ""
