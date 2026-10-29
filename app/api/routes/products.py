@@ -15,7 +15,7 @@ from app.core.security import pwd_context
 from app.api.dependencies import get_current_user
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
+from app.core.templates import templates
 
 @router.post("/api/products/{product_id}/edit")
 async def edit_product_info(request: Request, product_id: int, name: str = Form(...), price: float = Form(None), rate_qty: float = Form(None), stock: int = Form(None), shopkeeper_id: int = Form(None), db: Session = Depends(get_db)):

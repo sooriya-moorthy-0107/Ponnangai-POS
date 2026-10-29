@@ -15,7 +15,7 @@ from app.core.security import pwd_context
 from app.api.dependencies import get_current_user
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
+from app.core.templates import templates
 
 def seed_db():
     db = SessionLocal()

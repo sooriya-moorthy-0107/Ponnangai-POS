@@ -1,5 +1,7 @@
 import os
 import sys
+import logging
+import traceback
 
 # Ensure base directory is in sys.path and set as current working directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -11,7 +13,8 @@ try:
 except Exception:
     pass
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -25,10 +28,23 @@ from app.api.routes import auth, pages, billing, cash, inventory, products, user
 try:
     Base.metadata.create_all(bind=engine)
 except Exception as e:
-    import logging
     logging.getLogger("uvicorn.error").warning(f"Database schema initialization skipped: {e}")
 
 app = FastAPI(title="Ponnangai POS")
+
+# Global Exception Handler (returns readable error trace if an unhandled crash occurs)
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    error_trace = traceback.format_exc()
+    logging.error(f"Unhandled error on {request.url.path}: {exc}\n{error_trace}")
+    return HTMLResponse(
+        content=f"<html><body style='font-family:sans-serif;padding:24px;background:#FFF5F5;color:#9B2C2C;'>"
+                f"<h2>Application Error (500)</h2>"
+                f"<p><b>{type(exc).__name__}:</b> {str(exc)}</p>"
+                f"<pre style='background:#FFF;padding:16px;border-radius:8px;border:1px solid #FEB2B2;overflow:auto;font-size:12px;color:#2D3748;'>{error_trace}</pre>"
+                f"</body></html>",
+        status_code=500
+    )
 
 # Middlewares
 app.add_middleware(

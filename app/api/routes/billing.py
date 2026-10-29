@@ -15,7 +15,7 @@ from app.core.security import pwd_context
 from app.api.dependencies import get_current_user
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
+from app.core.templates import templates
 
 @router.get("/api/bills/history")
 async def get_bill_history(request: Request, shopkeeper_id: int = None, db: Session = Depends(get_db)):
