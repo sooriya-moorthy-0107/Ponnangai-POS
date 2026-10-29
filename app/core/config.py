@@ -22,6 +22,11 @@ if DATABASE_URL.startswith("postgres://"):
 if DATABASE_URL.startswith("postgresql://") and "+" not in DATABASE_URL.split("://")[0]:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
+# Supabase Pooler: Automatically upgrade Session mode (port 5432) to Transaction mode (port 6543)
+# This prevents EMAXCONNSESSION (max clients reached in session mode: 15) in serverless environments
+if "pooler.supabase.com:5432" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("pooler.supabase.com:5432", "pooler.supabase.com:6543")
+
 # Supabase requires an SSL connection; enforce sslmode=require for Supabase hosts
 if ("supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL) and "sslmode" not in DATABASE_URL:
     delimiter = "&" if "?" in DATABASE_URL else "?"
