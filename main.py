@@ -28,11 +28,15 @@ app.add_middleware(
 app.add_middleware(CSRFMiddleware)
 
 # Static files
-os.makedirs("photos", exist_ok=True)
-os.makedirs("photos/wobg", exist_ok=True)
+try:
+    os.makedirs("photos", exist_ok=True)
+    os.makedirs("photos/wobg", exist_ok=True)
+except Exception:
+    pass
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/photos", StaticFiles(directory="photos"), name="photos")
+if os.path.exists("photos"):
+    app.mount("/photos", StaticFiles(directory="photos"), name="photos")
 
 # Include Routers
 app.include_router(auth.router)
@@ -44,3 +48,7 @@ app.include_router(products.router)
 app.include_router(users.router)
 app.include_router(reports.router)
 app.include_router(admin.router)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
