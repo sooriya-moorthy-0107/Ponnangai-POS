@@ -238,7 +238,39 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
     db.commit()
     db.refresh(new_bill)
     
-    return {"status": "success", "bill_id": new_bill.id}
+    # Calculate bill number for receipt
+    bill_number = db.query(Bill).filter(
+        Bill.cashier_id == new_bill.cashier_id,
+        Bill.id <= new_bill.id
+    ).count()
+
+    items_response = []
+    for bi in new_bill.items:
+        prod = prod_map.get(bi.product_id)
+        items_response.append({
+            "product_id": bi.product_id,
+            "name": prod.name if prod else "Item",
+            "quantity": bi.quantity,
+            "price": bi.price_at_sale,
+            "total": bi.price_at_sale * bi.quantity,
+            "packaging_type": bi.packaging_type,
+            "bottle_type": bi.bottle_type
+        })
+
+    bill_data = {
+        "id": new_bill.id,
+        "bill_number": bill_number,
+        "total_amount": new_bill.total_amount,
+        "discount": new_bill.discount,
+        "final_amount": new_bill.final_amount,
+        "payment_mode": new_bill.payment_mode,
+        "timestamp": new_bill.timestamp.strftime('%Y-%m-%d %H:%M'),
+        "cashier_name": new_bill.cashier_name,
+        "is_cancelled": new_bill.is_cancelled,
+        "items": items_response
+    }
+
+    return {"status": "success", "bill_id": new_bill.id, "bill": bill_data}
 
 @router.post("/api/bills/{bill_id}/revert")
 async def revert_bill(request: Request, bill_id: int, db: Session = Depends(get_db)):

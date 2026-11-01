@@ -8,8 +8,8 @@
     <link rel="icon" type="image/png" href="/static/images/logo.png">
     <link rel="stylesheet" href="/static/css/main.css?v=3">
 
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- SweetAlert2 (Local) -->
+    <script src="/static/js/sweetalert2.all.min.js"></script>
     <script>
         window.STORAGE_URL = "{{ storage_url }}";
         // Global SweetAlert configuration for uniform close buttons
@@ -86,15 +86,41 @@
             <div class="pos-content">
                 <div class="shop-layout" id="pos-view">
 
+                    <!-- Search & Filter Controls -->
+                    <div class="pos-search-wrapper" style="grid-column: 1 / -1;">
+                        <div style="display: flex; gap: 10px; align-items: center; background: #FFFFFF; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #CBD5E0; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+                            <span style="font-size: 18px; color: #718096;">🔍</span>
+                            <input type="text" id="pos-product-search" placeholder="Type product name to search... (Press '/' to focus)" 
+                                autocomplete="off"
+                                style="flex: 1; border: none; outline: none; font-size: 15px; font-weight: 500; color: #2D3748; background: transparent;"
+                                oninput="filterProductsRealtime(this.value)">
+                            <button type="button" id="clear-search-btn" onclick="clearProductSearch()" 
+                                style="display: none; background: none; border: none; font-size: 16px; color: #A0AEC0; cursor: pointer; padding: 0 4px;">✕</button>
+                        </div>
+                        <div id="search-filter-pills" style="display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; padding-bottom: 4px;">
+                            <button type="button" class="category-pill active" onclick="filterCategory('ALL', this)">All Items</button>
+                            <button type="button" class="category-pill" onclick="filterCategory('5 L', this)">5 Liters</button>
+                            <button type="button" class="category-pill" onclick="filterCategory('1 L', this)">1 Liter</button>
+                            <button type="button" class="category-pill" onclick="filterCategory('COMFORT', this)">Comfort</button>
+                            <button type="button" class="category-pill" onclick="filterCategory('WASH', this)">Cleaners</button>
+                            <button type="button" class="category-pill" onclick="filterCategory('SOAP', this)">Soaps / Brooms</button>
+                        </div>
+                    </div>
+
                     <!-- Product Grid -->
                     <div class="product-grid">
                         {% for product in products %}
                         {% if product.stock > 0 %}
                         <div class="product-card"
-                            onclick="openProductPopup({{ product.id }}, '{{ product.name }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}', '{{ product.image_filename or '' }}')"
+                            data-product-id="{{ product.id }}"
+                            data-product-name="{{ product.name|lower }}"
+                            data-stock="{{ product.stock }}"
+                            data-price="{{ product.price }}"
+                            onclick="quickAddToCart({{ product.id }}, '{{ product.name|replace('\'', '\\\'') }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}')"
                             style="cursor: pointer;">
                             {% if product.image_filename %}
-                            <img src="{% if storage_url %}{{ storage_url }}/{{ product.image_filename }}{% else %}/photos/{{ product.image_filename }}{% endif %}"
+                            <img src="/photos/{{ product.image_filename }}"
+                                width="120" height="120"
                                 loading="lazy" decoding="async"
                                 onerror="this.onerror=null;this.src='/static/images/no-image.png'"
                                 alt="{{ product.name }}"
@@ -106,43 +132,50 @@
                             {% endif %}
                             <div class="product-name">{{ product.name }}</div>
                             <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
-                            {% if product.stock <= 5 %} <div
-                                style="font-size: 10px; color: var(--destructive); margin-bottom: 4px; font-weight: bold;">
-                                Only
-                                {{ product.stock }} left!
+                            <div class="product-stock-display"
+                                style="font-size: 10px; color: {% if product.stock <= 5 %}var(--destructive){% else %}#4A5568{% endif %}; margin-bottom: 4px; font-weight: {% if product.stock <= 5 %}bold{% else %}normal{% endif %};">
+                                {% if product.stock <= 5 %}Only {{ product.stock }} left!{% else %}Stock: {{ product.stock }}{% endif %}
+                            </div>
+                            <div style="display: flex; gap: 6px; width: 100%; margin-top: auto;">
+                                <button class="btn btn-small" style="flex: 1; padding: 6px;"
+                                    onclick="event.stopPropagation(); quickAddToCart({{ product.id }}, '{{ product.name|replace('\'', '\\\'') }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}')">
+                                    + Add
+                                </button>
+                                <button class="qty-popup-btn" title="Specify Quantity"
+                                    onclick="event.stopPropagation(); openProductPopup({{ product.id }}, '{{ product.name|replace('\'', '\\\'') }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}', '{{ product.image_filename or '' }}')">
+                                    🔢
+                                </button>
+                            </div>
                         </div>
                         {% else %}
-                        <div style="font-size: 10px; color: #4A5568; margin-bottom: 4px;">Stock: {{ product.stock }}
+                        <div class="product-card out-of-stock-card"
+                            data-product-id="{{ product.id }}"
+                            data-product-name="{{ product.name|lower }}"
+                            data-stock="0"
+                            data-price="{{ product.price }}"
+                            style="opacity: 0.65; cursor: not-allowed; position: relative;">
+                            <div
+                                style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">
+                                OUT OF STOCK</div>
+                            {% if product.image_filename %}
+                            <img src="/photos/{{ product.image_filename }}"
+                                width="120" height="120"
+                                loading="lazy" decoding="async"
+                                onerror="this.onerror=null;this.src='/static/images/no-image.png'"
+                                alt="{{ product.name }}" class="product-image"
+                                style="filter: grayscale(100%);">
+                            {% else %}
+                            <div class="product-image"
+                                style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
+                                No Image</div>
+                            {% endif %}
+                            <div class="product-name">{{ product.name }}</div>
+                            <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
+                            <div class="product-stock-display" style="font-size: 10px; color: #E53E3E; margin-bottom: 4px; font-weight: bold;">Out of Stock</div>
+                            <button class="btn btn-secondary btn-small" style="margin-top: auto; cursor: not-allowed; width: 100%;"
+                                disabled>Out of Stock</button>
                         </div>
                         {% endif %}
-                        <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
-                    </div>
-                    {% else %}
-                    <div class="product-card out-of-stock-card"
-                        style="opacity: 0.65; cursor: not-allowed; position: relative;">
-                        <div
-                            style="position: absolute; top: 10px; left: 10px; background: #E53E3E; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; z-index: 10;">
-                            OUT OF STOCK</div>
-                        {% if product.image_filename %}
-                        <img src="{% if storage_url %}{{ storage_url }}/{{ product.image_filename }}{% else %}/photos/{{ product.image_filename }}{% endif %}"
-                            loading="lazy" decoding="async"
-                            onerror="this.onerror=null;this.src='/static/images/no-image.png'"
-                            alt="{{ product.name }}" class="product-image"
-                            style="filter: grayscale(100%);">
-                        {% else %}
-                        <div class="product-image"
-                            style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">
-                            No Image</div>
-                        {% endif %}
-                        <div class="product-name">{{ product.name }}</div>
-                        <div class="product-price">₹{{ "%.2f"|format(product.price) }}</div>
-                        <div style="font-size: 10px; color: #E53E3E; margin-bottom: 4px; font-weight: bold;">Out of
-                            Stock</div>
-                        <button class="btn btn-secondary btn-small" style="margin-top: auto; cursor: not-allowed;"
-                            disabled>Out
-                            of Stock</button>
-                    </div>
-                    {% endif %}
                     {% else %}
                     <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
                         No products found. Please ask the Manager to add some inventory.

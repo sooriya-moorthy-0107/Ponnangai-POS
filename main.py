@@ -17,6 +17,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.config import SECRET_KEY, PRODUCTION, SUPABASE_STORAGE_URL
 from app.core.security import CSRFMiddleware
@@ -47,6 +48,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 # Middlewares
+app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY,
@@ -70,12 +72,12 @@ async def get_photo(filename: str):
     # 1. Local disk file check (for local development or Docker)
     local_path = os.path.join("photos", filename)
     if os.path.isfile(local_path):
-        return FileResponse(local_path)
+        return FileResponse(local_path, headers={"Cache-Control": "public, max-age=604800, immutable"})
     
     # 2. Check in photos/wobg/
     wobg_path = os.path.join("photos", "wobg", filename)
     if os.path.isfile(wobg_path):
-        return FileResponse(wobg_path)
+        return FileResponse(wobg_path, headers={"Cache-Control": "public, max-age=604800, immutable"})
 
     # 3. Supabase Cloud Storage Public Bucket
     if SUPABASE_STORAGE_URL:
@@ -88,7 +90,7 @@ async def get_photo(filename: str):
     # 4. Fallback placeholder if not found
     placeholder = os.path.join("static", "images", "no-image.png")
     if os.path.isfile(placeholder):
-        return FileResponse(placeholder)
+        return FileResponse(placeholder, headers={"Cache-Control": "public, max-age=604800, immutable"})
     return Response(status_code=404)
 
 # Include Routers

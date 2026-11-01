@@ -8,9 +8,12 @@ engine_kwargs = {}
 if "sqlite" in DATABASE_URL:
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
-    # Use NullPool for serverless / cloud PostgreSQL so connections are returned immediately
-    # This prevents holding open idle connections that exhaust Supabase limits
-    engine_kwargs["poolclass"] = NullPool
+    # Use persistent QueuePool with pre-ping and recycling to eliminate TLS connection latency
+    engine_kwargs["pool_size"] = 10
+    engine_kwargs["max_overflow"] = 20
+    engine_kwargs["pool_timeout"] = 30
+    engine_kwargs["pool_recycle"] = 300
+    engine_kwargs["pool_pre_ping"] = True
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
