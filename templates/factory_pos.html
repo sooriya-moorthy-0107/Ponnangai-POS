@@ -86,29 +86,13 @@
             <div class="pos-content">
                 <div class="shop-layout" id="pos-view">
 
-                    <!-- Search Controls -->
-                    <div class="pos-search-wrapper" style="grid-column: 1 / -1;">
-                        <div style="display: flex; gap: 10px; align-items: center; background: #FFFFFF; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #CBD5E0; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
-                            <span style="font-size: 18px; color: #718096;">🔍</span>
-                            <input type="text" id="pos-product-search" placeholder="Type product name to search... (Press '/' to focus)" 
-                                autocomplete="off"
-                                style="flex: 1; border: none; outline: none; font-size: 15px; font-weight: 500; color: #2D3748; background: transparent;"
-                                oninput="filterFactoryProducts(this.value)">
-                            <button type="button" id="clear-search-btn" onclick="clearFactorySearch()" 
-                                style="display: none; background: none; border: none; font-size: 16px; color: #A0AEC0; cursor: pointer; padding: 0 4px;">✕</button>
-                        </div>
-                    </div>
-
                     <!-- Product Grid -->
                     <div class="product-grid">
                         {% for p in liquid_products %}
-                        <div class="product-card"
-                            data-product-name="{{ p.name|lower }}"
-                            onclick="openLiquidPopup(Number('{{ p.id }}'), '{{ p.name }}', Number('{{ p.price }}'), Number('{{ p.rate_qty or 0 }}'), '{{ p.image_filename or '' }}')"
+                        <div class="product-card" onclick="openLiquidPopup(Number('{{ p.id }}'), '{{ p.name }}', Number('{{ p.price }}'), Number('{{ p.rate_qty or 0 }}'), '{{ p.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if p.image_filename %}
                             <img src="/photos/{{ p.image_filename }}"
-                                width="120" height="120"
                                 loading="lazy" decoding="async"
                                 onerror="this.onerror=null;this.src='/static/images/no-image.png'"
                                 alt="{{ p.name }}" class="product-image">
@@ -119,18 +103,16 @@
                             {% endif %}
                             <div class="product-name">{{ p.name }}</div>
 
-                            <button class="btn btn-small" style="margin-top: auto;">Select / Calculate</button>
+                            <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
                         </div>
                         {% endfor %}
 
                         {% for p in solid_products %}
                         <div class="product-card"
-                            data-product-name="{{ p.name|lower }}"
                             onclick="openSolidPopup(Number('{{ p.id }}'), '{{ p.name }}', Number('{{ p.price }}'), '{{ p.unit }}', '{{ p.image_filename or '' }}')"
                             style="cursor: pointer;">
                             {% if p.image_filename %}
                             <img src="/photos/{{ p.image_filename }}"
-                                width="120" height="120"
                                 loading="lazy" decoding="async"
                                 onerror="this.onerror=null;this.src='/static/images/no-image.png'"
                                 alt="{{ p.name }}" class="product-image">
@@ -141,7 +123,7 @@
                             {% endif %}
                             <div class="product-name">{{ p.name }}</div>
 
-                            <button class="btn btn-small" style="margin-top: auto;">+ Add to Cart</button>
+                            <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
                         </div>
                         {% endfor %}
 

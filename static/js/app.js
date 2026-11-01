@@ -45,16 +45,6 @@ async function addToCart(productId, productName, productPrice, maxStock, product
     renderCart();
 }
 
-function quickAddToCart(productId, productName, productPrice, maxStock, productType = 'solid', unit = 'Pcs') {
-    addToCart(productId, productName, productPrice, maxStock, productType, unit);
-    const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
-    if (card) {
-        card.classList.remove('card-added-flash');
-        void card.offsetWidth;
-        card.classList.add('card-added-flash');
-    }
-}
-
 // In-place DOM stock reduction without destroying/reloading catalog
 function updateStockInDOM(soldItems) {
     if (!soldItems || !soldItems.length) return;
@@ -151,94 +141,14 @@ function prependBillToHistory(bill) {
         </div>
         ${itemsHtml}
         <div style="display: flex; gap: 8px; margin-top: 10px;">
-            <button class="btn btn-secondary btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="handlePrintFlow(${bill.id})">🖨️ Reprint</button>
-            <button class="btn btn-secondary btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">✏️ Edit</button>
-            <button class="btn btn-destructive btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">🚫 Cancel</button>
+            <button class="btn btn-secondary btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="handlePrintFlow(${bill.id})">Reprint</button>
+            <button class="btn btn-secondary btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">Edit</button>
+            <button class="btn btn-destructive btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">Cancel</button>
         </div>
     `;
 
     container.insertBefore(card, container.firstChild);
 }
-
-// Instant client-side product search & category filtering
-let currentSearchQuery = '';
-let currentCategoryFilter = 'ALL';
-
-function filterProductsRealtime(query) {
-    currentSearchQuery = (query || '').toLowerCase().trim();
-    const clearBtn = document.getElementById('clear-search-btn');
-    if (clearBtn) {
-        clearBtn.style.display = currentSearchQuery ? 'inline-block' : 'none';
-    }
-    applyProductFilters();
-}
-
-function clearProductSearch() {
-    const input = document.getElementById('pos-product-search');
-    if (input) input.value = '';
-    filterProductsRealtime('');
-    if (input) input.focus();
-}
-
-function filterCategory(category, btnElement) {
-    currentCategoryFilter = category;
-    document.querySelectorAll('.category-pill').forEach(pill => pill.classList.remove('active'));
-    if (btnElement) btnElement.classList.add('active');
-    applyProductFilters();
-}
-
-function applyProductFilters() {
-    const cards = document.querySelectorAll('.product-grid .product-card');
-    let visibleCount = 0;
-    
-    cards.forEach(card => {
-        const name = (card.dataset.productName || '').toLowerCase();
-        
-        let matchesQuery = !currentSearchQuery || name.includes(currentSearchQuery);
-        let matchesCategory = true;
-        
-        if (currentCategoryFilter !== 'ALL') {
-            const cat = currentCategoryFilter.toLowerCase();
-            matchesCategory = name.includes(cat);
-        }
-        
-        if (matchesQuery && matchesCategory) {
-            card.style.display = 'flex';
-            visibleCount++;
-        } else {
-            card.style.display = 'none';
-        }
-    });
-
-    let noResultsEl = document.getElementById('pos-no-results-msg');
-    const grid = document.querySelector('.product-grid');
-    if (visibleCount === 0 && grid) {
-        if (!noResultsEl) {
-            noResultsEl = document.createElement('div');
-            noResultsEl.id = 'pos-no-results-msg';
-            noResultsEl.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096; font-size: 15px;';
-            grid.appendChild(noResultsEl);
-        }
-        noResultsEl.textContent = `No products matching "${currentSearchQuery || currentCategoryFilter}"`;
-        noResultsEl.style.display = 'block';
-    } else if (noResultsEl) {
-        noResultsEl.style.display = 'none';
-    }
-}
-
-// Global hotkey: Press '/' or 'F2' to focus search
-document.addEventListener('keydown', (e) => {
-    if ((e.key === '/' || e.key === 'F2') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-        const searchInput = document.getElementById('pos-product-search');
-        if (searchInput) {
-            searchInput.focus();
-            searchInput.select();
-        }
-    } else if (e.key === 'Escape' && document.activeElement.id === 'pos-product-search') {
-        clearProductSearch();
-    }
-});
 
 function updatePackaging(id, newPkg) {
     const item = cart.find(i => i.id === id);
@@ -630,10 +540,10 @@ function renderProducts(productsList) {
         if (product.stock > 0) {
             card.className = 'product-card';
             card.style.cursor = 'pointer';
-            card.setAttribute('onclick', `quickAddToCart(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}')`);
+            card.setAttribute('onclick', `openProductPopup(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}', '${product.image_filename || ''}')`);
 
             const imageHtml = product.image_filename
-                ? `<img src="/photos/${encodeURIComponent(product.image_filename)}" width="120" height="120" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/static/images/no-image.png'" alt="${escapeHTML(product.name)}" class="product-image">`
+                ? `<img src="/photos/${encodeURIComponent(product.image_filename)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/static/images/no-image.png'" alt="${escapeHTML(product.name)}" class="product-image">`
                 : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
 
             const stockHtml = product.stock <= 5
@@ -645,10 +555,7 @@ function renderProducts(productsList) {
                 <div class="product-name">${escapeHTML(product.name)}</div>
                 <div class="product-price">₹${product.price.toFixed(2)}</div>
                 ${stockHtml}
-                <div style="display: flex; gap: 6px; width: 100%; margin-top: auto;">
-                    <button class="btn btn-small" style="flex: 1; padding: 6px;" onclick="event.stopPropagation(); quickAddToCart(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}')">+ Add</button>
-                    <button class="qty-popup-btn" title="Specify Quantity" onclick="event.stopPropagation(); openProductPopup(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}', '${product.image_filename || ''}')">🔢</button>
-                </div>
+                <button class="btn btn-small" style="margin-top: auto;">Add to Cart</button>
             `;
         } else {
             card.className = 'product-card out-of-stock-card';
@@ -657,7 +564,7 @@ function renderProducts(productsList) {
             card.style.position = 'relative';
 
             const imageHtml = product.image_filename
-                ? `<img src="/photos/${encodeURIComponent(product.image_filename)}" width="120" height="120" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/static/images/no-image.png'" alt="${escapeHTML(product.name)}" class="product-image" style="filter: grayscale(100%);">`
+                ? `<img src="/photos/${encodeURIComponent(product.image_filename)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/static/images/no-image.png'" alt="${escapeHTML(product.name)}" class="product-image" style="filter: grayscale(100%);">`
                 : `<div class="product-image" style="display: flex; align-items: center; justify-content: center; color: #A0AEC0; font-size: 12px;">No Image</div>`;
 
             card.innerHTML = `
@@ -671,9 +578,7 @@ function renderProducts(productsList) {
         }
         grid.appendChild(card);
     });
-    if (typeof applyProductFilters === 'function') {
-        applyProductFilters();
-    }
+}
 }
 
 // Fetch real-time inventory from backend and refresh catalog view

@@ -704,31 +704,6 @@ async function loadBillForReceipt(billId, preloadedBill = null) {
     }
 }
 
-// Instant Factory product search
-function filterFactoryProducts(query) {
-    const q = (query || '').toLowerCase().trim();
-    const clearBtn = document.getElementById('clear-search-btn');
-    if (clearBtn) {
-        clearBtn.style.display = q ? 'inline-block' : 'none';
-    }
-    const cards = document.querySelectorAll('.product-grid .product-card');
-    cards.forEach(card => {
-        const name = (card.dataset.productName || '').toLowerCase();
-        if (!q || name.includes(q)) {
-            card.style.display = 'flex';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
-
-function clearFactorySearch() {
-    const input = document.getElementById('pos-product-search');
-    if (input) input.value = '';
-    filterFactoryProducts('');
-    if (input) input.focus();
-}
-
 function prependFactoryBillToHistory(bill) {
     const container = document.getElementById('bill-history-container');
     if (!container) return;
@@ -749,27 +724,13 @@ function prependFactoryBillToHistory(bill) {
             </div>
         </div>
         <div style="display: flex; gap: 8px; margin-top: 10px;">
-            <button class="btn btn-secondary btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="loadBillForReceipt(${bill.id})">🖨️ View / Print</button>
-            <button class="btn btn-secondary btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">✏️ Edit</button>
-            <button class="btn btn-destructive btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">🚫 Cancel</button>
+            <button class="btn btn-secondary btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="loadBillForReceipt(${bill.id})">View / Print</button>
+            <button class="btn btn-secondary btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="revertBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">Edit</button>
+            <button class="btn btn-destructive btn-small" style="flex: 1; padding: 4px 8px; font-size: 11px;" onclick="cancelBillFromHistory(${bill.id}, ${bill.bill_number || bill.id})">Cancel</button>
         </div>
     `;
     container.insertBefore(card, container.firstChild);
 }
-
-// Global hotkey: Press '/' to focus search
-document.addEventListener('keydown', (e) => {
-    if ((e.key === '/' || e.key === 'F2') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-        const searchInput = document.getElementById('pos-product-search');
-        if (searchInput) {
-            searchInput.focus();
-            searchInput.select();
-        }
-    } else if (e.key === 'Escape' && document.activeElement.id === 'pos-product-search') {
-        clearFactorySearch();
-    }
-});
 
 function renderReceiptHTML(bill) {
     const container = document.getElementById('receipt-container-preview');
