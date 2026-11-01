@@ -579,7 +579,6 @@ function renderProducts(productsList) {
         grid.appendChild(card);
     });
 }
-}
 
 // Fetch real-time inventory from backend and refresh catalog view
 async function refreshProductCatalog() {

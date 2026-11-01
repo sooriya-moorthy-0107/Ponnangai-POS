@@ -50,6 +50,7 @@ function escapeHTML(str) {
                 } else {
                     btn.classList.remove('active');
                 }
+            });
                 // Font size slider
                 const fontSlider = document.getElementById('font-size-slider');
                 const fontVal = document.getElementById('font-size-val');
