@@ -1,12 +1,19 @@
-name: Deploy to Zoho Catalyst AppSail
+name: Deploy to Zoho Catalyst AppSail (Production)
 
 on:
   push:
     branches:
-      - main
+      - production
+  pull_request:
+    branches:
+      - production
+    types:
+      - closed
 
 jobs:
   deploy:
+    # Only run on pushes to production, or when a pull request targeting production is merged
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
 
     steps:
@@ -33,4 +40,3 @@ jobs:
       - name: Deploy AppSail to Catalyst
         run: |
           catalyst deploy --only appsail --token ${{ secrets.CATALYST_TOKEN }}
-

@@ -52,6 +52,7 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(
     SessionMiddleware, 
     secret_key=SECRET_KEY,
+    max_age=None,
     https_only=PRODUCTION,
     same_site="lax"
 )
