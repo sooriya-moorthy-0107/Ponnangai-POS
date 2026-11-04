@@ -39,4 +39,4 @@ jobs:
 
       - name: Deploy AppSail to Catalyst (India DC)
         run: |
-          catalyst deploy --only appsail --dc in --project 103896000000013051 --org 60086351248 --token ${{ secrets.CATALYST_TOKEN }}
+          catalyst deploy --only appsail --dc in --project 103896000000013051 --org 60094627839 --token ${{ secrets.CATALYST_TOKEN }}
