@@ -23,12 +23,7 @@ if DATABASE_URL.startswith("postgres://"):
 if DATABASE_URL.startswith("postgresql://") and "+" not in DATABASE_URL.split("://")[0]:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-# Supabase Pooler: Automatically upgrade Session mode (port 5432) to Transaction mode (port 6543)
-# This prevents EMAXCONNSESSION (max clients reached in session mode: 15) in serverless environments
-if "pooler.supabase.com:5432" in DATABASE_URL:
-    DATABASE_URL = DATABASE_URL.replace("pooler.supabase.com:5432", "pooler.supabase.com:6543")
-
-# Supabase requires an SSL connection; enforce sslmode=require for Supabase hosts
+# Ensure sslmode=require for Supabase hosts
 if ("supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL) and "sslmode" not in DATABASE_URL:
     delimiter = "&" if "?" in DATABASE_URL else "?"
     DATABASE_URL = f"{DATABASE_URL}{delimiter}sslmode=require"
@@ -36,7 +31,6 @@ if ("supabase.co" in DATABASE_URL or "pooler.supabase.com" in DATABASE_URL) and 
 # Supabase Cloud Storage Configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 if not SUPABASE_URL:
-    # Automatically extract project ref from DATABASE_URL (e.g. postgres.cugatwvlzgvxdoozgaab:...)
     m = re.search(r"postgres\.([a-z0-9]+):", DATABASE_URL)
     if m:
         SUPABASE_URL = f"https://{m.group(1)}.supabase.co"

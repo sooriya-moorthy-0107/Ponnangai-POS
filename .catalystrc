@@ -1,0 +1,29 @@
+{
+  "defaults": {
+    "project": 1
+  },
+  "actives": {
+    "project": 1,
+    "env": 1
+  },
+  "projects": [
+    {
+      "idx": 1,
+      "id": "103896000000013051",
+      "name": "Ponnangai-pos",
+      "domain": {
+        "id": "50047420176",
+        "name": "ponnangai-pos-60094627839.development"
+      },
+      "timezone": "Asia/Kolkata",
+      "env": [
+        {
+          "idx": 1,
+          "id": "60094627839",
+          "name": "Development",
+          "type": 3
+        }
+      ]
+    }
+  ]
+}

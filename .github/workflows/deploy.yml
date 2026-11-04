@@ -1,0 +1,36 @@
+name: Deploy to Zoho Catalyst AppSail
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (for Catalyst CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Catalyst CLI
+        run: npm install -g zcatalyst-cli
+
+      - name: Install Linux App Dependencies into lib
+        run: |
+          pip install --no-user --only-binary=:all: --platform manylinux2014_x86_64 --implementation cp --python-version 3.13 -r requirements.txt -t ./lib
+
+      - name: Deploy AppSail to Catalyst
+        run: |
+          catalyst deploy --only appsail --token ${{ secrets.CATALYST_TOKEN }}
+
