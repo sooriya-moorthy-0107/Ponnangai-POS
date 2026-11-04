@@ -38,7 +38,7 @@
             </div>
             {% endif %}
 
-            <form action="/login" method="POST" onsubmit="sessionStorage.setItem('pos_tab_authenticated', 'true');">
+            <form action="/login" method="POST" onsubmit="sessionStorage.setItem('pos_session_active', 'true');">
                 <div class="form-group-md">
                     <label class="form-label">Username</label>
                     <input type="text" name="username" placeholder="Enter username" required autocomplete="off">

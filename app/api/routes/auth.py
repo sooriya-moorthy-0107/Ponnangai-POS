@@ -36,8 +36,13 @@ async def do_login(request: Request, username: str = Form(...), password: str = 
         return RedirectResponse(url="/factory", status_code=status.HTTP_302_FOUND)
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
+@router.post("/api/auth/invalidate-session")
+async def invalidate_session(request: Request):
+    """Called on pagehide/tab-close via navigator.sendBeacon"""
+    request.session.clear()
+    return JSONResponse(status_code=200, content={"status": "cleared"})
+
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-
