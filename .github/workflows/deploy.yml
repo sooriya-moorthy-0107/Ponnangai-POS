@@ -12,7 +12,7 @@ on:
 
 jobs:
   deploy:
-    # Only run on pushes to production, or when a pull request targeting production is merged
+    # Only run on direct pushes to production or merged pull requests targeting production
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
 
@@ -39,4 +39,4 @@ jobs:
 
       - name: Deploy AppSail to Catalyst
         run: |
-          catalyst deploy --only appsail --token ${{ secrets.CATALYST_TOKEN }}
+          catalyst deploy --only appsail --project 103896000000013051 --org 60086351248 --token ${{ secrets.CATALYST_TOKEN }}
