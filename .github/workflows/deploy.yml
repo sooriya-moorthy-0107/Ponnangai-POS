@@ -37,6 +37,6 @@ jobs:
         run: |
           pip install --no-user --only-binary=:all: --platform manylinux2014_x86_64 --implementation cp --python-version 3.13 -r requirements.txt -t ./lib
 
-      - name: Deploy AppSail to Catalyst
+      - name: Deploy AppSail to Catalyst (India DC)
         run: |
-          catalyst deploy --only appsail --project 103896000000013051 --org 60086351248 --token ${{ secrets.CATALYST_TOKEN }}
+          catalyst deploy --only appsail --dc in --project 103896000000013051 --org 60086351248 --token ${{ secrets.CATALYST_TOKEN }}
