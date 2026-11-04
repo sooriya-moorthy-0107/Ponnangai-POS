@@ -24,7 +24,7 @@ async def get_bill_history(request: Request, shopkeeper_id: int = None, db: Sess
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
         
     query = db.query(Bill)
-    if user.role == "Shopkeeper":
+    if user.role in ["Shopkeeper", "Factory"]:
         query = query.filter(Bill.cashier_id == user.id)
     elif shopkeeper_id:
         query = query.filter(Bill.cashier_id == shopkeeper_id)
@@ -106,6 +106,10 @@ async def get_bill_details(request: Request, bill_id: int, db: Session = Depends
     )
     if not bill:
         return JSONResponse(status_code=404, content={"detail": "Bill not found"})
+
+    # Authorization: shopkeepers and factory operators can only revert their own bills
+    if user.role not in ["Admin", "Manager", "Owner"] and bill.cashier_id != user.id:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized: You can only revert your own bills."})
         
     bill_number = db.query(Bill).filter(
         Bill.cashier_id == bill.cashier_id,
@@ -146,9 +150,13 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
     if not user or user.role not in ["Shopkeeper", "Admin", "Manager", "Owner", "Factory"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
         
-    target_shopkeeper_id = data.get("shopkeeper_id") or user.id
-    if target_shopkeeper_id:
-        target_shopkeeper_id = int(target_shopkeeper_id)
+    # Retail shopkeepers and factory operators can only bill on their own behalf
+    if user.role in ["Shopkeeper", "Factory"]:
+        target_shopkeeper_id = user.id
+    else:
+        target_shopkeeper_id = data.get("shopkeeper_id") or user.id
+        if target_shopkeeper_id:
+            target_shopkeeper_id = int(target_shopkeeper_id)
         
     sk_user = db.query(User).filter(User.id == target_shopkeeper_id, User.is_deleted == False).first()
     if not sk_user:
@@ -195,7 +203,26 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
             continue
             
         qty_float = float(item["qty"])
-        custom_price = float(item.get("price", product.price))
+        if qty_float <= 0:
+            return JSONResponse(status_code=400, content={"detail": f"Quantity for '{product.name}' must be greater than 0."})
+
+        # Server-side price enforcement (never trust client-supplied price for retail shopkeepers)
+        if user.role in ["Admin", "Manager", "Owner"]:
+            try:
+                custom_price = float(item.get("price", product.price))
+            except (ValueError, TypeError):
+                custom_price = float(product.price)
+        elif user.role == "Factory":
+            try:
+                custom_price = float(item.get("price", product.price))
+            except (ValueError, TypeError):
+                custom_price = float(product.price)
+        else:
+            # Retail Shopkeeper: STRICTLY enforce database price
+            custom_price = float(product.price)
+
+        if custom_price < 0:
+            return JSONResponse(status_code=400, content={"detail": f"Price for '{product.name}' cannot be negative."})
         
         # Deduct from shop inventory
         if sk_user.role != "Factory" and pid in inv_map:
@@ -286,6 +313,10 @@ async def revert_bill(request: Request, bill_id: int, db: Session = Depends(get_
     )
     if not bill:
         return JSONResponse(status_code=404, content={"detail": "Bill not found"})
+
+    # Authorization: shopkeepers and factory operators can only revert their own bills
+    if user.role not in ["Admin", "Manager", "Owner"] and bill.cashier_id != user.id:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized: You can only revert your own bills."})
         
     cashier = db.query(User).filter(User.id == bill.cashier_id).first()
     is_factory = cashier and cashier.role == "Factory"

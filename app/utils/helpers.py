@@ -48,3 +48,36 @@ def parse_csv_int(val, default=None):
         return int(float(cleaned))
     except (ValueError, TypeError):
         return default
+
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_CSV_SIZE = 10 * 1024 * 1024   # 10 MB
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+
+def validate_image_bytes(content: bytes) -> bool:
+    """Verifies file magic bytes to guarantee file is a genuine image (not script/SVG)."""
+    if len(content) < 8:
+        return False
+    # PNG: \x89PNG\r\n\x1a\n
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return True
+    # JPEG: \xff\xd8\xff
+    if content.startswith(b"\xff\xd8\xff"):
+        return True
+    # WebP: RIFF....WEBP
+    if content.startswith(b"RIFF") and len(content) >= 12 and content[8:12] == b"WEBP":
+        return True
+    return False
+
+async def read_bounded_upload(file, max_bytes: int) -> bytes:
+    """Reads uploaded file chunks up to max_bytes, raising ValueError if exceeded."""
+    chunks = []
+    total_size = 0
+    while True:
+        chunk = await file.read(64 * 1024)
+        if not chunk:
+            break
+        total_size += len(chunk)
+        if total_size > max_bytes:
+            raise ValueError(f"File exceeds maximum allowed size of {max_bytes // (1024 * 1024)}MB")
+        chunks.append(chunk)
+    return b"".join(chunks)

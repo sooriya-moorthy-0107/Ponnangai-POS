@@ -9,7 +9,10 @@ import os, csv, io, uuid, secrets
 
 from app.models.database import get_db
 from app.models.domain import User, Product, ShopInventory, Bill, BillItem, CashTransaction
-from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int
+from app.utils.helpers import (
+    get_product_sort_key, clean_csv_val, parse_csv_int,
+    read_bounded_upload, validate_image_bytes, MAX_IMAGE_SIZE, MAX_CSV_SIZE, ALLOWED_IMAGE_EXTENSIONS
+)
 from app.utils.photo_mapper import auto_map_product_photo
 from app.core.config import SECRET_KEY
 from app.core.security import pwd_context
@@ -50,16 +53,21 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
             db.add(new_inv)
     
     if file and hasattr(file, "filename") and file.filename:
-        if not file.content_type or not file.content_type.startswith("image/"):
-            return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only image files are allowed."})
-            
         ext = os.path.splitext(file.filename)[1].lower()
-        if not ext:
-            ext = ".jpg"
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            return JSONResponse(status_code=400, content={"detail": "Invalid file extension. Allowed: JPG, PNG, WebP."})
+            
+        try:
+            content = await read_bounded_upload(file, MAX_IMAGE_SIZE)
+        except ValueError as e:
+            return JSONResponse(status_code=413, content={"detail": str(e)})
+
+        if not validate_image_bytes(content):
+            return JSONResponse(status_code=400, content={"detail": "Invalid image content. File header does not match a valid image."})
+
         new_filename = f"product_{product_id}_{uuid.uuid4().hex}{ext}"
         file_path = os.path.join("photos", new_filename)
         
-        content = await file.read()
         with open(file_path, "wb") as f:
             f.write(content)
             
@@ -68,12 +76,7 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
         ).update({"image_filename": new_filename}, synchronize_session=False)
         
     db.commit()
-    
-    debug_msg = f"File present: {file is not None}"
-    if file:
-        debug_msg += f", filename: {getattr(file, 'filename', None)}"
-        
-    return {"status": "success", "detail": f"Product updated successfully! Debug: {debug_msg}"}
+    return {"status": "success", "detail": "Product updated successfully!"}
 
 @router.post("/api/products/add")
 async def add_product(request: Request, data: dict, db: Session = Depends(get_db)):
@@ -143,10 +146,14 @@ async def bulk_upload_products(request: Request, shopkeeper_id: int = Form(...),
     if not user or user.role not in ["Admin", "Manager", "Owner"]:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
         
-    if not file.filename.endswith('.csv'):
-        return JSONResponse(status_code=400, content={"detail": "File must be a CSV"})
+    if not file.filename or not file.filename.lower().endswith('.csv'):
+        return JSONResponse(status_code=400, content={"detail": "File must be a CSV (.csv)"})
         
-    content = await file.read()
+    try:
+        content = await read_bounded_upload(file, MAX_CSV_SIZE)
+    except ValueError as e:
+        return JSONResponse(status_code=413, content={"detail": str(e)})
+
     try:
         decoded = content.decode('utf-8-sig')
     except Exception:
@@ -343,21 +350,25 @@ async def upload_product_image(request: Request, product_id: int, db: Session = 
     if not product:
         return JSONResponse(status_code=404, content={"detail": "Product not found"})
         
-    if not file.filename:
+    if not file or not getattr(file, "filename", None):
         return JSONResponse(status_code=400, content={"detail": "No file uploaded"})
         
-    if not file.content_type or not file.content_type.startswith("image/"):
-        return JSONResponse(status_code=400, content={"detail": "Invalid file type. Only image files are allowed."})
-        
-    # Generate clean filename based on product ID
     ext = os.path.splitext(file.filename)[1].lower()
-    if not ext:
-        ext = ".jpg"
+    if ext not in ALLOWED_IMAGE_EXTENSIONS:
+        return JSONResponse(status_code=400, content={"detail": "Invalid file extension. Allowed: JPG, PNG, WebP."})
+        
+    try:
+        content = await read_bounded_upload(file, MAX_IMAGE_SIZE)
+    except ValueError as e:
+        return JSONResponse(status_code=413, content={"detail": str(e)})
+
+    if not validate_image_bytes(content):
+        return JSONResponse(status_code=400, content={"detail": "Invalid image content. File header does not match a valid image."})
+
+    # Generate clean filename based on product ID
     new_filename = f"product_{product_id}_{uuid.uuid4().hex}{ext}"
     file_path = os.path.join("photos", new_filename)
     
-    # Save the file
-    content = await file.read()
     with open(file_path, "wb") as f:
         f.write(content)
         
@@ -367,9 +378,5 @@ async def upload_product_image(request: Request, product_id: int, db: Session = 
     ).update({"image_filename": new_filename}, synchronize_session=False)
     db.commit()
     
-    debug_msg = f"File present: {file is not None}"
-    if file:
-        debug_msg += f", filename: {getattr(file, 'filename', None)}"
-        
-    return {"status": "success", "detail": f"Photo updated successfully! Debug: {debug_msg}", "image_filename": new_filename}
+    return {"status": "success", "detail": "Photo updated successfully!", "image_filename": new_filename}
 

@@ -9,7 +9,7 @@ import os, csv, io, uuid, secrets
 
 from app.models.database import get_db
 from app.models.domain import User, Product, ShopInventory, Bill, BillItem, CashTransaction
-from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int
+from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int, read_bounded_upload, MAX_CSV_SIZE
 from app.core.config import SECRET_KEY
 from app.core.security import pwd_context
 from app.api.dependencies import get_current_user
@@ -115,10 +115,14 @@ async def bulk_upload_inventory(request: Request, shopkeeper_id: int = Form(...)
         
     if user.role == "Shopkeeper" and user.id != shopkeeper_id:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized: Shopkeepers can only update their own inventory."})
-    if not file.filename.endswith('.csv'):
-        return JSONResponse(status_code=400, content={"detail": "File must be a CSV"})
+    if not file.filename or not file.filename.lower().endswith('.csv'):
+        return JSONResponse(status_code=400, content={"detail": "File must be a CSV (.csv)"})
         
-    content = await file.read()
+    try:
+        content = await read_bounded_upload(file, MAX_CSV_SIZE)
+    except ValueError as e:
+        return JSONResponse(status_code=413, content={"detail": str(e)})
+
     try:
         decoded = content.decode('utf-8-sig')
     except Exception:

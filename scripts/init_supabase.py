@@ -152,8 +152,14 @@ def run_init(admin_username: str = "admin", admin_password: str = "admin123"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Initialize Supabase database for Ponnangai POS")
-    parser.add_argument("--admin-user", default="admin", help="Default admin username if table is empty")
-    parser.add_argument("--admin-pass", default="admin123", help="Default admin password if table is empty")
+    parser.add_argument("--admin-user", default=os.getenv("DEFAULT_ADMIN_USERNAME", "admin"), help="Default admin username")
+    parser.add_argument("--admin-pass", default=os.getenv("DEFAULT_ADMIN_PASSWORD"), help="Admin password (generates random string if omitted)")
     args = parser.parse_args()
 
-    run_init(admin_username=args.admin_user, admin_password=args.admin_pass)
+    admin_pass = args.admin_pass
+    if not admin_pass:
+        import secrets
+        admin_pass = secrets.token_urlsafe(12)
+        print(f"\n[!] Notice: No --admin-pass provided. Generated temporary secure password: {admin_pass}")
+
+    run_init(admin_username=args.admin_user, admin_password=admin_pass)

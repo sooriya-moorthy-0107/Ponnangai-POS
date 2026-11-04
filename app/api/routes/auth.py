@@ -11,7 +11,7 @@ from app.models.database import get_db
 from app.models.domain import User, Product, ShopInventory, Bill, BillItem, CashTransaction
 from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int
 from app.core.config import SECRET_KEY
-from app.core.security import pwd_context
+from app.core.security import pwd_context, login_rate_limiter, get_client_ip
 from app.api.dependencies import get_current_user
 
 router = APIRouter()
@@ -23,10 +23,29 @@ async def login_page(request: Request):
 
 @router.post("/login")
 async def do_login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    client_ip = get_client_ip(request)
+    allowed, retry_after = login_rate_limiter.is_allowed(client_ip, max_requests=5, window_seconds=60)
+    if not allowed:
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={
+                "request": request,
+                "error": f"Too many login attempts. Please wait {retry_after} seconds before trying again."
+            },
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            headers={"Retry-After": str(retry_after)}
+        )
+
     username_clean = username.strip()
     user = db.query(User).filter(User.username == username_clean, User.is_deleted == False).first()
     if not user or not pwd_context.verify(password, user.password):
-        return templates.TemplateResponse(request=request, name="login.html", context={"request": request, "error": "Invalid username or password"})
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={"request": request, "error": "Invalid username or password"},
+            status_code=status.HTTP_401_UNAUTHORIZED
+        )
     
     request.session["user_id"] = user.id
     

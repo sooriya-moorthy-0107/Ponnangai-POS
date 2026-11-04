@@ -250,6 +250,9 @@ async def receipt_page(request: Request, bill_id: int, db: Session = Depends(get
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
         
+    if user.role not in ["Admin", "Manager", "Owner"] and bill.cashier_id != user.id:
+        raise HTTPException(status_code=403, detail="Unauthorized: You cannot access receipts from another shop.")
+        
     bill_number = db.query(Bill).filter(
         Bill.cashier_id == bill.cashier_id,
         Bill.id <= bill.id

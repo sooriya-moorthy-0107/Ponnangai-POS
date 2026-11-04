@@ -19,17 +19,21 @@ from app.core.templates import templates
 
 def seed_db():
     db = SessionLocal()
+    admin_pw = os.getenv("DEFAULT_ADMIN_PASSWORD", "Somuponn")
+    manager_pw = os.getenv("DEFAULT_MANAGER_PASSWORD", "manager123")
+    owner_pw = os.getenv("DEFAULT_OWNER_PASSWORD", "owner123")
+    
     if db.query(User).count() == 0:
         # Create initial users
-        admin = User(username="admin", password=pwd_context.hash("Somuponn"), role="Admin")
-        manager = User(username="manager", password=pwd_context.hash("manager123"), role="Manager")
-        owner = User(username="owner", password=pwd_context.hash("owner123"), role="Owner")
+        admin = User(username="admin", password=pwd_context.hash(admin_pw), role="Admin")
+        manager = User(username="manager", password=pwd_context.hash(manager_pw), role="Manager")
+        owner = User(username="owner", password=pwd_context.hash(owner_pw), role="Owner")
         db.add_all([admin, manager, owner])
         db.commit()
     else:
         owner = db.query(User).filter(User.role == "Owner").first()
         if not owner:
-            owner = User(username="owner", password=pwd_context.hash("owner123"), role="Owner")
+            owner = User(username="owner", password=pwd_context.hash(owner_pw), role="Owner")
             db.add(owner)
             db.commit()
 
@@ -37,7 +41,7 @@ def seed_db():
         if admin:
             # Only hash if it's currently the plaintext password
             if not admin.password.startswith("$2"):
-                admin.password = pwd_context.hash("Somuponn")
+                admin.password = pwd_context.hash(admin_pw)
                 db.commit()
     db.close()
 
@@ -65,7 +69,11 @@ async def reset_system(request: Request, db: Session = Depends(get_db)):
     return {"status": "success", "detail": "System, products, and sales successfully reset."}
 
 @router.get("/api/debug/photos")
-async def debug_photos(db: Session = Depends(get_db)):
+async def debug_photos(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role not in ["Admin", "Manager", "Owner"]:
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized"})
+
     try:
         import os
         files = os.listdir("photos") if os.path.exists("photos") else []
@@ -80,7 +88,11 @@ async def debug_photos(db: Session = Depends(get_db)):
     }
 
 @router.get("/api/system/fix_photos")
-async def fix_all_photos(db: Session = Depends(get_db)):
+async def fix_all_photos(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role != "Admin":
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized. Only Admin can run photo repairs."})
+
     import os
     import re
     
@@ -114,7 +126,11 @@ async def fix_all_photos(db: Session = Depends(get_db)):
     return {"status": "success", "results": results}
 
 @router.get("/api/system/map_photos")
-async def map_all_wobg_photos(db: Session = Depends(get_db)):
+async def map_all_wobg_photos(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or user.role != "Admin":
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized. Only Admin can run photo mapping."})
+
     mapping = {
         "Mop base": "o_Mop_base.png",
         "Mat": "o_Mat.png",
