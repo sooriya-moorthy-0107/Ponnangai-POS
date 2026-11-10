@@ -64,15 +64,23 @@ async function fetchCashData() {
                 const color = isOut ? '#E53E3E' : '#319795';
                 const sign = isOut ? '-' : '+';
 
-                const txTime = new Date(t.timestamp);
+                // Parse timestamp with IST offset if missing timezone indicator
+                let txIso = t.timestamp || '';
+                if (txIso && !txIso.includes('Z') && !txIso.includes('+')) {
+                    txIso = txIso + '+05:30';
+                }
+                const txTime = new Date(txIso);
                 const now = new Date();
                 const diffSecs = (now - txTime) / 1000;
-                const canRevert = diffSecs < 180;
+                
+                // Prioritize server-calculated can_revert; fallback to 5-minute (300s) window
+                const canRevert = (t.can_revert !== undefined) ? t.can_revert : (diffSecs >= -30 && diffSecs < 300);
 
-                const timeStr = txTime.toLocaleString(undefined, {
+                const timeStr = t.formatted_time || (txIso ? txTime.toLocaleString('en-IN', {
                     year: 'numeric', month: '2-digit', day: '2-digit',
-                    hour: '2-digit', minute: '2-digit'
-                });
+                    hour: '2-digit', minute: '2-digit', hour12: true,
+                    timeZone: 'Asia/Kolkata'
+                }) : '');
 
                 const card = document.createElement('div');
                 card.style.padding = '12px';
@@ -83,7 +91,7 @@ async function fetchCashData() {
 
                 let revertBtnHtml = '';
                 if (canRevert) {
-                    revertBtnHtml = `<button onclick="revertCashTransaction(${t.id})" style="margin-left: 12px; background: none; border: none; color: #E53E3E; cursor: pointer; font-size: 12px; text-decoration: underline;">Revert</button>`;
+                    revertBtnHtml = `<button onclick="revertCashTransaction(${t.id})" style="margin-left: 12px; background: #FFF5F5; border: 1px solid #FEB2B2; color: #E53E3E; cursor: pointer; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 4px; transition: all 0.2s;">Revert</button>`;
                 }
 
                 card.innerHTML = `
@@ -192,14 +200,35 @@ async function promptOpeningBalance() {
 }
 
 async function revertCashTransaction(txId) {
-    const _swalRes6861 = await Swal.fire({ text: "Are you sure you want to revert this transaction?", icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--primary)', cancelButtonColor: '#C53030' });
+    const _swalRes6861 = await Swal.fire({ 
+        title: "Revert Transaction?",
+        text: "Are you sure you want to revert this cash transaction?", 
+        icon: 'warning', 
+        showCancelButton: true, 
+        confirmButtonColor: 'var(--primary)', 
+        cancelButtonColor: '#C53030',
+        confirmButtonText: "Yes, revert"
+    });
     if (!_swalRes6861.isConfirmed) return;
     try {
-        const response = await fetch(`/api/cash-transactions/${txId}`, {
-            method: 'DELETE'
+        let response = await fetch(`/api/cash-transactions/${txId}/revert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
         });
+        if (response.status === 404 || response.status === 405) {
+            response = await fetch(`/api/cash-transactions/${txId}`, {
+                method: 'DELETE'
+            });
+        }
         const data = await response.json();
-        if (data.status === 'success') {
+        if (response.ok && (data.status === 'success' || !data.detail)) {
+            await Swal.fire({
+                title: "Reverted!",
+                text: "Transaction has been reverted successfully.",
+                icon: "success",
+                timer: 1500,
+                showConfirmButton: false
+            });
             fetchCashData();
         } else {
             await Swal.fire("Failed to revert: " + (data.detail || 'Unknown error'));

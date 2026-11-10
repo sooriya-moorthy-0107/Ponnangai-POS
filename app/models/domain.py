@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boo
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.database import Base
+from app.utils.timezone import get_ist_now
 
 class User(Base):
     __tablename__ = "users"
@@ -44,7 +45,7 @@ class Bill(Base):
     final_amount = Column(Float, nullable=False)
     round_off = Column(Float, default=0.0)
     payment_mode = Column(String, default="Cash") # Cash/UPI
-    timestamp = Column(DateTime, default=datetime.now, index=True)
+    timestamp = Column(DateTime, default=get_ist_now, index=True)
     cashier_id = Column(Integer, ForeignKey("users.id"), index=True)
     cashier_name = Column(String, nullable=True)
     is_cancelled = Column(Boolean, default=False, index=True)
@@ -73,6 +74,6 @@ class CashTransaction(Base):
     amount = Column(Float, nullable=False)
     transaction_type = Column(String, nullable=False) # "IN" or "OUT"
     description = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=datetime.now, index=True)
+    timestamp = Column(DateTime, default=get_ist_now, index=True)
 
     shopkeeper = relationship("User")

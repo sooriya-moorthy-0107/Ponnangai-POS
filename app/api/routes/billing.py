@@ -10,6 +10,7 @@ import os, csv, io, uuid, secrets
 from app.models.database import get_db
 from app.models.domain import User, Product, ShopInventory, Bill, BillItem, CashTransaction
 from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int
+from app.utils.timezone import get_ist_now, format_ist_datetime
 from app.core.config import SECRET_KEY
 from app.core.security import pwd_context
 from app.api.dependencies import get_current_user
@@ -84,7 +85,7 @@ async def get_bill_history(request: Request, shopkeeper_id: int = None, db: Sess
             "discount": b.discount,
             "final_amount": b.final_amount,
             "payment_mode": b.payment_mode,
-            "timestamp": b.timestamp.strftime('%Y-%m-%d %H:%M'),
+            "timestamp": format_ist_datetime(b.timestamp),
             "cashier_name": b.cashier_name,
             "is_cancelled": b.is_cancelled,
             "items": items
@@ -137,7 +138,7 @@ async def get_bill_details(request: Request, bill_id: int, db: Session = Depends
             "discount": bill.discount,
             "final_amount": bill.final_amount,
             "payment_mode": bill.payment_mode,
-            "timestamp": bill.timestamp.strftime('%Y-%m-%d %H:%M'),
+            "timestamp": format_ist_datetime(bill.timestamp),
             "cashier_name": bill.cashier_name,
             "is_cancelled": bill.is_cancelled,
             "items": items
@@ -258,6 +259,7 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
         payment_mode=data.get("payment_mode", "Cash"),
         cashier_id=target_shopkeeper_id,
         cashier_name=cashier_name,
+        timestamp=get_ist_now(),
         items=bill_items
     )
     
@@ -291,7 +293,7 @@ async def create_bill(request: Request, data: dict, db: Session = Depends(get_db
         "discount": new_bill.discount,
         "final_amount": new_bill.final_amount,
         "payment_mode": new_bill.payment_mode,
-        "timestamp": new_bill.timestamp.strftime('%Y-%m-%d %H:%M'),
+        "timestamp": format_ist_datetime(new_bill.timestamp),
         "cashier_name": new_bill.cashier_name,
         "is_cancelled": new_bill.is_cancelled,
         "items": items_response

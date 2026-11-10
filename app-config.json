@@ -2,7 +2,9 @@
   "command": "python3 server.py",
   "build_path": "./",
   "stack": "python_3_13",
-  "env_variables": {},
+  "env_variables": {
+    "TZ": "Asia/Kolkata"
+  },
   "memory": 512,
   "scripts": {
     "predeploy": "pip install --no-user --only-binary=:all: --platform manylinux2014_x86_64 --implementation cp --python-version 3.13 -r requirements.txt -t ./lib"

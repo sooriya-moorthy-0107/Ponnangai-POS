@@ -3,6 +3,15 @@ import sys
 import logging
 import traceback
 import html
+import time
+
+# Enforce Indian Standard Time (IST) on server runtime
+os.environ["TZ"] = "Asia/Kolkata"
+if hasattr(time, "tzset"):
+    try:
+        time.tzset()
+    except Exception:
+        pass
 
 # Ensure base directory is in sys.path and set as current working directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

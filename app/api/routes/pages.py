@@ -10,6 +10,7 @@ import os, csv, io, uuid, secrets
 from app.models.database import get_db
 from app.models.domain import User, Product, ShopInventory, Bill, BillItem, CashTransaction
 from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int
+from app.utils.timezone import get_ist_today_range
 from app.core.config import SECRET_KEY, SUPABASE_STORAGE_URL
 from app.core.security import pwd_context
 from app.api.dependencies import get_current_user
@@ -151,9 +152,7 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
             shop_inventory[inv.shopkeeper_id] = {}
         shop_inventory[inv.shopkeeper_id][inv.product_id] = inv.stock
         
-    from datetime import datetime, time
-    today_start = datetime.combine(datetime.today(), time.min)
-    today_end = datetime.combine(datetime.today(), time.max)
+    today_start, today_end = get_ist_today_range()
     
     # Dashboard metrics (Filtered for today)
     total_revenue = db.query(func.sum(Bill.final_amount)).filter(Bill.is_cancelled == False, Bill.timestamp >= today_start, Bill.timestamp <= today_end).scalar() or 0.0

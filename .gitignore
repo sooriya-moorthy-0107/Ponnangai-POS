@@ -45,6 +45,8 @@ photos_backup/**
 pgdata/
 pgdata/**
 .playwright-mcp/
+docs/
+docs/**
 
 # IDE / Editor configuration
 .vscode/

@@ -1,6 +1,15 @@
 import os
 import sys
 import logging
+import time
+
+# Enforce Indian Standard Time (IST) on AppSail container environment
+os.environ["TZ"] = "Asia/Kolkata"
+if hasattr(time, "tzset"):
+    try:
+        time.tzset()
+    except Exception:
+        pass
 
 # Ensure local lib directory is in sys.path for Catalyst AppSail dependencies
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

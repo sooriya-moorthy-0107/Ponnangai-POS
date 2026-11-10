@@ -10,6 +10,7 @@ import os, csv, io, uuid, secrets
 from app.models.database import get_db
 from app.models.domain import User, Product, ShopInventory, Bill, BillItem, CashTransaction
 from app.utils.helpers import get_product_sort_key, clean_csv_val, parse_csv_int
+from app.utils.timezone import get_ist_today_range
 from app.core.config import SECRET_KEY
 from app.core.security import pwd_context
 from app.api.dependencies import get_current_user
@@ -295,8 +296,7 @@ async def get_shop_analytics_today(request: Request, shop_id: int, db: Session =
     if not target_shop:
         return JSONResponse(status_code=404, content={"detail": "Shop not found"})
         
-    today_start = datetime.combine(datetime.today(), time.min)
-    today_end = datetime.combine(datetime.today(), time.max)
+    today_start, today_end = get_ist_today_range()
         
     bills = db.query(Bill).filter(
         Bill.cashier_id == shop_id, 
