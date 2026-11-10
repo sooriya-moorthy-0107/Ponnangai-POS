@@ -73,8 +73,8 @@ async function fetchCashData() {
                 const now = new Date();
                 const diffSecs = (now - txTime) / 1000;
                 
-                // Prioritize server-calculated can_revert; fallback to 5-minute (300s) window
-                const canRevert = (t.can_revert !== undefined) ? t.can_revert : (diffSecs >= -30 && diffSecs < 300);
+                // Prioritize server-calculated can_revert; fallback to 3-minute (180s) window
+                const canRevert = (t.can_revert !== undefined) ? t.can_revert : (diffSecs >= -30 && diffSecs < 180);
 
                 const timeStr = t.formatted_time || (txIso ? txTime.toLocaleString('en-IN', {
                     year: 'numeric', month: '2-digit', day: '2-digit',

@@ -113,3 +113,49 @@ def test_cash_transaction_creation_and_revert():
 
     finally:
         db.close()
+
+
+def test_cash_transaction_revert_window_limit():
+    """Verify that transactions older than 3 minutes cannot be reverted."""
+    db = SessionLocal()
+    try:
+        sk = db.query(User).filter(User.username == "test_cash_sk").first()
+        if not sk:
+            sk = User(username="test_cash_sk", password=pwd_context.hash("pass"), role="Shopkeeper")
+            db.add(sk)
+            db.commit()
+            db.refresh(sk)
+
+        orig_dep = cash_module.get_current_user
+        cash_module.get_current_user = lambda request, db=None: sk
+
+        try:
+            # Create a transaction with timestamp 4 minutes ago
+            old_time = get_ist_now() - timedelta(minutes=4)
+            old_tx = CashTransaction(
+                shopkeeper_id=sk.id,
+                amount=75.0,
+                transaction_type="OUT",
+                description="Old Expense",
+                timestamp=old_time
+            )
+            db.add(old_tx)
+            db.commit()
+            db.refresh(old_tx)
+
+            # Check /api/cash-transactions returns can_revert=False
+            resp_list = client.get("/api/cash-transactions")
+            assert resp_list.status_code == 200
+            tx_list = resp_list.json()["transactions"]
+            found = next((t for t in tx_list if t["id"] == old_tx.id), None)
+            assert found is not None
+            assert found["can_revert"] is False
+
+            # Attempt revert -> should fail with 400
+            resp_revert = client.post(f"/api/cash-transactions/{old_tx.id}/revert")
+            assert resp_revert.status_code == 400
+            assert "after 3 minutes" in resp_revert.json()["detail"]
+        finally:
+            cash_module.get_current_user = orig_dep
+    finally:
+        db.close()

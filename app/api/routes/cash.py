@@ -81,8 +81,8 @@ async def get_cash_transactions(request: Request, shopkeeper_id: int = None, db:
         can_revert = False
         if t.timestamp:
             elapsed = (ist_now - t.timestamp).total_seconds()
-            # 5-minute revert window (300 seconds) with 30s grace for slight clock variations
-            can_revert = (-30 <= elapsed <= 300)
+            # 3-minute revert window (180 seconds) with 30s grace for slight clock variations
+            can_revert = (-30 <= elapsed <= 180)
 
         result.append({
             "id": t.id,
@@ -153,12 +153,12 @@ async def _perform_cash_revert(request: Request, transaction_id: int, db: Sessio
     if user.role in ["Shopkeeper", "Factory"] and tx.shopkeeper_id != user.id:
         return JSONResponse(status_code=403, content={"detail": "Unauthorized: You can only revert your own transactions."})
         
-    # Check 5-minute window in IST
+    # Check 3-minute window in IST
     if tx.timestamp:
         ist_now = get_ist_now()
         elapsed = (ist_now - tx.timestamp).total_seconds()
-        if elapsed > 300:
-            return JSONResponse(status_code=400, content={"detail": "Cannot revert transaction after 5 minutes."})
+        if elapsed > 180:
+            return JSONResponse(status_code=400, content={"detail": "Cannot revert transaction after 3 minutes."})
     
     db.delete(tx)
     db.commit()
