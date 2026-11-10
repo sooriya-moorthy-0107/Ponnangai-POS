@@ -8,9 +8,6 @@ pgdata/**
 *.db
 *.sqlite3
 
-# Ignore dependencies folder (built on-the-fly during deploy)
-lib/
-lib/**
 
 # Ignore version control and development tools
 .git/

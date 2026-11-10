@@ -1,7 +1,6 @@
 import os
 import time
-from datetime import datetime, date, time as dt_time, timedelta
-import zoneinfo
+from datetime import datetime, date, time as dt_time, timedelta, timezone
 
 # Standardize application timezone to Indian Standard Time (IST, UTC+5:30)
 os.environ["TZ"] = "Asia/Kolkata"
@@ -11,7 +10,12 @@ if hasattr(time, "tzset"):
     except Exception:
         pass
 
-IST = zoneinfo.ZoneInfo("Asia/Kolkata")
+# Fallback-safe IST timezone definition (UTC +5:30)
+try:
+    import zoneinfo
+    IST = zoneinfo.ZoneInfo("Asia/Kolkata")
+except Exception:
+    IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def get_ist_now() -> datetime:
