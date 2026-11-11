@@ -65,6 +65,14 @@ function escapeHTML(str) {
             if (startDate) startDate.value = todayStr;
             const endDate = document.getElementById('report-end-date');
             if (endDate) endDate.value = todayStr;
+
+            // Restore active shop table in inventory tab
+            try {
+                const savedShopId = localStorage.getItem('selected_admin_shop');
+                if (savedShopId && document.getElementById('inventory-table-wrapper-' + savedShopId)) {
+                    showInventory(savedShopId);
+                }
+            } catch (e) {}
         });
 
         function getReportDates() {
@@ -365,13 +373,23 @@ function escapeHTML(str) {
         }
 
         function showInventory(shopId) {
+            if (!shopId) return;
+            try {
+                localStorage.setItem('selected_admin_shop', String(shopId));
+            } catch (e) {}
             document.querySelectorAll('.inventory-table-container').forEach(el => el.style.display = 'none');
             const target = document.getElementById('inventory-table-wrapper-' + shopId);
             if (target) target.style.display = 'block';
+
+            const selector = document.getElementById('shop-selector');
+            if (selector && selector.value !== String(shopId)) {
+                selector.value = String(shopId);
+            }
         }
 
         async function updateStock(shopkeeperId, productId) {
-            const newStock = document.getElementById(`stock-${shopkeeperId}-${productId}`).value;
+            const inputEl = document.getElementById(`stock-${shopkeeperId}-${productId}`);
+            const newStock = inputEl ? inputEl.value : 0;
             try {
                 const response = await fetch('/api/inventory/update', {
                     method: 'POST',
@@ -379,10 +397,25 @@ function escapeHTML(str) {
                     body: JSON.stringify({ id: productId, stock: parseInt(newStock), shopkeeper_id: shopkeeperId })
                 });
                 if (response.ok) {
-                    await Swal.fire('Stock updated successfully!');
-                    location.reload();
+                    const row = document.getElementById(`inventory-row-${shopkeeperId}-${productId}`);
+                    if (row) {
+                        const stockSpan = row.querySelector('.product-stock-cell span');
+                        if (stockSpan) {
+                            const parsedStock = parseInt(newStock) || 0;
+                            stockSpan.textContent = parsedStock;
+                            stockSpan.style.color = parsedStock < 10 ? 'var(--destructive)' : '';
+                            stockSpan.style.fontWeight = parsedStock < 10 ? 'bold' : 'normal';
+                        }
+                    }
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Stock updated successfully!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
                 } else {
-                    await Swal.fire('Failed to update stock.');
+                    const data = await response.json().catch(() => ({}));
+                    await Swal.fire(data.detail || 'Failed to update stock.');
                 }
             } catch (err) {
                 await Swal.fire('Error updating stock.');
@@ -693,8 +726,48 @@ async function submitEditProduct() {
         const data = await response.json();
         
         if (response.ok) {
-            await Swal.fire(data.detail || "Product updated successfully!");
-            location.reload();
+            closeEditProductModal();
+
+            // In-place DOM update without destroying/reloading catalog view
+            const row = document.getElementById(`inventory-row-${shopkeeperId}-${id}`);
+            if (row) {
+                const nameCell = row.querySelector('.product-name-cell');
+                if (nameCell) nameCell.textContent = name;
+
+                const priceCell = row.querySelector('.product-price-cell');
+                if (priceCell && price) priceCell.textContent = parseFloat(price).toFixed(2);
+
+                const stockSpan = row.querySelector('.product-stock-cell span');
+                if (stockSpan) {
+                    const parsedStock = parseInt(stock) || 0;
+                    stockSpan.textContent = parsedStock;
+                    if (parsedStock < 10) {
+                        stockSpan.style.color = 'var(--destructive)';
+                        stockSpan.style.fontWeight = 'bold';
+                    } else {
+                        stockSpan.style.color = '';
+                        stockSpan.style.fontWeight = 'normal';
+                    }
+                }
+
+                const editBtn = row.querySelector('.btn-edit-product');
+                if (editBtn) {
+                    const escName = name.replace(/'/g, "\\'");
+                    editBtn.setAttribute('onclick', `openEditProductModal('${id}', '${escName}', '${stock}', '${shopkeeperId}', '${price || ''}', '${rateQty || ''}')`);
+                }
+
+                if (data.image_filename) {
+                    const img = row.querySelector('.product-img-cell img');
+                    if (img) img.src = '/photos/' + data.image_filename;
+                }
+            }
+
+            await Swal.fire({
+                icon: 'success',
+                title: data.detail || 'Product updated successfully!',
+                timer: 1500,
+                showConfirmButton: false
+            });
         } else {
             await Swal.fire(data.detail || "Failed to update product.");
         }

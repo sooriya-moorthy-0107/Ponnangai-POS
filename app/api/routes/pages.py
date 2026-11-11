@@ -62,13 +62,14 @@ async def shop_page(request: Request, shopkeeper_id: int = None, db: Session = D
             Product.shopkeeper_id == target_shopkeeper_id,
             Product.is_deleted == False
         )
+        .order_by(Product.id.asc())
         .all()
     )
     products = []
     for prod, stock_qty in rows:
         prod.stock = stock_qty
         products.append(prod)
-    products.sort(key=lambda p: get_product_sort_key(p.name))
+    products.sort(key=lambda p: (get_product_sort_key(p.name), p.id))
         
     target_sk = db.query(User).filter(User.id == target_shopkeeper_id).first()
     target_sk_name = target_sk.username if target_sk else "Unknown Shop"
@@ -99,8 +100,8 @@ async def factory_pos_page(request: Request, db: Session = Depends(get_db)):
     products = db.query(Product).filter(
         Product.shopkeeper_id == target_cashier_id,
         Product.is_deleted == False
-    ).all()
-    products.sort(key=lambda p: get_product_sort_key(p.name))
+    ).order_by(Product.id.asc()).all()
+    products.sort(key=lambda p: (get_product_sort_key(p.name), p.id))
     
     liquid_products = []
     solid_products = []
@@ -135,8 +136,8 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
     if not user or user.role not in ["Admin", "Owner", "Manager"]:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    products = db.query(Product).filter(Product.is_deleted == False).all()
-    products.sort(key=lambda p: get_product_sort_key(p.name))
+    products = db.query(Product).filter(Product.is_deleted == False).order_by(Product.id.asc()).all()
+    products.sort(key=lambda p: (get_product_sort_key(p.name), p.id))
     # Filter out soft-deleted users/staff from active views
     users = db.query(User).filter(User.is_deleted == False).all()
     shopkeepers = [u for u in users if u.role in ["Shopkeeper", "Factory"]]

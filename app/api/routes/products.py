@@ -52,6 +52,7 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
             new_inv = ShopInventory(shopkeeper_id=shopkeeper_id, product_id=product_id, stock=stock)
             db.add(new_inv)
     
+    new_filename = None
     if file and hasattr(file, "filename") and file.filename:
         ext = os.path.splitext(file.filename)[1].lower()
         if ext not in ALLOWED_IMAGE_EXTENSIONS:
@@ -76,7 +77,10 @@ async def edit_product_info(request: Request, product_id: int, name: str = Form(
         ).update({"image_filename": new_filename}, synchronize_session=False)
         
     db.commit()
-    return {"status": "success", "detail": "Product updated successfully!"}
+    resp_data = {"status": "success", "detail": "Product updated successfully!"}
+    if new_filename:
+        resp_data["image_filename"] = new_filename
+    return resp_data
 
 @router.post("/api/products/add")
 async def add_product(request: Request, data: dict, db: Session = Depends(get_db)):

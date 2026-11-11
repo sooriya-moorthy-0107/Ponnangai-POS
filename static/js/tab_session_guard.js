@@ -33,14 +33,4 @@
     document.addEventListener("submit", function() {
         sessionStorage.setItem("pos_session_active", "true");
     });
-
-    // 4. When unloading (leaving page):
-    // Use pagehide / beforeunload with navigator.sendBeacon to ensure cookie cleanup on tab close
-    window.addEventListener("pagehide", function(event) {
-        // If it's not being persisted in the back-forward cache and not a reload
-        if (!event.persisted) {
-            // Send beacon to invalidate session cookie on server
-            navigator.sendBeacon("/api/auth/invalidate-session");
-        }
-    });
 })();
