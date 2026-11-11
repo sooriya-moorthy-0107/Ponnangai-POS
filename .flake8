@@ -1,0 +1,3 @@
+[flake8]
+exclude = lib,venv,.venv,photos,photos_backup,__pycache__,.git
+max-line-length = 127

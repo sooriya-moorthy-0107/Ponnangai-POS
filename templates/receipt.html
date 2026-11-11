@@ -21,6 +21,22 @@
             });
         }
     </script>
+    <style>
+        .receipt-preview-card.cancelled-receipt .receipt-header,
+        .receipt-preview-card.cancelled-receipt .receipt-items-header,
+        .receipt-preview-card.cancelled-receipt .receipt-item,
+        .receipt-preview-card.cancelled-receipt .receipt-summary-line {
+            opacity: 0.7;
+        }
+        .receipt-preview-card.cancelled-receipt .receipt-item,
+        .receipt-preview-card.cancelled-receipt .receipt-summary-line {
+            text-decoration: line-through;
+        }
+        .receipt-preview-card.cancelled-receipt .receipt-total {
+            text-decoration: line-through;
+            color: #E53E3E;
+        }
+    </style>
 </head>
 <body style="background-color: #E2E8F0;">
 
@@ -134,7 +150,7 @@
 
         <!-- Live Receipt Preview Section -->
         <div class="receipt-preview-section">
-            <div class="receipt-preview-card" id="receipt-container">
+            <div class="receipt-preview-card {% if bill.is_cancelled %}cancelled-receipt{% endif %}" id="receipt-container">
 
                 {% if bill.is_cancelled %}
                 <div
@@ -143,7 +159,7 @@
                 </div>
                 {% endif %}
 
-                <div class="receipt-header" {% if bill.is_cancelled %}style="opacity: 0.7;" {% endif %}>
+                <div class="receipt-header">
                     <h2 style="font-size: 15px; margin-bottom: 4px; font-weight: 700; line-height: 1.2;">
                         Ponnangai<br>Enterprises</h2>
                     <div style="font-size: 11px; margin-bottom: 2px;">Housekeeping Products</div>
@@ -159,8 +175,8 @@
                     </div>
                 </div>
 
-                <div
-                    style="margin-top: 8px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-weight: bold; font-size: 9px; display: flex; {% if bill.is_cancelled %}opacity: 0.7;{% endif %}">
+                <div class="receipt-items-header"
+                    style="margin-top: 8px; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; font-weight: bold; font-size: 9px; display: flex;">
                     <div style="flex: 2;">Item</div>
                     <div style="flex: 1; text-align: center;">Rate</div>
                     <div style="flex: 1; text-align: center;">Qty</div>
@@ -168,7 +184,7 @@
                 </div>
 
                 {% for item in bill.items %}
-                <div class="receipt-item" style="display: flex; flex-direction: column; margin-bottom: 6px; {% if bill.is_cancelled %}text-decoration: line-through; opacity: 0.7;{% endif %}">
+                <div class="receipt-item" style="display: flex; flex-direction: column; margin-bottom: 6px;">
                     <div style="font-weight: bold; margin-bottom: 2px; word-break: break-word;">{{ item.product.name if item.product else 'Deleted Item' }}</div>
                     <div style="display: flex; justify-content: space-between;">
                         <div style="flex: 2; color: #4A5568; font-size: 8px;">
@@ -182,29 +198,28 @@
                 {% endfor %}
 
                 <div class="receipt-summary" style="margin-top: 8px;">
-                    <div
-                        style="display: flex; justify-content: space-between; font-size: 9px; {% if bill.is_cancelled %}text-decoration: line-through; opacity: 0.7;{% endif %}">
+                    <div class="receipt-summary-line"
+                        style="display: flex; justify-content: space-between; font-size: 9px;">
                         <span>subtotal</span>
                         <span>{{ "%.2f"|format(bill.total_amount) }}</span>
                     </div>
                     {% if bill.discount > 0 %}
-                    <div
-                        style="display: flex; justify-content: space-between; font-size: 9px; color: #4A5568; {% if bill.is_cancelled %}text-decoration: line-through; opacity: 0.7;{% endif %}">
+                    <div class="receipt-summary-line"
+                        style="display: flex; justify-content: space-between; font-size: 9px; color: #4A5568;">
                         <span>discount</span>
                         <span>- {{ "%.2f"|format(bill.discount) }}</span>
                     </div>
                     {% endif %}
 
                     {% if bill.round_off != 0.0 %}
-                    <div
-                        style="display: flex; justify-content: space-between; font-size: 9px; color: #4A5568; {% if bill.is_cancelled %}text-decoration: line-through; opacity: 0.7;{% endif %}">
+                    <div class="receipt-summary-line"
+                        style="display: flex; justify-content: space-between; font-size: 9px; color: #4A5568;">
                         <span>roundup</span>
                         <span>- ({{ "%.2f"|format(bill.round_off|abs) }})</span>
                     </div>
                     {% endif %}
 
-                    <div class="receipt-total" {% if bill.is_cancelled
-                        %}style="text-decoration: line-through; color: #E53E3E;" {% endif %}>
+                    <div class="receipt-total">
                         <span>total paid</span>
                         <span>₹{{ "%.2f"|format(bill.final_amount) }}</span>
                     </div>
@@ -220,7 +235,7 @@
 
     </div>
 
-        <script src="/static/js/receipt.js?v=2"></script>
+        <script src="/static/js/receipt.js?v=3"></script>
 </body>
 
 </html>

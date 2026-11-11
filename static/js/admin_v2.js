@@ -389,19 +389,19 @@ function escapeHTML(str) {
 
         async function updateStock(shopkeeperId, productId) {
             const inputEl = document.getElementById(`stock-${shopkeeperId}-${productId}`);
-            const newStock = inputEl ? inputEl.value : 0;
+            const stockValue = inputEl ? inputEl.value : 0;
             try {
                 const response = await fetch('/api/inventory/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: productId, stock: parseInt(newStock), shopkeeper_id: shopkeeperId })
+                    body: JSON.stringify({ id: productId, stock: parseInt(stockValue), shopkeeper_id: shopkeeperId })
                 });
                 if (response.ok) {
                     const row = document.getElementById(`inventory-row-${shopkeeperId}-${productId}`);
                     if (row) {
                         const stockSpan = row.querySelector('.product-stock-cell span');
                         if (stockSpan) {
-                            const parsedStock = parseInt(newStock) || 0;
+                            const parsedStock = parseInt(stockValue) || 0;
                             stockSpan.textContent = parsedStock;
                             stockSpan.style.color = parsedStock < 10 ? 'var(--destructive)' : '';
                             stockSpan.style.fontWeight = parsedStock < 10 ? 'bold' : 'normal';
@@ -679,6 +679,18 @@ function escapeHTML(str) {
         }
     }
 
+function handleEditProductClick(btn) {
+    if (!btn) return;
+    const d = btn.dataset;
+    openEditProductModal(d.productId, d.productName, d.stock, d.shopkeeperId, d.price, d.rateQty);
+}
+
+function handleDeleteProductClick(btn) {
+    if (!btn) return;
+    const d = btn.dataset;
+    deleteProduct(d.productId, d.productName);
+}
+
 function openEditProductModal(id, currentName, currentStock, shopkeeperId, currentPrice, currentRateQty) {
     document.getElementById("edit-product-id").value = id;
     document.getElementById("edit-product-name").value = currentName;
@@ -752,8 +764,12 @@ async function submitEditProduct() {
 
                 const editBtn = row.querySelector('.btn-edit-product');
                 if (editBtn) {
-                    const escName = name.replace(/'/g, "\\'");
-                    editBtn.setAttribute('onclick', `openEditProductModal('${id}', '${escName}', '${stock}', '${shopkeeperId}', '${price || ''}', '${rateQty || ''}')`);
+                    editBtn.dataset.productId = id;
+                    editBtn.dataset.productName = name;
+                    editBtn.dataset.stock = stock;
+                    editBtn.dataset.shopkeeperId = shopkeeperId;
+                    if (price !== undefined) editBtn.dataset.price = price;
+                    if (rateQty !== undefined) editBtn.dataset.rateQty = rateQty || '';
                 }
 
                 if (data.image_filename) {

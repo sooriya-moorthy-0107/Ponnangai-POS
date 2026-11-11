@@ -1228,6 +1228,18 @@ function closeRecentBillsModal() {
     document.getElementById('recent-bills-modal').classList.remove('active');
 }
 
+function handleLiquidCardClick(el) {
+    if (!el) return;
+    const d = el.dataset;
+    openLiquidPopup(Number(d.id), d.name, Number(d.price), Number(d.rateQty || 0), d.image || '');
+}
+
+function handleSolidCardClick(el) {
+    if (!el) return;
+    const d = el.dataset;
+    openSolidPopup(Number(d.id), d.name, Number(d.price), d.unit, d.image || '');
+}
+
 function openSolidPopup(id, name, price, unit, imagePath) {
     pendingProductData = { type: 'solid', id, name, base_price: price, unit: unit };
     document.getElementById('popup-product-name').textContent = name;

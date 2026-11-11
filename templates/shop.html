@@ -93,8 +93,13 @@
                         {% if product.stock > 0 %}
                         <div class="product-card"
                             data-product-id="{{ product.id }}"
+                            data-product-name="{{ product.name }}"
+                            data-price="{{ product.price }}"
                             data-stock="{{ product.stock }}"
-                            onclick="openProductPopup({{ product.id }}, '{{ product.name|replace('\'', '\\\'') }}', {{ product.price }}, {{ product.stock }}, '{{ product.product_type }}', '{{ product.unit }}', '{{ product.image_filename or '' }}')"
+                            data-product-type="{{ product.product_type or 'solid' }}"
+                            data-unit="{{ product.unit or 'Pcs' }}"
+                            data-image="{{ product.image_filename or '' }}"
+                            onclick="handleProductCardClick(this)"
                             style="cursor: pointer;">
                             {% if product.image_filename %}
                             <img src="/photos/{{ product.image_filename }}"
@@ -277,7 +282,7 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=13"></script>
+    <script src="/static/js/app.js?v=14"></script>
     <script>
         const ACTIVE_SHOPKEEPER_ID = '{{ target_shopkeeper_id }}';
     </script>

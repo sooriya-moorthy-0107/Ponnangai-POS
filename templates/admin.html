@@ -328,9 +328,17 @@
                                         <td>
                                             <div style="display: flex; gap: 8px; align-items: center;">
                                                 <button class="btn btn-secondary btn-small btn-edit-product"
-                                                    onclick="openEditProductModal('{{ product.id }}', '{{ product.name | replace('\'', '\\\'') }}', '{{ stk }}', '{{ sk.id }}', '{{ product.price }}', '{{ product.rate_qty or '' }}')">Edit</button>
+                                                    data-product-id="{{ product.id }}"
+                                                    data-product-name="{{ product.name }}"
+                                                    data-stock="{{ stk }}"
+                                                    data-shopkeeper-id="{{ sk.id }}"
+                                                    data-price="{{ product.price }}"
+                                                    data-rate-qty="{{ product.rate_qty or '' }}"
+                                                    onclick="handleEditProductClick(this)">Edit</button>
                                                 <button class="btn btn-destructive btn-small"
-                                                    onclick="deleteProduct('{{ product.id }}', '{{ product.name | replace('\'', '\\\'') }}')">Delete</button>
+                                                    data-product-id="{{ product.id }}"
+                                                    data-product-name="{{ product.name }}"
+                                                    onclick="handleDeleteProductClick(this)">Delete</button>
                                             </div>
                                         </td>
                                         {% endif %}
@@ -720,7 +728,7 @@
         </div>
     </div>
 
-    <script src="/static/js/admin_v2.js?v=5"></script>
+    <script src="/static/js/admin_v2.js?v=6"></script>
 </body>
 
 </html>

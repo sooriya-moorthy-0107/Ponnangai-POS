@@ -97,10 +97,15 @@ async def factory_pos_page(request: Request, db: Session = Depends(get_db)):
         target_cashier_id = first_factory.id if first_factory else user.id
 
     # Fetch products active for this factory cashier
-    products = db.query(Product).filter(
-        Product.shopkeeper_id == target_cashier_id,
-        Product.is_deleted == False
-    ).order_by(Product.id.asc()).all()
+    products = (
+        db.query(Product)
+        .filter(
+            Product.shopkeeper_id == target_cashier_id,
+            Product.is_deleted == False
+        )
+        .order_by(Product.id.asc())
+        .all()
+    )
     products.sort(key=lambda p: (get_product_sort_key(p.name), p.id))
     
     liquid_products = []
@@ -136,7 +141,12 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
     if not user or user.role not in ["Admin", "Owner", "Manager"]:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    products = db.query(Product).filter(Product.is_deleted == False).order_by(Product.id.asc()).all()
+    products = (
+        db.query(Product)
+        .filter(Product.is_deleted == False)
+        .order_by(Product.id.asc())
+        .all()
+    )
     products.sort(key=lambda p: (get_product_sort_key(p.name), p.id))
     # Filter out soft-deleted users/staff from active views
     users = db.query(User).filter(User.is_deleted == False).all()

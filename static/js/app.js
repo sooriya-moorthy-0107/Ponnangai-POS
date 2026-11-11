@@ -530,17 +530,19 @@ function renderProducts(productsList) {
 
     productsList.forEach(product => {
         const card = document.createElement('div');
-        const escapedName = product.name.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
         card.dataset.productId = product.id;
-        card.dataset.productName = product.name.toLowerCase();
+        card.dataset.productName = product.name;
         card.dataset.stock = product.stock;
         card.dataset.price = product.price;
+        card.dataset.productType = product.product_type || 'solid';
+        card.dataset.unit = product.unit || 'Pcs';
+        card.dataset.image = product.image_filename || '';
 
         if (product.stock > 0) {
             card.className = 'product-card';
             card.style.cursor = 'pointer';
-            card.setAttribute('onclick', `openProductPopup(${product.id}, '${escapedName}', ${product.price}, ${product.stock}, '${product.product_type || 'solid'}', '${product.unit || 'Pcs'}', '${product.image_filename || ''}')`);
+            card.onclick = () => handleProductCardClick(card);
 
             const imageHtml = product.image_filename
                 ? `<img src="/photos/${encodeURIComponent(product.image_filename)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='/static/images/no-image.png'" alt="${escapeHTML(product.name)}" class="product-image">`
@@ -1567,6 +1569,20 @@ function closeRecentBillsModal() {
 
 let pendingProductData = null;
 let isConfirmingAdd = false;
+
+function handleProductCardClick(el) {
+    if (!el) return;
+    const d = el.dataset;
+    openProductPopup(
+        Number(d.productId),
+        d.productName,
+        parseFloat(d.price) || 0,
+        parseFloat(d.stock) || 0,
+        d.productType || 'solid',
+        d.unit || 'Pcs',
+        d.image || ''
+    );
+}
 
 function openProductPopup(id, name, price, maxStock, productType, unit, imagePath) {
     pendingProductData = { id, name, price, maxStock, productType, unit };
